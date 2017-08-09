@@ -2,6 +2,26 @@ package rtmp
 
 import "fmt"
 
+
+
+/*
+    { ngx_string("connect"),            ngx_rtmp_cmd_connect_init           },
+    { ngx_string("createStream"),       ngx_rtmp_cmd_create_stream_init     },
+    { ngx_string("closeStream"),        ngx_rtmp_cmd_close_stream_init      },
+    { ngx_string("deleteStream"),       ngx_rtmp_cmd_delete_stream_init     },
+    { ngx_string("publish"),            ngx_rtmp_cmd_publish_init           },
+    { ngx_string("play"),               ngx_rtmp_cmd_play_init              },
+    { ngx_string("play2"),              ngx_rtmp_cmd_play2_init             },
+    { ngx_string("seek"),               ngx_rtmp_cmd_seek_init              },
+    { ngx_string("pause"),              ngx_rtmp_cmd_pause_init             },
+    { ngx_string("pauseraw"),           ngx_rtmp_cmd_pause_init
+*/
+
+
+
+
+
+
 func (self *Session) pollCommand() (err error) {
 	for {
 		if err = self.pollMsg(); err != nil {

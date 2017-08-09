@@ -7,8 +7,12 @@ import (
 	"time"
 	"bufio"
 	"github.com/nareix/bits/pio"
+	"context"
+	"io"
+	"encoding/hex"
 )
 
+/* RTMP message types */
 var(
 	Debug = 1
 )
@@ -21,10 +25,15 @@ type Server struct{
 }
 
 type Session struct {
+	context 		context.Context
+	cancel 			context.CancelFunc
 	URL             	*url.URL
 	isServerSession 	bool
 	isPlay 			bool
 	isPublish 		bool
+	connected 		bool
+	ackn 			uint32
+	readAckSize       	uint32
 	//状态机
 	stage int
 	//client
@@ -34,8 +43,13 @@ type Session struct {
 	readMaxChunkSize  	int
 	writebuf 		[]byte
 	readbuf  		[]byte
-	bufr *bufio.Reader
-	bufw *bufio.Writer
+	bufr 			*bufio.Reader
+	bufw 			*bufio.Writer
+	gotmsg 			bool
+	gotcommand 		bool
+	metaversion 		int
+	eventtype 		uint16
+	ackSize                 uint32
 }
 
 const(
@@ -44,6 +58,9 @@ const(
 	stageCommandDone
 	stageCodecDataDone
 )
+
+const chunkHeaderLength = 12
+
 
 type chunkStream struct {
 	timenow     uint32
@@ -57,13 +74,14 @@ type chunkStream struct {
 	msgdata     []byte
 }
 
+
 func NewSesion(netconn net.Conn) *Session {
 	session := &Session{}
 	session.netconn = netconn
 	session.readcsmap = make(map[uint32]*chunkStream)
 	session.readMaxChunkSize = 128
 	session.writeMaxChunkSize = 128
-
+	session.context , session.cancel = context.WithCancel(context.Background())
 	//
 	session.bufr = bufio.NewReaderSize(netconn, pio.RecommendBufioSize)
 	session.bufw = bufio.NewWriterSize(netconn, pio.RecommendBufioSize)
@@ -72,37 +90,310 @@ func NewSesion(netconn net.Conn) *Session {
 	return session
 }
 
-func (self *Session) prepare(stage int, flags int) (err error) {
+
+func (self *Session) GetWriteBuf(n int) []byte {
+	if len(self.writebuf) < n {
+		self.writebuf = make([]byte, n)
+	}
+	return self.writebuf
+}
+
+func (self *Session) fillChunkHeader(b []byte, csid uint32, timestamp int32, msgtypeid uint8, msgsid uint32, msgdatalen int) (n int) {
+	//  0                   1                   2                   3
+	//  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+	// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	// |                   timestamp                   |message length |
+	// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	// |     message length (cont)     |message type id| msg stream id |
+	// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	// |           message stream id (cont)            |
+	// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	//
+	//       Figure 9 Chunk Message Header – Type 0
+
+	b[n] = byte(csid) & 0x3f
+	n++
+	pio.PutU24BE(b[n:], uint32(timestamp))
+	n += 3
+	pio.PutU24BE(b[n:], uint32(msgdatalen))
+	n += 3
+	b[n] = msgtypeid
+	n++
+	pio.PutU32LE(b[n:], msgsid)
+	n += 4
+
+	if Debug {
+		fmt.Printf("rtmp: write chunk msgdatalen=%d msgsid=%d\n", msgdatalen, msgsid)
+	}
+
+	return
+}
+
+func (self *Session) flushWrite() (err error) {
+	if err = self.bufw.Flush(); err != nil {
+		return
+	}
+	return
+}
+
+func (self *chunkStream) Start() {
+	self.msgdataleft = self.msgdatalen
+	self.msgdata = make([]byte, self.msgdatalen)
+}
+
+func (self *Session) readChunk() (err error) {
+
+	b := self.readbuf
+	n := 0
+	if _, err = io.ReadFull(self.bufr, b[:1]); err != nil {
+		return
+	}
+	header := b[0]
+	n += 1
+
+	var fmtTpye uint8
+	var csid uint32
+
+	fmtTpye = header >> 6
+
+	csid = uint32(header) & 0x3f
+	switch csid {
+	default: // Chunk basic header 1
+	case 0: // Chunk basic header 2
+		if _, err = io.ReadFull(self.bufr, b[:1]); err != nil {
+			return
+		}
+		n += 1
+		csid = uint32(b[0]) + 64
+	case 1: // Chunk basic header 3
+		if _, err = io.ReadFull(self.bufr, b[:2]); err != nil {
+			return
+		}
+		n += 2
+		csid = uint32(pio.U16BE(b)) + 64
+	}
+
+	cs := self.readcsmap[csid]
+	if cs == nil {
+		cs = &chunkStream{}
+		self.readcsmap[csid] = cs
+	}
+
+	var timestamp uint32
+
+	switch fmtTpye {
+	case 0:
+		//  0                   1                   2                   3
+		//  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |                   timestamp                   |message length |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |     message length (cont)     |message type id| msg stream id |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |           message stream id (cont)            |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		//
+		//       Figure 9 Chunk Message Header – Type 0
+		if cs.msgdataleft != 0 {
+			err = fmt.Errorf("rtmp: chunk msgdataleft=%d invalid", cs.msgdataleft)
+			return
+		}
+		h := b[:11]
+		if _, err = io.ReadFull(self.bufr, h); err != nil {
+			return
+		}
+		n += len(h)
+		timestamp = pio.U24BE(h[0:3])
+		cs.msghdrtype = fmtTpye
+		cs.msgdatalen = pio.U24BE(h[3:6])
+		cs.msgtypeid = h[6]
+		cs.msgsid = pio.U32LE(h[7:11])
+		if timestamp == 0xffffff {
+			if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
+				return
+			}
+			n += 4
+			timestamp = pio.U32BE(b)
+			cs.hastimeext = true
+		} else {
+			cs.hastimeext = false
+		}
+		cs.timenow = timestamp
+		cs.Start()
+
+	case 1:
+		//  0                   1                   2                   3
+		//  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |                timestamp delta                |message length |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |     message length (cont)     |message type id|
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		//
+		//       Figure 10 Chunk Message Header – Type 1
+		if cs.msgdataleft != 0 {
+			err = fmt.Errorf("rtmp: chunk msgdataleft=%d invalid", cs.msgdataleft)
+			return
+		}
+		h := b[:7]
+		if _, err = io.ReadFull(self.bufr, h); err != nil {
+			return
+		}
+		n += len(h)
+		timestamp = pio.U24BE(h[0:3])
+		cs.msghdrtype = fmtTpye
+		cs.msgdatalen = pio.U24BE(h[3:6])
+		cs.msgtypeid = h[6]
+		if timestamp == 0xffffff {
+			if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
+				return
+			}
+			n += 4
+			timestamp = pio.U32BE(b)
+			cs.hastimeext = true
+		} else {
+			cs.hastimeext = false
+		}
+		cs.timedelta = timestamp
+		cs.timenow += timestamp
+		cs.Start()
+
+	case 2:
+		//  0                   1                   2
+		//  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		// |                timestamp delta                |
+		// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		//
+		//       Figure 11 Chunk Message Header – Type 2
+		if cs.msgdataleft != 0 {
+			err = fmt.Errorf("rtmp: chunk msgdataleft=%d invalid", cs.msgdataleft)
+			return
+		}
+		h := b[:3]
+		if _, err = io.ReadFull(self.bufr, h); err != nil {
+			return
+		}
+		n += len(h)
+		cs.msghdrtype = fmtTpye
+		timestamp = pio.U24BE(h[0:3])
+		if timestamp == 0xffffff {
+			if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
+				return
+			}
+			n += 4
+			timestamp = pio.U32BE(b)
+			cs.hastimeext = true
+		} else {
+			cs.hastimeext = false
+		}
+		cs.timedelta = timestamp
+		cs.timenow += timestamp
+		cs.Start()
+
+	case 3:
+		if cs.msgdataleft == 0 {
+			switch cs.msghdrtype {
+			case 0:
+				if cs.hastimeext {
+					if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
+						return
+					}
+					n += 4
+					timestamp = pio.U32BE(b)
+					cs.timenow = timestamp
+				}
+			case 1, 2:
+				if cs.hastimeext {
+					if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
+						return
+					}
+					n += 4
+					timestamp = pio.U32BE(b)
+				} else {
+					timestamp = cs.timedelta
+				}
+				cs.timenow += timestamp
+			}
+			cs.Start()
+		}
+
+	default:
+		err = fmt.Errorf("rtmp: invalid chunk msg header type=%d", fmtTpye)
+		return
+	}
+
+	size := int(cs.msgdataleft)
+	if size > self.readMaxChunkSize {
+		size = self.readMaxChunkSize
+	}
+
+	off := cs.msgdatalen - cs.msgdataleft
+	buf := cs.msgdata[off : int(off)+size]
+	if _, err = io.ReadFull(self.bufr, buf); err != nil {
+		return
+	}
+
+	n += len(buf)
+	cs.msgdataleft -= uint32(size)
+
+	if Debug {
+		fmt.Printf("rtmp: chunk msgsid=%d msgtypeid=%d msghdrtype=%d len=%d left=%d\n",
+			cs.msgsid, cs.msgtypeid, cs.msghdrtype, cs.msgdatalen, cs.msgdataleft)
+	}
+
+	if cs.msgdataleft == 0 {
+		if Debug {
+			fmt.Println("rtmp: chunk data")
+			fmt.Print(hex.Dump(cs.msgdata))
+		}
+		if RtmpMsgHandles[cs.msgtypeid] != nil {
+			if err = RtmpMsgHandles[cs.msgtypeid](cs.timenow, cs.msgsid, cs.msgtypeid, cs.msgdata);err!=nil {
+				return
+			}
+		}
+	}
+
+	self.ackn += uint32(n)
+	if self.readAckSize != 0 && self.ackn > self.readAckSize {
+		if err = self.writeRtmpMsgAck(self.ackn); err != nil {
+			return
+		}
+		self.ackn = 0
+	}
+
+	return
+}
+
+func (self *Session)rtmpReadMsgCycle()(err error) {
+	for {
+		if err:=self.readChunk();err !=nil {
+			//do something close work in here
+			return err
+		}
+	}
+}
+
+
+func (self *Session) readMsg(stage int, flags int) (err error) {
 	for self.stage < stage {
 		switch self.stage {
+		//first handshake
 		case stageHandshakeStart:
 			if self.isServerSession {
+				//this is a server
 				if err = self.handshakeServer(); err != nil {
 					return
 				}
 			} else {
+				//this for client just play or publish
 				if err = self.handshakeClient(); err != nil {
 					return
 				}
 			}
 
 		case stageHandshakeDone:
-			if self.isServerSession {
-				if err = self.readConnect(); err != nil {
-					return
-				}
-			} else {
-				if flags == prepareReading {
-					if err = self.connectPlay(); err != nil {
-						return
-					}
-				} else {
-					if err = self.connectPublish(); err != nil {
-						return
-					}
-				}
-			}
-
+			Session.rtmpReadMsgCycle()
 		case stageCommandDone:
 			if flags == prepareReading {
 				if err = self.probe(); err != nil {
@@ -118,24 +409,10 @@ func (self *Session) prepare(stage int, flags int) (err error) {
 }
 
 func (self *Server) SessionHandle(session *Session) (err error) {
-	if self.HandleConn != nil {
-		self.HandleConn(session)
-	} else {
-		if err = session.prepare(stageCommandDone, 0); err != nil {
+
+	if err = session.prepare(stageCommandDone, 0); err != nil {
 			return
-		}
-
-		if session.isPlay {
-			if self.HandlePlay != nil {
-				self.HandlePlay(session)
-			}
-		} else if session.isPublish {
-			if self.HandlePublish != nil {
-				self.HandlePublish(session)
-			}
-		}
 	}
-
 	return
 }
 

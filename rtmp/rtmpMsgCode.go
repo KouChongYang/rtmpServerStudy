@@ -1,5 +1,10 @@
 package rtmp
 
+const (
+	RtmpLimitSoft = 0
+	RtmpLimitHard = 1
+	RtmpLimiTDynamic = 2 //only user this
+)
 const  (
 	RtmpMsgChunkSize =  1
 	RtmpMsgAbort = 2
@@ -11,12 +16,9 @@ const  (
 	RtmpMsgAudio = 8
 	RtmpMsgVideo = 9
 	RtmpMsgAmf3Meta = 15
-	RtmpMsgAmf3Shared = 16
 	RtmpMsgAmf3CMD = 17
 	RtmpMsgAmfMeta = 18
-	RtmpMsgAmfShared = 19
 	RtmpMsgAmfCMD = 20
-	RrmpMsgAggregate = 22
 	NGX_RTMP_MSG_MAX =  22
 )
 
@@ -58,16 +60,13 @@ func init(){
 	RtmpMsgHandles[RtmpMsgUser] = RtmpMsgUserEventHandler
 	RtmpMsgHandles[RtmpMsgAckSize] = RtmpMsgAckSizeHandler
 	RtmpMsgHandles[RtmpMsgBandwidth] = RtmpMsgBandwidthHandler
-	RtmpMsgHandles[RtmpMsgEdge] = RtmpMsgEdgeHandler
 	RtmpMsgHandles[RtmpMsgAudio] = RtmpMsgAudioHandler
 	RtmpMsgHandles[RtmpMsgVideo] = RtmpMsgVideoHandler
-	RtmpMsgHandles[RtmpMsgAmf3Meta] = RtmpMsgAmf3MetaHandler
-	RtmpMsgHandles[RtmpMsgAmf3Shared] = RtmpMsgAmf3SharedHandler
-	RtmpMsgHandles[RtmpMsgAmf3CMD] = RtmpMsgAmf3CMDHandler
-	RtmpMsgHandles[RtmpMsgAmfMeta] = RtmpMsgAmfMetaHandler
-	RtmpMsgHandles[RtmpMsgAmfShared] =RtmpMsgAmfSharedHandler
-	RtmpMsgHandles[RtmpMsgAmfCMD] = RtmpMsgAmfCMDHandler
-	RtmpMsgHandles[RrmpMsgAggregate] = RrmpMsgAggregateHandler
+	RtmpMsgHandles[RtmpMsgAmf3Meta] = RtmpMsgAmf3Handler
+	RtmpMsgHandles[RtmpMsgAmf3CMD] = RtmpMsgAmf3Handler
+	RtmpMsgHandles[RtmpMsgAmfMeta] = RtmpMsgAmfHandler
+	RtmpMsgHandles[RtmpMsgAmfCMD] = RtmpMsgAmfHandler
+
 
 
 	RtmpControlMsgHandles[RtmpUserStreamBegin] = RtmpUserStreamBeginHandler
