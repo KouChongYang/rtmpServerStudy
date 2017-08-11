@@ -71,9 +71,9 @@ func init(){
 
 	RtmpControlMsgHandles[RtmpUserStreamBegin] = RtmpUserStreamBeginHandler
 	RtmpControlMsgHandles[RtmpUserStreamEof] = RtmpUserStreamEofHandler
-	RtmpControlMsgHandles[RtmpUserStreamDRY] =RtmpUserStreamDRYHandler
+
 	RtmpControlMsgHandles[RtmpUserSetBufLen]  = RtmpUserSetBufLenHandler
-	RtmpControlMsgHandles[RtmpUserRecorded] = RtmpUserRecordedHandler
+
 	RtmpControlMsgHandles[RtmpUserPingRequest] = RtmpUserPingRequestHandler
 	RtmpControlMsgHandles[RtmpUserPingResponse] = RtmpUserPingResponseHandler
 	RtmpControlMsgHandles[RtmpUserUnknown] = RtmpUserUnknownHandler

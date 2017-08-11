@@ -2,7 +2,6 @@ package rtmp
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/nareix/bits/pio"
 )
 
@@ -37,7 +36,8 @@ func (self *Session) sendSetPingResponse(msgsid uint32, timestamp uint32) (err e
 
 func RtmpUserPingRequestHandler (session *Session,timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
 	time:=pio.U32BE(msgdata[2:])
-
+	err = session.sendSetPingResponse(msgsid,time)
+	return
 }
 
 func RtmpUserPingResponseHandler (session *Session,timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
