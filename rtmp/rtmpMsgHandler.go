@@ -68,7 +68,10 @@ func RtmpMsgUserEventHandler(session *Session,timestamp uint32,
 		return
 	}
 	session.eventtype = pio.U16BE(msgdata)
-	return RtmpControlMsgHandles[session.eventtype]
+	if RtmpControlMsgHandles[session.eventtype]{
+		return RtmpControlMsgHandles[session.eventtype](session ,timestamp,msgsid, msgtypeid, msgdata)
+	}
+	return
 }
 
 func RtmpMsgAckSizeHandler(session *Session,timestamp uint32,
@@ -94,6 +97,23 @@ func (self *Session) writeWindowAckSize(size uint32) (err error) {
 
 func RtmpMsgBandwidthHandler(session *Session,timestamp uint32,
 				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+	/*if (b->last - b->pos >= 5) {
+		limit = *(uint8_t*)&b->pos[4];
+
+		(void)val;
+		(void)limit;
+
+		s->log_bpos = ngx_sprintf(s->log_bpos, " bandwidth:%uD limit:%d", val, limit);
+
+		ngx_log_debug2(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
+			"receive bandwidth=%uD limit=%d",
+			val, (int)limit);*/
+	msgLen := len(msgdata)
+	if msgLen < 5 {
+		err = fmt.Errorf("rtmp: short packet of BandWidthHandler the len:%d",msgLen)
+		return
+	}
+
 	return
 }
 
@@ -111,11 +131,13 @@ func (self *Session) writeSetPeerBandwidth(acksize uint32, limittype uint8) (err
 
 func RtmpMsgAudioHandler(session *Session,timestamp uint32,
 				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+	return
 
 }
 
 func RtmpMsgVideoHandler(session *Session,timestamp uint32,
 				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+	return
 
 }
 
@@ -138,12 +160,13 @@ func (self *Session) handleCommandMsgAMF0(b []byte) (n int, err error) {
 	n += size
 
 	var ok bool
-	if commandname, ok := name.(string); !ok {
+	var commandname string
+	if commandname, ok = name.(string); !ok {
 		err = fmt.Errorf("rtmp: CommandMsgAMF0 command is not string")
 		return
 	}
 
-	commandtransid, _ := transid.(float64)
+	self.commandtransid, _ = transid.(float64)
 	commandobj, _ := obj.(amf.AMFMap)
 	commandparams := []interface{}{}
 
@@ -157,6 +180,11 @@ func (self *Session) handleCommandMsgAMF0(b []byte) (n int, err error) {
 	if n < len(b) {
 		err = fmt.Errorf("rtmp: CommandMsgAMF0 left bytes=%d", len(b)-n)
 		return
+	}
+
+	//(sesion *Session,obj amf.AMFMap,amfParams[]interface{})
+	if RtmpCmdHandles[commandname]{
+		err = RtmpCmdHandles[commandname](self,commandobj,commandparams)
 	}
 
 	return
@@ -184,9 +212,10 @@ func RtmpMsgAmfHandler(session *Session,timestamp uint32,
 	if _, err = session.handleCommandMsgAMF0(msgdata); err != nil {
 		return
 	}
+	return
 }
 
 func RrmpMsgAggregateHandler(session *Session,timestamp uint32,
 				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
-
+	return
 }

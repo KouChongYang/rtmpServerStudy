@@ -57,6 +57,7 @@ type Session struct {
 	readbuf           []byte
 	bufr              *bufio.Reader
 	bufw              *bufio.Writer
+	commandtransid 	  float64
 	gotmsg            bool
 	gotcommand        bool
 	metaversion       int
