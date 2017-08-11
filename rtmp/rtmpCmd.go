@@ -1,8 +1,9 @@
 package rtmp
 
-import "fmt"
-
-
+import (
+	"fmt"
+	"rtmpServerStudy/amf"
+)
 
 /*
     { ngx_string("connect"),            ngx_rtmp_cmd_connect_init           },
@@ -17,21 +18,94 @@ import "fmt"
     { ngx_string("pauseraw"),           ngx_rtmp_cmd_pause_init
 */
 
+type Handler func (sesion *Session,obj amf.AMFMap,amfParams[]interface{}) (err error)
+type RtmpCmdHandles map[string]Handler
+var RtmpCmdHandles RtmpCmdHandles
 
+func RtmpConnectCmdHandler(Session *Session,CmdObj amf.AMFMap,amfParams[]interface{})(err error){
 
-
-
-
-func (self *Session) pollCommand() (err error) {
-	for {
-		if err = self.pollMsg(); err != nil {
-			return
-		}
-		if self.gotcommand {
-			return
-		}
+	if CmdObj == nil {
+		err = fmt.Errorf("rtmp: connect command params invalid")
+		return
 	}
+
+	var ok bool
+	var _app, _tcurl interface{}
+	if _app, ok = CmdObj["app"]; !ok {
+		err = fmt.Errorf("rtmp: `connect` params missing `app`")
+		return
+	}
+	app, _ := _app.(string)
+	Session.App = &app
+
+	var tcurl string
+	if _tcurl, ok = CmdObj["tcUrl"]; !ok {
+	}
+	if ok {
+		tcurl, _ = _tcurl.(string)
+	}
+	Session.TcUrl = &tcurl
+
+	if err = Session.writeBasicConf(); err != nil {
+		return
+	}
+
+	// > _result("NetConnection.Connect.Success")
+	if err = Session.writeCommandMsg(3, 0, "_result", self.commandtransid,
+		amf.AMFMap{
+			"fmtVer":       "FMS/3,0,1,123",
+			"capabilities": 31,
+		},
+		amf.AMFMap{
+			"level":          "status",
+			"code":           "NetConnection.Connect.Success",
+			"description":    "Connection succeeded.",
+			"objectEncoding": 3,
+		},
+	); err != nil {
+		return
+	}
+
+	if err = self.flushWrite(); err != nil {
+		return
+	}
+	return err
 }
+
+func RtmpCreateStreamCmdHandler(sesion *Session,obj amf.AMFMap,amfParams[]interface{})(err error){
+	return err
+}
+
+func RtmpCloseStreamCmdHandler(sesion *Session,obj amf.AMFMap,amfParams[]interface{})(err error){
+	return err
+}
+
+func RtmpDeleteStreamCmdHandler(sesion *Session,obj amf.AMFMap,amfParams[]interface{})(err error){
+	return err
+}
+
+func RtmpPublishCmdHandler(sesion *Session,obj amf.AMFMap,amfParams[]interface{})(err error){
+	return err
+}
+
+func RtmpPlayCmdHandler(sesion *Session,obj amf.AMFMap,amfParams[]interface{})(err error){
+	return err
+}
+
+
+func init(){
+	RtmpCmdHandles = make(RtmpCmdHandles)
+	RtmpCmdHandles["connect"] = RtmpConnectCmdHandler
+	RtmpCmdHandles["createStream"] = RtmpCreateStreamCmdHandler
+	RtmpCmdHandles["closeStream"] = RtmpCloseStreamCmdHandler
+	RtmpCmdHandles["deleteStream"] = RtmpDeleteStreamCmdHandler
+	RtmpCmdHandles["publish"] = RtmpPublishCmdHandler
+	RtmpCmdHandles["play"] = RtmpPlayCmdHandler
+}
+
+
+
+
 
 func (self *Session) readConnect() (err error) {
 	var connectpath string

@@ -10,12 +10,21 @@ import (
 	"context"
 	"io"
 	"encoding/hex"
+	"sync"
+	"container/list"
 )
 
 /* RTMP message types */
 var(
 	Debug = 1
 )
+
+type sessionIndex map[string](*Session)
+type sessionIndexStruct struct{
+	sessionIndex *sessionIndex
+	sync.RWMutex
+}
+
 type Server struct{
 	RtmpAddr          string
 	HttpAddr 	  string
@@ -25,41 +34,47 @@ type Server struct{
 }
 
 type Session struct {
-	context 		context.Context
-	cancel 			context.CancelFunc
-	URL             	*url.URL
-	isServerSession 	bool
-	isPlay 			bool
-	isPublish 		bool
-	connected 		bool
-	ackn 			uint32
-	readAckSize       	uint32
+	context           context.Context
+	SubList  	  *list.List
+	App               *string
+	cancel            context.CancelFunc
+	URL               *url.URL
+	TcUrl		  *string
+	isServer          bool
+	isPlay            bool
+	isPublish         bool
+	connected         bool
+	ackn              uint32
+	readAckSize       uint32
 	//状态机
-	stage int
+	stage             int
 	//client
-	netconn 	  	net.Conn
-	readcsmap         	map[uint32]*chunkStream
-	writeMaxChunkSize 	int
-	readMaxChunkSize  	int
-	writebuf 		[]byte
-	readbuf  		[]byte
-	bufr 			*bufio.Reader
-	bufw 			*bufio.Writer
-	gotmsg 			bool
-	gotcommand 		bool
-	metaversion 		int
-	eventtype 		uint16
-	ackSize                 uint32
+	netconn           net.Conn
+	readcsmap         map[uint32]*chunkStream
+	writeMaxChunkSize int
+	readMaxChunkSize  int
+	writebuf          []byte
+	readbuf           []byte
+	bufr              *bufio.Reader
+	bufw              *bufio.Writer
+	gotmsg            bool
+	gotcommand        bool
+	metaversion       int
+	eventtype         uint16
+	ackSize           uint32
 }
 
 const(
 	stageHandshakeStart = iota
 	stageHandshakeDone
-	stageCommandDone
-	stageCodecDataDone
+	stageSessionDone
+)
+const (
+	prepareReading = iota + 1
+	prepareWriting
 )
 
-const chunkHeaderLength = 12
+const chunkHeaderLength = 12 + 4
 
 
 type chunkStream struct {
@@ -98,7 +113,18 @@ func (self *Session) GetWriteBuf(n int) []byte {
 	return self.writebuf
 }
 
-func (self *Session) fillChunkHeader(b []byte, csid uint32, timestamp int32, msgtypeid uint8, msgsid uint32, msgdatalen int) (n int) {
+func (self *Session) fillChunk3Header(b[]byte,csid uint32,timestamp int32)(n int){
+	b[n] = byte(csid) & 0x3f
+	n++
+	if timestamp >= 0xffffff {
+		pio.PutU32BE(b[n:], timestamp)
+		n += 4
+	}
+	// always has header
+	return
+}
+
+func (self *Session) fillChunk0Header(b []byte, csid uint32, timestamp int32, msgtypeid uint8, msgsid uint32, msgdatalen int) (n int) {
 	//  0                   1                   2                   3
 	//  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 	// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -113,7 +139,11 @@ func (self *Session) fillChunkHeader(b []byte, csid uint32, timestamp int32, msg
 
 	b[n] = byte(csid) & 0x3f
 	n++
-	pio.PutU24BE(b[n:], uint32(timestamp))
+	if timestamp <0xffffff {
+		pio.PutU24BE(b[n:], uint32(timestamp))
+	}else{
+		pio.PutU24BE(b[n:], uint32(0xffffff))
+	}
 	n += 3
 	pio.PutU24BE(b[n:], uint32(msgdatalen))
 	n += 3
@@ -122,6 +152,10 @@ func (self *Session) fillChunkHeader(b []byte, csid uint32, timestamp int32, msg
 	pio.PutU32LE(b[n:], msgsid)
 	n += 4
 
+	if timestamp >= 0xffffff {
+		pio.PutU32BE(b[n:], timestamp)
+		n += 4
+	}
 	if Debug {
 		fmt.Printf("rtmp: write chunk msgdatalen=%d msgsid=%d\n", msgdatalen, msgsid)
 	}
@@ -367,50 +401,70 @@ func (self *Session) readChunk() (err error) {
 
 func (self *Session)rtmpReadMsgCycle()(err error) {
 	for {
-		if err:=self.readChunk();err !=nil {
-			//do something close work in here
+		if err = self.readChunk();err != nil{
 			return err
-		}
-	}
-}
-
-
-func (self *Session) readMsg(stage int, flags int) (err error) {
-	for self.stage < stage {
-		switch self.stage {
-		//first handshake
-		case stageHandshakeStart:
-			if self.isServerSession {
-				//this is a server
-				if err = self.handshakeServer(); err != nil {
-					return
-				}
-			} else {
-				//this for client just play or publish
-				if err = self.handshakeClient(); err != nil {
-					return
-				}
-			}
-
-		case stageHandshakeDone:
-			Session.rtmpReadMsgCycle()
-		case stageCommandDone:
-			if flags == prepareReading {
-				if err = self.probe(); err != nil {
-					return
-				}
-			} else {
-				err = fmt.Errorf("rtmp: call WriteHeader() before WritePacket()")
-				return
-			}
 		}
 	}
 	return
 }
 
-func (self *Server) SessionHandle(session *Session) (err error) {
+func (self *Session)rtmpCloseSessionHanler(){
 
-	if err = session.prepare(stageCommandDone, 0); err != nil {
+}
+
+func  (self *Session)connectPlay()(err error){
+	return err
+}
+
+func (self *Session)connectPublish()(err error){
+	return err
+}
+
+func (self *Session) ClientSessionPrepare(stage,flags int)(err error){
+	for self.stage < stage {
+		switch self.stage {
+		case stageHandshakeStart:
+			if err = self.handshakeClient(); err != nil {
+				return
+			}
+		case stageHandshakeDone:
+			if flags == prepareReading {
+				if err = self.connectPlay(); err != nil {
+					return
+				}
+			} else {
+				if err = self.connectPublish(); err != nil {
+					return
+				}
+			}
+		}
+
+	}
+	return
+}
+
+func (self *Session) ServerSessionPrepare(stage int, flags int) (err error) {
+
+	for self.stage < stage {
+		switch self.stage {
+		//first handshake
+		case stageHandshakeStart:
+			if err = self.handshakeServer(); err != nil {
+				return
+			}
+		case stageHandshakeDone:
+			err = self.rtmpReadMsgCycle()
+		case stageSessionDone:
+			//some thing close handler
+			self.rtmpCloseSessionHanler()
+		}
+	}
+	return
+}
+
+func (self *Server) ServerHandle(session *Session) (err error) {
+
+	if err = session.ServerSessionPrepare(stageSessionDone, 0); err != nil {
 			return
 	}
 	return
@@ -467,9 +521,9 @@ func (self *Server) ListenAndServe() (err error) {
 		}
 
 		session := NewSesion(netconn)
-		session.isServerSession = true
+		session.isServer = true
 		go func() {
-			err := self.SessionHandle(session)
+			err := self.ServerHandle(session)
 			if Debug {
 				fmt.Println("rtmp: server: client closed err:", err)
 			}
