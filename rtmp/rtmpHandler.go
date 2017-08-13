@@ -45,6 +45,7 @@ func (self *Session) DoSend(b []byte, csid uint32, timestamp uint32, msgtypeid u
 		if sn, err = self.bufw.Write(b[pos:end]);err !=nil {
 			return
 		}
+		msgdatalen -= sn
 	}
 	return
 }
