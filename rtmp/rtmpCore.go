@@ -55,6 +55,7 @@ type Session struct {
 	readcsmap         map[uint32]*chunkStream
 	writeMaxChunkSize int
 	readMaxChunkSize  int
+	chunkHeaderBuf    []byte
 	writebuf          []byte
 	readbuf           []byte
 	bufr              *bufio.Reader
@@ -105,6 +106,7 @@ func NewSesion(netconn net.Conn) *Session {
 	session.bufw = bufio.NewWriterSize(netconn, pio.RecommendBufioSize)
 	session.writebuf = make([]byte, 4096)
 	session.readbuf = make([]byte, 4096)
+	session.chunkHeaderBuf = make([]byte,chunkHeaderLength)
 	return session
 }
 
@@ -117,7 +119,7 @@ func (self *Session) GetWriteBuf(n int) []byte {
 }
 
 func (self *Session) fillChunk3Header(b[]byte,csid uint32,timestamp uint32)(n int){
-	b[n] = byte(csid) & 0x3f
+	b[n] = (byte(csid) & 0x3f) | 0xC0
 	n++
 	if timestamp >= 0xffffff {
 		pio.PutU32BE(b[n:], timestamp)
