@@ -68,7 +68,7 @@ func RtmpMsgUserEventHandler(session *Session,timestamp uint32,
 		return
 	}
 	session.eventtype = pio.U16BE(msgdata)
-	if RtmpControlMsgHandles[session.eventtype]{
+	if RtmpControlMsgHandles[session.eventtype] != nil{
 		return RtmpControlMsgHandles[session.eventtype](session ,timestamp,msgsid, msgtypeid, msgdata)
 	}
 	return
@@ -82,7 +82,8 @@ func RtmpMsgAckSizeHandler(session *Session,timestamp uint32,
 		err = fmt.Errorf("rtmp: short packet of SetChunkSize the len:%d",msgLen)
 		return
 	}
-	session.ackSize = int(pio.U32BE(msgdata))
+	session.ackSize = pio.U32BE(msgdata)
+
 	return
 }
 
@@ -183,7 +184,7 @@ func (self *Session) handleCommandMsgAMF0(b []byte) (n int, err error) {
 	}
 
 	//(sesion *Session,obj amf.AMFMap,amfParams[]interface{})
-	if RtmpCmdHandles[commandname]{
+	if RtmpCmdHandles[commandname] != nil {
 		err = RtmpCmdHandles[commandname](self,commandobj,commandparams)
 	}
 

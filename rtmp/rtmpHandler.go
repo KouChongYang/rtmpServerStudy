@@ -3,6 +3,7 @@ package rtmp
 import (
 	"rtmpServerStudy/amf"
 
+	"github.com/nareix/bits/pio"
 )
 
 func (self *Session) writeDataMsg(csid, msgsid uint32, args ...interface{}) (err error) {
@@ -13,7 +14,7 @@ func (self *Session) writeCommandMsg(csid, msgsid uint32, args ...interface{}) (
 	return self.writeAMF0Msg(RtmpMsgAmfCMD, csid, msgsid, args...)
 }
 
-func (self *Session) DoSend(b []byte, csid uint32, timestamp int32, msgtypeid uint8, msgsid uint32, msgdatalen int)(n int ,err error){
+func (self *Session) DoSend(b []byte, csid uint32, timestamp uint32, msgtypeid uint8, msgsid uint32, msgdatalen int)(n int ,err error){
 
 	bh := self.GetWriteBuf(chunkHeaderLength)
 
@@ -31,8 +32,8 @@ func (self *Session) DoSend(b []byte, csid uint32, timestamp int32, msgtypeid ui
 			_, err = self.bufw.Write(bh[:n])
 		}
 		if msgdatalen>self.writeMaxChunkSize {
-			if sn, err = self.bufw.Write(b[pos:last]);err {
-				return err
+			if sn, err = self.bufw.Write(b[pos:last]);err != nil {
+				return
 			}
 
 			pos += sn
@@ -41,11 +42,11 @@ func (self *Session) DoSend(b []byte, csid uint32, timestamp int32, msgtypeid ui
 			continue
 		}
 
-		if sn, err = self.bufw.Write(b[pos:end]);err {
-			return err
+		if sn, err = self.bufw.Write(b[pos:end]);err !=nil {
+			return
 		}
 	}
-	return err
+	return
 }
 
 func (self *Session) writeAMF0Msg(msgtypeid uint8, csid, msgsid uint32, args ...interface{}) (err error) {
@@ -77,5 +78,16 @@ func (self *Session) writeBasicConf() (err error) {
 	if err = self.writeSetPeerBandwidth(5000000, 2); err != nil {
 		return
 	}
+	return
+}
+
+func (self *Session) writeStreamBegin(msgsid uint32) (err error) {
+	b := self.GetWriteBuf(chunkHeaderLength + 6)
+	n := self.fillChunk0Header(b, 2, 0, RtmpMsgUser, 0, 6)
+	pio.PutU16BE(b[n:], RtmpUserStreamBegin)
+	n += 2
+	pio.PutU32BE(b[n:], msgsid)
+	n += 4
+	_, err = self.bufw.Write(b[:n])
 	return
 }

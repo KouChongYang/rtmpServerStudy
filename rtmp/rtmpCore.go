@@ -16,7 +16,7 @@ import (
 
 /* RTMP message types */
 var(
-	Debug = 1
+	Debug = true
 )
 
 type sessionIndex map[string](*Session)
@@ -46,6 +46,8 @@ type Session struct {
 	connected         bool
 	ackn              uint32
 	readAckSize       uint32
+	avmsgsid         uint32
+	publishing      bool
 	//状态机
 	stage             int
 	//client
@@ -114,7 +116,7 @@ func (self *Session) GetWriteBuf(n int) []byte {
 	return self.writebuf
 }
 
-func (self *Session) fillChunk3Header(b[]byte,csid uint32,timestamp int32)(n int){
+func (self *Session) fillChunk3Header(b[]byte,csid uint32,timestamp uint32)(n int){
 	b[n] = byte(csid) & 0x3f
 	n++
 	if timestamp >= 0xffffff {
@@ -125,7 +127,7 @@ func (self *Session) fillChunk3Header(b[]byte,csid uint32,timestamp int32)(n int
 	return
 }
 
-func (self *Session) fillChunk0Header(b []byte, csid uint32, timestamp int32, msgtypeid uint8, msgsid uint32, msgdatalen int) (n int) {
+func (self *Session) fillChunk0Header(b []byte, csid uint32, timestamp uint32, msgtypeid uint8, msgsid uint32, msgdatalen int) (n int) {
 	//  0                   1                   2                   3
 	//  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 	// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -383,7 +385,7 @@ func (self *Session) readChunk() (err error) {
 			fmt.Print(hex.Dump(cs.msgdata))
 		}
 		if RtmpMsgHandles[cs.msgtypeid] != nil {
-			if err = RtmpMsgHandles[cs.msgtypeid](cs.timenow, cs.msgsid, cs.msgtypeid, cs.msgdata);err!=nil {
+			if err = RtmpMsgHandles[cs.msgtypeid](self,cs.timenow, cs.msgsid, cs.msgtypeid, cs.msgdata);err!=nil {
 				return
 			}
 		}

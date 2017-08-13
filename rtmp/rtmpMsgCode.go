@@ -45,15 +45,15 @@ const(
 	RtmpUserBufferEnd = 32
 )
 
-type Handler func (sesion *Session,timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error)
-type RtmpMsgHandles map[int]Handler
-var RtmpMsgHandles  RtmpMsgHandles
-type RtmpControlMsgHandles map[int]Handler
-var RtmpControlMsgHandles RtmpControlMsgHandles
+type msgHandler func (sesion *Session,timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error)
+type RtmpMsgHandle map[uint8]msgHandler
+var RtmpMsgHandles RtmpMsgHandle
+type RtmpControlMsgHandle map[uint16]msgHandler
+var RtmpControlMsgHandles RtmpControlMsgHandle
 
 func init(){
-	RtmpControlMsgHandles = make(RtmpControlMsgHandles)
-	RtmpMsgHandles = make(RtmpMsgHandles)
+	RtmpControlMsgHandles = make(RtmpControlMsgHandle)
+	RtmpMsgHandles = make(RtmpMsgHandle)
 	RtmpMsgHandles[RtmpMsgChunkSize] = RtmpMsgChunkSizeHandler
 	RtmpMsgHandles[RtmpMsgAbort] = RtmpMsgAbortHandler
 	RtmpMsgHandles[RtmpMsgAck] = RtmpMsgAckHanldler

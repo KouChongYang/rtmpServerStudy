@@ -41,7 +41,7 @@ func RtmpUserPingRequestHandler (session *Session,timestamp uint32, msgsid uint3
 }
 
 func RtmpUserPingResponseHandler (session *Session,timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
-
+	return
 }
 
 func RtmpUserUnknownHandler (session *Session,timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
