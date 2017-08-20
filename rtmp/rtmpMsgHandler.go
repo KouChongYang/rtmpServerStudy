@@ -82,8 +82,10 @@ func RtmpMsgAckSizeHandler(session *Session,timestamp uint32,
 		err = fmt.Errorf("rtmp: short packet of SetChunkSize the len:%d",msgLen)
 		return
 	}
-	session.ackSize = pio.U32BE(msgdata)
-
+	session.readAckSize = pio.U32BE(msgdata)
+	/*if err = session.writeWindowAckSize(0xffffffff); err != nil {
+		return
+	}*/
 	return
 }
 
@@ -132,14 +134,15 @@ func (self *Session) writeSetPeerBandwidth(acksize uint32, limittype uint8) (err
 
 func RtmpMsgAudioHandler(session *Session,timestamp uint32,
 				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+	err = RtmpMsgDecodeAudioHandler(session,timestamp,msgsid,msgtypeid,msgdata)
 	return
 
 }
 
 func RtmpMsgVideoHandler(session *Session,timestamp uint32,
 				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+	err = RtmpMsgDecodeVideoHandler(session,timestamp,msgsid,msgtypeid,msgdata)
 	return
-
 }
 
 func (self *Session) handleCommandMsgAMF0(b []byte) (n int, err error) {

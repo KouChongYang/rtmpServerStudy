@@ -3,9 +3,9 @@ package rtmp
 
 
 import (
-"github.com/gorilla/mux"
-"log"
-"net/http"
+	"github.com/gorilla/mux"
+	"log"
+	"net/http"
 	"fmt"
 	"net/http/httputil"
 	"time"

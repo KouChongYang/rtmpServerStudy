@@ -11,7 +11,13 @@ import (
 	"io"
 	"encoding/hex"
 	"sync"
-	"container/list"
+
+	"rtmpServerStudy/AvQue"
+	"rtmpServerStudy/h264Parse"
+
+
+	"strings"
+	"rtmpServerStudy/aacParse"
 )
 
 /* RTMP message types */
@@ -19,10 +25,22 @@ var(
 	Debug = true
 )
 
+const(
+	MAXREGISTERCHANNEL = 128
+	audioAfterLastVideoCnt = 115
+)
+
+
 type sessionIndex map[string](*Session)
 type sessionIndexStruct struct{
-	sessionIndex *sessionIndex
+	sessionIndex sessionIndex
 	sync.RWMutex
+}
+
+var PublishingSessionMap sessionIndexStruct
+
+func init(){
+	PublishingSessionMap.sessionIndex = make(sessionIndex)
 }
 
 type Server struct{
@@ -33,13 +51,25 @@ type Server struct{
 	HandleConn    func(*Session)
 }
 
+
 type Session struct {
+	sync.RWMutex
 	context           context.Context
-	SubList  	  *list.List
+	CursorList  	  *AvQue.CursorList
+	GopCache          *AvQue.Buf
+	maxgopcount       int
+	audioAfterLastVideoCnt int
+	CurQue   	  *AvQue.AvQueue
+	vCodec 	  	  *h264parser.CodecData
+	aCodec    	  *aacparser.CodecData
+	RegisterChannel   chan *Session
+	RegisterAck       chan bool
+	curgopcount       int
 	App               *string
 	cancel            context.CancelFunc
 	URL               *url.URL
 	TcUrl		  *string
+	isClosed          bool
 	isServer          bool
 	isPlay            bool
 	isPublish         bool
@@ -47,7 +77,8 @@ type Session struct {
 	ackn              uint32
 	readAckSize       uint32
 	avmsgsid         uint32
-	publishing      bool
+	publishing       bool
+	playing          bool
 	//状态机
 	stage             int
 	//client
@@ -71,6 +102,7 @@ type Session struct {
 const(
 	stageHandshakeStart = iota
 	stageHandshakeDone
+	stageCommandDone
 	stageSessionDone
 )
 const (
@@ -100,13 +132,24 @@ func NewSesion(netconn net.Conn) *Session {
 	session.readcsmap = make(map[uint32]*chunkStream)
 	session.readMaxChunkSize = 128
 	session.writeMaxChunkSize = 128
+	session.CursorList = AvQue.NewPublist()
+	session.maxgopcount = 2
+
+	//just for regist cursor session
+	session.RegisterChannel = make(chan *Session,MAXREGISTERCHANNEL)
+
+	//true register ok ,false register false
+	session.RegisterAck = make(chan bool,1)
 	session.context , session.cancel = context.WithCancel(context.Background())
 	//
+
 	session.bufr = bufio.NewReaderSize(netconn, pio.RecommendBufioSize)
 	session.bufw = bufio.NewWriterSize(netconn, pio.RecommendBufioSize)
 	session.writebuf = make([]byte, 4096)
 	session.readbuf = make([]byte, 4096)
 	session.chunkHeaderBuf = make([]byte,chunkHeaderLength)
+	session.GopCache = AvQue.NewBuf(64)
+	session.CurQue = AvQue.NewQueue(64,5)
 	return session
 }
 
@@ -180,7 +223,7 @@ func (self *chunkStream) Start() {
 	self.msgdata = make([]byte, self.msgdatalen)
 }
 
-func (self *Session) readChunk() (err error) {
+func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 
 	b := self.readbuf
 	n := 0
@@ -386,8 +429,8 @@ func (self *Session) readChunk() (err error) {
 			fmt.Println("rtmp: chunk data")
 			fmt.Print(hex.Dump(cs.msgdata))
 		}
-		if RtmpMsgHandles[cs.msgtypeid] != nil {
-			if err = RtmpMsgHandles[cs.msgtypeid](self,cs.timenow, cs.msgsid, cs.msgtypeid, cs.msgdata);err!=nil {
+		if hands[cs.msgtypeid] != nil {
+			if err = hands[cs.msgtypeid](self,cs.timenow, cs.msgsid, cs.msgtypeid, cs.msgdata);err!=nil {
 				return
 			}
 		}
@@ -404,25 +447,31 @@ func (self *Session) readChunk() (err error) {
 	return
 }
 
-func (self *Session)rtmpReadMsgCycle()(err error) {
+func (self *Session)rtmpReadCmdMsgCycle()(err error) {
 	for {
-		if err = self.readChunk();err != nil{
+		if err = self.readChunk(RtmpMsgHandles);err != nil{
+			return err
+		}
+		if self.publishing || self.playing{
+			return
+		}
+	}
+	return
+}
+
+func (self *Session)rtmpReadMsgCycle()(err error){
+	for{
+		if err = self.readChunk(RtmpMsgHandles);err != nil{
 			return err
 		}
 	}
 	return
 }
 
+
+
 func (self *Session)rtmpCloseSessionHanler(){
 
-}
-
-func  (self *Session)connectPlay()(err error){
-	return err
-}
-
-func (self *Session)connectPublish()(err error){
-	return err
 }
 
 func (self *Session) ClientSessionPrepare(stage,flags int)(err error){
@@ -448,7 +497,7 @@ func (self *Session) ClientSessionPrepare(stage,flags int)(err error){
 	return
 }
 
-func (self *Session) ServerSessionPrepare(stage int, flags int) (err error) {
+func (self *Session) ServerSession(stage int) (err error) {
 
 	for self.stage < stage {
 		switch self.stage {
@@ -458,7 +507,30 @@ func (self *Session) ServerSessionPrepare(stage int, flags int) (err error) {
 				return
 			}
 		case stageHandshakeDone:
-			err = self.rtmpReadMsgCycle()
+			err = self.rtmpReadCmdMsgCycle()
+		case stageCommandDone:
+			if self.publishing{
+				PublishingSessionMap.Lock()
+				PublishingSessionMap.sessionIndex[self.URL.Path] = self
+				PublishingSessionMap.Unlock()
+				self.rtmpReadMsgCycle()
+
+			}else if self.playing{
+				PublishingSessionMap.Lock()
+				pubSession,ok:=PublishingSessionMap.sessionIndex[self.URL.Path]
+				PublishingSessionMap.Unlock()
+				if ok {
+					//register play to the publish
+					pubSession.RegisterChannel<-self
+					pubSession.Lock()
+					self.aCodec = pubSession.aCodec
+					self.vCodec = pubSession.vCodec
+
+					pubSession.Unlock()
+				}else{
+					//relay play
+				}
+			}
 		case stageSessionDone:
 			//some thing close handler
 			self.rtmpCloseSessionHanler()
@@ -469,7 +541,7 @@ func (self *Session) ServerSessionPrepare(stage int, flags int) (err error) {
 
 func (self *Server) ServerHandle(session *Session) (err error) {
 
-	if err = session.ServerSessionPrepare(stageSessionDone, 0); err != nil {
+	if err = session.ServerSession(stageSessionDone); err != nil {
 			return
 	}
 	return
@@ -534,4 +606,47 @@ func (self *Server) ListenAndServe() (err error) {
 			}
 		}()
 	}
+}
+
+func SplitPath(u *url.URL) (app, stream string) {
+	pathsegs := strings.SplitN(u.RequestURI(), "/", 3)
+	if len(pathsegs) > 1 {
+		app = pathsegs[1]
+	}
+	if len(pathsegs) > 2 {
+		stream = pathsegs[2]
+	}
+	return
+}
+
+func getTcUrl(u *url.URL) string {
+	app, _ := SplitPath(u)
+	nu := *u
+	nu.Path = "/" + app
+	return nu.String()
+}
+
+func createURL(tcurl, app, play string) (u *url.URL) {
+	ps := strings.Split(app+"/"+play, "/")
+	out := []string{""}
+	for _, s := range ps {
+		if len(s) > 0 {
+			out = append(out, s)
+		}
+	}
+	if len(out) < 2 {
+		out = append(out, "")
+	}
+	path := strings.Join(out, "/")
+	u, _ = url.ParseRequestURI(path)
+
+	if tcurl != "" {
+		tu, _ := url.Parse(tcurl)
+		if tu != nil {
+			u.Host = tu.Host
+			u.Scheme = tu.Scheme
+		}
+	}
+	fmt.Println()
+	return
 }

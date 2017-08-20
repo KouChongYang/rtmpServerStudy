@@ -91,6 +91,7 @@ func RtmpCloseStreamCmdHandler(sesion *Session,obj amf.AMFMap,amfParams[]interfa
 }
 
 func RtmpDeleteStreamCmdHandler(sesion *Session,obj amf.AMFMap,amfParams[]interface{})(err error){
+	err = fmt.Errorf("rtmp: delateStream")
 	return err
 }
 
@@ -130,9 +131,9 @@ func RtmpPublishCmdHandler(session *Session,obj amf.AMFMap,amfParams[]interface{
 		err = fmt.Errorf("rtmp: OnPlayOrPublish check failed")
 		return
 	}
-
+	session.URL = createURL(*session.TcUrl, *session.App, publishpath)
 	session.publishing = true
-
+	session.stage = stageCommandDone
 	return
 }
 
@@ -174,6 +175,9 @@ func RtmpPlayCmdHandler(session *Session,obj amf.AMFMap,amfParams[]interface{})(
 	if err = session.flushWrite(); err != nil {
 		return
 	}
+	session.URL = createURL(*session.TcUrl, *session.App, playpath)
+	session.playing = true
+	session.stage = stageCommandDone
 	return
 }
 
