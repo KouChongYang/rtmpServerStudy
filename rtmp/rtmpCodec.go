@@ -7,7 +7,6 @@ import (
 	"rtmpServerStudy/av"
 	"rtmpServerStudy/flv/flvio"
 	"rtmpServerStudy/h264Parse"
-	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
