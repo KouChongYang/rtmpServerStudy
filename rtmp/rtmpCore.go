@@ -154,7 +154,7 @@ func NewSesion(netconn net.Conn) *Session {
 	session.writebuf = make([]byte, 4096)
 	session.readbuf = make([]byte, 4096)
 	session.chunkHeaderBuf = make([]byte, chunkHeaderLength)
-	session.GopCache = AvQue.RingBufferCreate(10)
+	session.GopCache = AvQue.RingBufferCreate(8)
 	session.CurQue = AvQue.RingBufferCreate(10) //
 	return session
 }
@@ -553,16 +553,11 @@ func (self *Session) WriteHead() (err error) {
 
 func (self *Session) rtmpSendGop() (err error) {
 	fmt.Println("=====================================gopcache len======================")
-	fmt.Println(self.GopCache.Count)
-	fmt.Println(self.GopCache.Head)
-	fmt.Println(self.GopCache.Size)
-	fmt.Println(self.GopCache.Count)
 	if self.GopCache == nil {
 		fmt.Println("=====================================gopcache len======================")
 	}
-	a := self.GopCache.Pop()
-	fmt.Println(a)
-	for pkt := self.GopCache.Pop(); pkt != nil; {
+
+	for pkt := self.GopCache.RingBufferGet(); pkt != nil; {
 		err = self.writeAVPacket(pkt)
 		if err != nil {
 			return err
@@ -650,8 +645,9 @@ func (self *Session) ServerSession(stage int) (err error) {
 					pubSession.Lock()
 					self.aCodec = pubSession.aCodec
 					self.vCodec = pubSession.vCodec
-					self.GopCache = pubSession.GopCache.Copy(self.GopCache)
+					self.GopCache = pubSession.GopCache.GopCopy()
 					pubSession.Unlock()
+
 					self.context, self.cancel = pubSession.context, pubSession.cancel
 					if err = self.WriteHead(); err != nil {
 						fmt.Println(err)

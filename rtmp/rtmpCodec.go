@@ -7,6 +7,7 @@ import (
 	"rtmpServerStudy/av"
 	"rtmpServerStudy/flv/flvio"
 	"rtmpServerStudy/h264Parse"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
@@ -194,6 +195,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 	return
 }
 
+
 func (session *Session) rtmpUpdateGopCache(pkt *av.Packet) (err error) {
 
 	if session.vCodec == nil {
@@ -210,7 +212,12 @@ func (session *Session) rtmpUpdateGopCache(pkt *av.Packet) (err error) {
 	}
 
 	session.Lock()
-	session.GopCache.Push(pkt)
+	des:= session.GopCache.RingBufferABSPut(pkt)
+	if des == nil{
+
+	}else{
+		session.GopCache = des
+	}
 	if pkt.IsKeyFrame {
 		session.curgopcount++
 	}
@@ -220,18 +227,16 @@ func (session *Session) rtmpUpdateGopCache(pkt *av.Packet) (err error) {
 		session.audioAfterLastVideoCnt = 0
 	}
 
-	for session.curgopcount >= session.maxgopcount && session.GopCache.Count > 1 {
-		pkt := session.GopCache.Pop()
-		if pkt.IsKeyFrame {
-			session.curgopcount--
-		}
+	for session.curgopcount >= session.maxgopcount  {
+		session.GopCache.RingBufferCleanOldGop()
+		session.curgopcount--
 		if session.curgopcount < session.maxgopcount {
 			break
 		}
 	}
 	//
 	if session.audioAfterLastVideoCnt > audioAfterLastVideoCnt {
-		session.GopCache.CleanUp()
+		session.GopCache.RingBufferCleanGop()
 		session.curgopcount = 0
 		session.audioAfterLastVideoCnt = 0
 	}
