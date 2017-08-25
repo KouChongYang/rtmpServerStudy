@@ -553,7 +553,7 @@ func (self *Session) WriteHead() (err error) {
 			}
 		}
 	}
-	panic(55)
+	//panic(55)
 	return
 }
 
