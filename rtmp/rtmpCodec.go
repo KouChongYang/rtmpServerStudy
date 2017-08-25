@@ -68,10 +68,10 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 				if stream, err = h264parser.NewCodecDataFromSPSAndPPS(sps, pps); err != nil {
 					return
 				}
+				session.Lock()
+				session.vCodec = &stream
+				session.Unlock()
 			}
-			session.Lock()
-			session.vCodec = &stream
-			session.Unlock()
 		}
 		//
 	}
