@@ -115,9 +115,10 @@ func (rb *AvRingbuffer)RingBufferABSPut(ptr *av.Packet)(dsc *AvRingbuffer){
 			return nil
 		}
 		dsc = rb.RingBufferCopy(dsc)
+		dsc.RingBufferPut(ptr)
+		return dsc
 	}
-	dsc.RingBufferPut(ptr)
-	return dsc
+	return rb
 }
 
 func (rb *AvRingbuffer)RingBufferCleanOldGop(){
