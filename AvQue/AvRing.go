@@ -3,8 +3,6 @@ package AvQue
 import ()
 import (
 	"rtmpServerStudy/av"
-	"crypto/des"
-	"golang.org/x/crypto/openpgp/packet"
 )
 
 type Object [](*av.Packet)
