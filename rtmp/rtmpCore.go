@@ -66,7 +66,9 @@ type Session struct {
 	audioAfterLastVideoCnt int
 	CurQue                 *AvQue.AvRingbuffer
 	vCodec                 *h264parser.CodecData
+	vCodecData 	       []byte
 	aCodec                 *aacparser.CodecData
+	aCodecData 	       []byte
 	RegisterChannel        chan *Session
 	RegisterAck            chan bool
 	curgopcount            int
@@ -517,6 +519,33 @@ func (self *Session) writeAVPacket(packet *av.Packet) (err error) {
 	return
 }
 
+func (self *Session)CodecDataToTag(stream av.CodecData) (tag *flvio.Tag, ok bool, err error) {
+	tag = new(flvio.Tag)
+	switch stream.Type() {
+	case av.H264:
+		fmt.Println("head:h264")
+		tag.Type = flvio.TAG_VIDEO
+		tag.AVCPacketType = flvio.AVC_SEQHDR
+		tag.CodecID = flvio.VIDEO_H264
+		tag.Data = self.vCodecData
+		ok = true
+		tag = tag
+
+	case av.AAC:
+		tag.Type = flvio.TAG_AUDIO
+		tag.SoundFormat =    flvio.SOUND_AAC
+		tag.SoundRate = flvio.SOUND_44Khz
+		tag.AACPacketType = flvio.AAC_SEQHDR
+		tag.Data = self.aCodecData
+	default:
+		err = fmt.Errorf("flv: unspported codecType=%v", stream.Type())
+		return
+	}
+	return
+	return
+}
+
+
 func (self *Session) WriteHead() (err error) {
 	var metadata amf.AMFMap
 	var streams []av.CodecData
@@ -525,13 +554,13 @@ func (self *Session) WriteHead() (err error) {
 		return
 	}
 	if self.aCodec != nil {
-		streams = append(streams, *self.aCodec)
+		streams = append(streams, self.aCodec)
 	}
 	if self.vCodec != nil {
 		fmt.Println("==================h264===fff=============")
 		fmt.Println(hex.Dump(self.vCodec.Record))
 		fmt.Println("==================================")
-		streams = append(streams, *self.vCodec)
+		streams = append(streams, self.vCodec)
 	}
 
 	if metadata, err = flv.NewMetadataByStreams(streams); err != nil {
@@ -543,9 +572,10 @@ func (self *Session) WriteHead() (err error) {
 	for _, stream := range streams {
 		var ok bool
 		var tag flvio.Tag
-		if tag, ok, err = flv.CodecDataToTag(stream); err != nil {
+		if tag, ok, err = self.CodecDataToTag(stream); err != nil {
 			return
 		}
+
 		fmt.Println(hex.Dump(tag.Data))
 		if ok {
 			if err = self.writeAVTag(tag, 0); err != nil {
@@ -650,6 +680,8 @@ func (self *Session) ServerSession(stage int) (err error) {
 					//copy gop,codec
 					pubSession.Lock()
 					self.aCodec = pubSession.aCodec
+					self.vCodecData = pubSession.vCodecData
+					self.aCodecData = pubSession.aCodecData
 					self.vCodec = pubSession.vCodec
 					self.GopCache = pubSession.GopCache.GopCopy()
 					pubSession.Unlock()

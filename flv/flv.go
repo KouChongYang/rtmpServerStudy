@@ -77,6 +77,7 @@ func (self *Prober) PopPacket() av.Packet {
 	return pkt
 }
 
+
 func CodecDataToTag(stream av.CodecData) (_tag flvio.Tag, ok bool, err error) {
 	switch stream.Type() {
 	case av.H264:

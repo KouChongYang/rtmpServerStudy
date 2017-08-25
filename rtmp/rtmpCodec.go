@@ -47,6 +47,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 			session.vCodec = &stream
 			fmt.Println("=======================h264fffffffffffffffffffffffff====")
 			fmt.Println(hex.Dump(session.vCodec.Record))
+			session.vCodecData = msgdata
 			fmt.Println("================================")
 			session.Unlock()
 		case flvio.AVC_NALU:
@@ -160,6 +161,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 			}
 			session.Lock()
 			session.aCodec = &stream
+			session.aCodecData = msgdata
 			session.Unlock()
 		}
 	}
