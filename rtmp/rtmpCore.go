@@ -528,6 +528,9 @@ func (self *Session) WriteHead() (err error) {
 		streams = append(streams, *self.aCodec)
 	}
 	if self.vCodec != nil {
+		fmt.Println("==================h264===fff=============")
+		fmt.Println(hex.Dump(self.vCodec.Record))
+		fmt.Println("==================================")
 		streams = append(streams, *self.vCodec)
 	}
 
