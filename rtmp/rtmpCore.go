@@ -480,7 +480,7 @@ func (self *Session) rtmpCloseSessionHanler() {
 
 }
 
-func (self *Session) writeAVTag(tag flvio.Tag, ts int32) (err error) {
+func (self *Session) writeAVTag(tag *flvio.Tag, ts int32) (err error) {
 	var msgtypeid uint8
 	var csid uint32
 
@@ -571,7 +571,7 @@ func (self *Session) WriteHead() (err error) {
 	}
 	for _, stream := range streams {
 		var ok bool
-		var tag flvio.Tag
+		var tag *flvio.Tag
 		if tag, ok, err = self.CodecDataToTag(stream); err != nil {
 			return
 		}
