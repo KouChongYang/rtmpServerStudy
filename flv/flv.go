@@ -9,10 +9,10 @@ import (
 	"io"
 	"rtmpServerStudy/av"
 	"rtmpServerStudy/flv/flvio"
-	
+
+	"rtmpServerStudy/aacParse"
 	"rtmpServerStudy/amf"
 	"rtmpServerStudy/h264Parse"
-	"rtmpServerStudy/aacParse"
 )
 
 var MaxProbePacketCount = 20
@@ -65,7 +65,6 @@ type Prober struct {
 	Streams                        []av.CodecData
 	CachedPkts                     []av.Packet
 }
-
 
 func (self *Prober) Empty() bool {
 	return len(self.CachedPkts) == 0
@@ -206,7 +205,7 @@ func NewMuxer(w io.Writer) *Muxer {
 
 var CodecTypes = []av.CodecType{av.H264, av.AAC, av.SPEEX}
 
-func MetadeToTag(args ...interface{})(_tag flvio.Tag,ok bool){
+func MetadeToTag(args ...interface{}) (_tag flvio.Tag, ok bool) {
 	size := 0
 	for _, arg := range args {
 		size += amf.LenAMF0Val(arg)
@@ -280,6 +279,3 @@ func (self *Muxer) WriteHeader(streams []av.CodecData) (err error) {
 	self.streams = streams
 	return
 }
-
-
-

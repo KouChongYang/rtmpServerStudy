@@ -1,9 +1,9 @@
 package rtmp
 
 import (
-	"time"
-	"net/url"
 	"net"
+	"net/url"
+	"time"
 )
 
 func ParseURL(uri string) (u *url.URL, err error) {
@@ -34,16 +34,16 @@ func DialTimeout(uri string, timeout time.Duration) (session *Session, err error
 
 	session = NewSesion(netconn)
 	session.URL = u
-	session.ClientSessionPrepare(stageSessionDone,prepareWriting)
+	session.ClientSessionPrepare(stageSessionDone, prepareWriting)
 	return
 }
 
-func (session *Session)AutoRelay(uri string ,timeout time.Duration,retryTime int)(err error){
+func (session *Session) AutoRelay(uri string, timeout time.Duration, retryTime int) (err error) {
 	stage := stageHandshakeStart
 
-	for i:=0;i< retryTime;i++{
+	for i := 0; i < retryTime; i++ {
 		switch stage {
-		case	stageHandshakeStart:
+		case stageHandshakeStart:
 			if err = session.handshakeClient(); err != nil {
 				stage = stageHandshakeStart
 			}
@@ -53,7 +53,6 @@ func (session *Session)AutoRelay(uri string ,timeout time.Duration,retryTime int
 	return err
 }
 
-
-func  (self *Session)connectPlay()(err error){
+func (self *Session) connectPlay() (err error) {
 	return err
 }

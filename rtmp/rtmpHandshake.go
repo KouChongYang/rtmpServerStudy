@@ -1,13 +1,13 @@
 package rtmp
 
 import (
-	"fmt"
-	"io"
-	"crypto/hmac"
-	"crypto/sha256"
 	"bytes"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
+	"fmt"
 	"github.com/nareix/bits/pio"
+	"io"
 )
 
 var (
@@ -155,15 +155,14 @@ func (self *Session) handshakeServer() (err error) {
 	S0S1 := S0S1S2[:1536+1]
 	S2 := S0S1S2[1536+1:]
 
-
 	/*
 
-	*/
+	 */
 	/*
 	  C0 start RTMP handshake by sending 1 byte of 0x03 to server (C0).
 	  This 1 bytes is a version for RTMP communication.
 	  Latest version is version 3
-	 */
+	*/
 	// < C0C1
 	if _, err = io.ReadFull(self.bufr, C0C1); err != nil {
 		return
@@ -177,15 +176,15 @@ func (self *Session) handshakeServer() (err error) {
 	//version
 	S0[0] = 3
 	/*
-	c1 have 1536 bytes
-	00 00 00 00  4bytes time
-	00 00 00 00 4bytes zero (if zero simaple handshake else complex handshake)
-	00 00 00 00 00 00 ...... random
+		c1 have 1536 bytes
+		00 00 00 00  4bytes time
+		00 00 00 00 4bytes zero (if zero simaple handshake else complex handshake)
+		00 00 00 00 00 00 ...... random
 	*/
 
 	/*C send a data block of 1536 bytes (C1). It contains*/
 	clitime := pio.U32BE(C1[0:4]) //firs 4 bytes is time
-	srvtime := clitime //server muster send
+	srvtime := clitime            //server muster send
 	srvver := uint32(0x0d0e0a0d)
 	cliver := pio.U32BE(C1[4:8]) //
 

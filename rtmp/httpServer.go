@@ -1,12 +1,10 @@
 package rtmp
 
-
-
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
-	"fmt"
 	"net/http/httputil"
 	"time"
 )
@@ -26,7 +24,7 @@ func handler1(w http.ResponseWriter, r *http.Request) {
 	b, _ := httputil.DumpRequest(r, true)
 	fmt.Println("Request")
 	fmt.Println(string(b))
-	time.Sleep(100*time.Second)
+	time.Sleep(100 * time.Second)
 	w.Write([]byte("Hello, world!"))
 
 }

@@ -1,93 +1,90 @@
 package rtmp
 
 import (
-	"net/url"
-	"net"
-	"fmt"
-	"time"
 	"bufio"
-	"github.com/nareix/bits/pio"
 	"context"
+	"fmt"
+	"github.com/nareix/bits/pio"
 	"io"
+	"net"
+	"net/url"
+	"time"
 	//"encoding/hex"
 	"sync"
 
 	"rtmpServerStudy/AvQue"
 	"rtmpServerStudy/h264Parse"
 
-
-	"strings"
 	"rtmpServerStudy/aacParse"
-	"rtmpServerStudy/flv"
 	"rtmpServerStudy/amf"
+	"rtmpServerStudy/flv"
 	"rtmpServerStudy/flv/flvio"
+	"strings"
 
 	"rtmpServerStudy/av"
 )
 
 /* RTMP message types */
-var(
+var (
 	Debug = false
 )
 
-const(
-	MAXREGISTERCHANNEL = 128
+const (
+	MAXREGISTERCHANNEL     = 128
 	audioAfterLastVideoCnt = 115
 )
 
-
 type sessionIndex map[string](*Session)
-type sessionIndexStruct struct{
+type sessionIndexStruct struct {
 	sessionIndex sessionIndex
 	sync.RWMutex
 }
 
 var PublishingSessionMap sessionIndexStruct
 
-func init(){
+func init() {
 	PublishingSessionMap.sessionIndex = make(sessionIndex)
 }
 
-type Server struct{
-	RtmpAddr          string
-	HttpAddr 	  string
+type Server struct {
+	RtmpAddr      string
+	HttpAddr      string
 	HandlePublish func(*Session)
 	HandlePlay    func(*Session)
 	HandleConn    func(*Session)
 }
 
-
 type Session struct {
 	sync.RWMutex
-	lock *sync.RWMutex
-	cond *sync.Cond
-	context           context.Context
-	CursorList  	  *AvQue.CursorList
-	GopCache          *AvQue.Buf
-	maxgopcount       int
+	lock                   *sync.RWMutex
+	cond                   *sync.Cond
+	context                context.Context
+	CursorList             *AvQue.CursorList
+	GopCache               *AvQue.Buf
+	maxgopcount            int
 	audioAfterLastVideoCnt int
-	CurQue   	  *AvQue.AvRingbuffer
-	vCodec 	  	  *h264parser.CodecData
-	aCodec    	  *aacparser.CodecData
-	RegisterChannel   chan *Session
-	RegisterAck       chan bool
-	curgopcount       int
-	App               *string
-	cancel            context.CancelFunc
-	URL               *url.URL
-	TcUrl		  *string
-	isClosed          bool
-	isServer          bool
-	isPlay            bool
-	isPublish         bool
-	connected         bool
-	ackn              uint32
-	readAckSize       uint32
-	avmsgsid         uint32
-	publishing       bool
-	playing          bool
+	CurQue                 *AvQue.AvRingbuffer
+	vCodec                 *h264parser.CodecData
+	aCodec                 *aacparser.CodecData
+	RegisterChannel        chan *Session
+	RegisterAck            chan bool
+	curgopcount            int
+	App                    *string
+	cancel                 context.CancelFunc
+	URL                    *url.URL
+	TcUrl                  *string
+	isClosed               bool
+	isServer               bool
+	isPlay                 bool
+	isPublish              bool
+	connected              bool
+	ackn                   uint32
+	readAckSize            uint32
+	avmsgsid               uint32
+	publishing             bool
+	playing                bool
 	//状态机
-	stage             int
+	stage int
 	//client
 	netconn           net.Conn
 	readcsmap         map[uint32]*chunkStream
@@ -98,7 +95,7 @@ type Session struct {
 	readbuf           []byte
 	bufr              *bufio.Reader
 	bufw              *bufio.Writer
-	commandtransid 	  float64
+	commandtransid    float64
 	gotmsg            bool
 	gotcommand        bool
 	metaversion       int
@@ -106,7 +103,7 @@ type Session struct {
 	ackSize           uint32
 }
 
-const(
+const (
 	stageHandshakeStart = iota
 	stageHandshakeDone
 	stageCommandDone
@@ -118,7 +115,6 @@ const (
 )
 
 const chunkHeaderLength = 12 + 4
-
 
 type chunkStream struct {
 	timenow     uint32
@@ -132,7 +128,6 @@ type chunkStream struct {
 	msgdata     []byte
 }
 
-
 func NewSesion(netconn net.Conn) *Session {
 	session := &Session{}
 	session.netconn = netconn
@@ -142,14 +137,14 @@ func NewSesion(netconn net.Conn) *Session {
 	session.CursorList = AvQue.NewPublist()
 	session.maxgopcount = 2
 
-	session.lock =  &sync.RWMutex{}
+	session.lock = &sync.RWMutex{}
 	session.cond = sync.NewCond(session.lock.RLocker())
 
 	//just for regist cursor session
-	session.RegisterChannel = make(chan *Session,MAXREGISTERCHANNEL)
+	session.RegisterChannel = make(chan *Session, MAXREGISTERCHANNEL)
 
 	//true register ok ,false register false
-	session.RegisterAck = make(chan bool,1)
+	session.RegisterAck = make(chan bool, 1)
 	//this maybe
 	//session.context , session.cancel = context.WithCancel(context.Background())
 	//
@@ -158,12 +153,11 @@ func NewSesion(netconn net.Conn) *Session {
 	session.bufw = bufio.NewWriterSize(netconn, pio.RecommendBufioSize)
 	session.writebuf = make([]byte, 4096)
 	session.readbuf = make([]byte, 4096)
-	session.chunkHeaderBuf = make([]byte,chunkHeaderLength)
+	session.chunkHeaderBuf = make([]byte, chunkHeaderLength)
 	session.GopCache = AvQue.NewBuf(64)
-	session.CurQue = AvQue.RingBufferCreate(8)//
+	session.CurQue = AvQue.RingBufferCreate(8) //
 	return session
 }
-
 
 func (self *Session) GetWriteBuf(n int) []byte {
 	if len(self.writebuf) < n {
@@ -172,7 +166,7 @@ func (self *Session) GetWriteBuf(n int) []byte {
 	return self.writebuf
 }
 
-func (self *Session) fillChunk3Header(b[]byte,csid uint32,timestamp uint32)(n int){
+func (self *Session) fillChunk3Header(b []byte, csid uint32, timestamp uint32) (n int) {
 	b[n] = (byte(csid) & 0x3f) | 0xC0
 	n++
 	if timestamp >= 0xffffff {
@@ -198,9 +192,9 @@ func (self *Session) fillChunk0Header(b []byte, csid uint32, timestamp uint32, m
 
 	b[n] = byte(csid) & 0x3f
 	n++
-	if timestamp <0xffffff {
+	if timestamp < 0xffffff {
 		pio.PutU24BE(b[n:], uint32(timestamp))
-	}else{
+	} else {
 		pio.PutU24BE(b[n:], uint32(0xffffff))
 	}
 	n += 3
@@ -441,7 +435,7 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 			//fmt.Print(hex.Dump(cs.msgdata))
 		}
 		if hands[cs.msgtypeid] != nil {
-			if err = hands[cs.msgtypeid](self,cs.timenow, cs.msgsid, cs.msgtypeid, cs.msgdata);err!=nil {
+			if err = hands[cs.msgtypeid](self, cs.timenow, cs.msgsid, cs.msgtypeid, cs.msgdata); err != nil {
 				return
 			}
 		}
@@ -458,30 +452,28 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 	return
 }
 
-func (self *Session)rtmpReadCmdMsgCycle()(err error) {
+func (self *Session) rtmpReadCmdMsgCycle() (err error) {
 	for {
-		if err = self.readChunk(RtmpMsgHandles);err != nil{
+		if err = self.readChunk(RtmpMsgHandles); err != nil {
 			return err
 		}
-		if self.publishing || self.playing{
+		if self.publishing || self.playing {
 			return
 		}
 	}
 	return
 }
 
-func (self *Session)rtmpReadMsgCycle()(err error){
-	for{
-		if err = self.readChunk(RtmpMsgHandles);err != nil{
+func (self *Session) rtmpReadMsgCycle() (err error) {
+	for {
+		if err = self.readChunk(RtmpMsgHandles); err != nil {
 			return err
 		}
 	}
 	return
 }
 
-
-
-func (self *Session)rtmpCloseSessionHanler(){
+func (self *Session) rtmpCloseSessionHanler() {
 
 }
 
@@ -497,9 +489,9 @@ func (self *Session) writeAVTag(tag flvio.Tag, ts int32) (err error) {
 		msgtypeid = RtmpMsgVideo
 		csid = 7
 	}
-	n:=0
-	n,err= self.DoSend(tag.Data,csid,uint32(ts),msgtypeid,self.avmsgsid,len(tag.Data))
-	fmt.Println("send byte :%d",n)
+	n := 0
+	n, err = self.DoSend(tag.Data, csid, uint32(ts), msgtypeid, self.avmsgsid, len(tag.Data))
+	fmt.Println("send byte :%d", n)
 	return
 }
 
@@ -507,7 +499,7 @@ func (self *Session) writeAVPacket(packet *av.Packet) (err error) {
 	var msgtypeid uint8
 	var csid uint32
 
-	switch  packet.PacketType{
+	switch packet.PacketType {
 	case RtmpMsgAudio:
 		msgtypeid = RtmpMsgAudio
 		csid = 6
@@ -515,28 +507,27 @@ func (self *Session) writeAVPacket(packet *av.Packet) (err error) {
 		msgtypeid = RtmpMsgVideo
 		csid = 7
 	}
-	n:=0
-	ts:=flvio.TimeToTs(packet.Time)
+	n := 0
+	ts := flvio.TimeToTs(packet.Time)
 
 	//DoSend(b []byte, csid uint32, timestamp uint32, msgtypeid uint8, msgsid uint32, msgdatalen int)(n int ,err error){
-	n,err= self.DoSend(packet.Data,csid,uint32(ts),msgtypeid,self.avmsgsid,len(packet.Data))
-	fmt.Println("send byte :%d",n)
+	n, err = self.DoSend(packet.Data, csid, uint32(ts), msgtypeid, self.avmsgsid, len(packet.Data))
+	fmt.Println("send byte :%d", n)
 	return
 }
 
-
-func (self *Session)WriteHead()(err error){
+func (self *Session) WriteHead() (err error) {
 	var metadata amf.AMFMap
 	var streams []av.CodecData
-	
-	if  self.aCodec == nil && self.vCodec == nil{
-		return 
+
+	if self.aCodec == nil && self.vCodec == nil {
+		return
 	}
 	if self.aCodec != nil {
-		streams = append(streams,*self.aCodec)
+		streams = append(streams, *self.aCodec)
 	}
 	if self.vCodec != nil {
-		streams = append(streams,*self.vCodec)
+		streams = append(streams, *self.vCodec)
 	}
 
 	if metadata, err = flv.NewMetadataByStreams(streams); err != nil {
@@ -560,30 +551,30 @@ func (self *Session)WriteHead()(err error){
 	return
 }
 
-func (self *Session) rtmpSendGop()(err error){
+func (self *Session) rtmpSendGop() (err error) {
 	fmt.Println("=====================================gopcache len======================")
 	fmt.Println(self.GopCache.Count)
 	fmt.Println(self.GopCache.Head)
 	fmt.Println(self.GopCache.Size)
 	fmt.Println(self.GopCache.Count)
-	if self.GopCache == nil{
-	fmt.Println("=====================================gopcache len======================")
+	if self.GopCache == nil {
+		fmt.Println("=====================================gopcache len======================")
 	}
-	a:= self.GopCache.Pop()
+	a := self.GopCache.Pop()
 	fmt.Println(a)
-	for pkt:=self.GopCache.Pop();pkt != nil;{
+	for pkt := self.GopCache.Pop(); pkt != nil; {
 		err = self.writeAVPacket(pkt)
-		if err != nil{
+		if err != nil {
 			return err
 		}
 	}
 	return
 }
 
-func (self *Session)sendRtmpAvPackets()(err error){
+func (self *Session) sendRtmpAvPackets() (err error) {
 	for {
 		pkt := self.CurQue.RingBufferGet()
-		if pkt == nil{
+		if pkt == nil {
 			self.cond.L.Lock()
 			self.cond.Wait()
 			self.cond.L.Unlock()
@@ -591,10 +582,10 @@ func (self *Session)sendRtmpAvPackets()(err error){
 
 		select {
 		case <-self.context.Done():
-		// here publish may over so play is over
+			// here publish may over so play is over
 			return
 		default:
-		// 没有结束 ... 执行 ...
+			// 没有结束 ... 执行 ...
 		}
 		if pkt != nil {
 			if err = self.writeAVPacket(pkt); err != nil {
@@ -605,7 +596,7 @@ func (self *Session)sendRtmpAvPackets()(err error){
 	}
 }
 
-func (self *Session) ClientSessionPrepare(stage,flags int)(err error){
+func (self *Session) ClientSessionPrepare(stage, flags int) (err error) {
 	for self.stage < stage {
 		switch self.stage {
 		case stageHandshakeStart:
@@ -640,42 +631,42 @@ func (self *Session) ServerSession(stage int) (err error) {
 		case stageHandshakeDone:
 			err = self.rtmpReadCmdMsgCycle()
 		case stageCommandDone:
-			if self.publishing{
-				self.context , self.cancel = context.WithCancel(context.Background())
+			if self.publishing {
+				self.context, self.cancel = context.WithCancel(context.Background())
 				PublishingSessionMap.Lock()
 				PublishingSessionMap.sessionIndex[self.URL.Path] = self
 				PublishingSessionMap.Unlock()
 				err = self.rtmpReadMsgCycle()
 				self.stage = stageSessionDone
 				continue
-			}else if self.playing{
+			} else if self.playing {
 				PublishingSessionMap.Lock()
-				pubSession,ok:=PublishingSessionMap.sessionIndex[self.URL.Path]
+				pubSession, ok := PublishingSessionMap.sessionIndex[self.URL.Path]
 				PublishingSessionMap.Unlock()
 				if ok {
 					//register play to the publish
-					pubSession.RegisterChannel<-self
+					pubSession.RegisterChannel <- self
 					//copy gop,codec
 					pubSession.Lock()
 					self.aCodec = pubSession.aCodec
 					self.vCodec = pubSession.vCodec
 					self.GopCache = pubSession.GopCache.Copy(self.GopCache)
 					pubSession.Unlock()
-					self.context , self.cancel  = pubSession.context , pubSession.cancel
-					if err = self.WriteHead();err != nil{
+					self.context, self.cancel = pubSession.context, pubSession.cancel
+					if err = self.WriteHead(); err != nil {
 						fmt.Println(err)
 						return err
 					}
-					if err = self.rtmpSendGop();err != nil {
+					if err = self.rtmpSendGop(); err != nil {
 						fmt.Println(err)
 						return err
 					}
-					if err = self.sendRtmpAvPackets();err != nil{
+					if err = self.sendRtmpAvPackets(); err != nil {
 						fmt.Println(err)
 						return err
 					}
 
-				}else{
+				} else {
 					//relay play
 				}
 			}
@@ -690,7 +681,7 @@ func (self *Session) ServerSession(stage int) (err error) {
 func (self *Server) ServerHandle(session *Session) (err error) {
 
 	if err = session.ServerSession(stageSessionDone); err != nil {
-			return
+		return
 	}
 	return
 }
@@ -735,7 +726,7 @@ func (self *Server) ListenAndServe() (err error) {
 				continue
 			}
 			if Debug {
-				fmt.Printf("rtmp: Accept error:%v\n",e)
+				fmt.Printf("rtmp: Accept error:%v\n", e)
 			}
 			return
 		}

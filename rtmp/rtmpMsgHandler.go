@@ -7,11 +7,11 @@ import (
 )
 
 // recv peer set chunk  size
-func RtmpMsgChunkSizeHandler (session *Session,timeStamp uint32,
-				msgSID uint32, msgtypeid uint8, msgdata []byte) (err error) {
+func RtmpMsgChunkSizeHandler(session *Session, timeStamp uint32,
+	msgSID uint32, msgtypeid uint8, msgdata []byte) (err error) {
 	msgLen := len(msgdata)
 	if msgLen < 4 {
-		err = fmt.Errorf("rtmp: short packet of SetChunkSize the len:%d",msgLen)
+		err = fmt.Errorf("rtmp: short packet of SetChunkSize the len:%d", msgLen)
 		return
 	}
 	session.readMaxChunkSize = int(pio.U32BE(msgdata))
@@ -30,8 +30,8 @@ func (self *Session) writeSetChunkSize(size int) (err error) {
 	return
 }
 
-func RtmpMsgAbortHandler(session *Session,timestamp uint32,
-				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+func RtmpMsgAbortHandler(session *Session, timestamp uint32,
+	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
 	//something messg log
 	return
 }
@@ -46,8 +46,8 @@ func (self *Session) writeRtmpMsgAbort(msgsid uint32) (err error) {
 	return
 }
 
-func RtmpMsgAckHanldler(session *Session,timestamp uint32,
-				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+func RtmpMsgAckHanldler(session *Session, timestamp uint32,
+	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
 	return
 }
 
@@ -60,26 +60,26 @@ func (self *Session) writeRtmpMsgAck(seqnum uint32) (err error) {
 	return
 }
 
-func RtmpMsgUserEventHandler(session *Session,timestamp uint32,
-				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+func RtmpMsgUserEventHandler(session *Session, timestamp uint32,
+	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
 	msgLen := len(msgdata)
 	if msgLen < 2 {
-		err = fmt.Errorf("rtmp: short packet of UserControl the msgLen:%d",msgLen)
+		err = fmt.Errorf("rtmp: short packet of UserControl the msgLen:%d", msgLen)
 		return
 	}
 	session.eventtype = pio.U16BE(msgdata)
-	if RtmpControlMsgHandles[session.eventtype] != nil{
-		return RtmpControlMsgHandles[session.eventtype](session ,timestamp,msgsid, msgtypeid, msgdata)
+	if RtmpControlMsgHandles[session.eventtype] != nil {
+		return RtmpControlMsgHandles[session.eventtype](session, timestamp, msgsid, msgtypeid, msgdata)
 	}
 	return
 }
 
-func RtmpMsgAckSizeHandler(session *Session,timestamp uint32,
-				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+func RtmpMsgAckSizeHandler(session *Session, timestamp uint32,
+	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
 
 	msgLen := len(msgdata)
 	if msgLen < 4 {
-		err = fmt.Errorf("rtmp: short packet of SetChunkSize the len:%d",msgLen)
+		err = fmt.Errorf("rtmp: short packet of SetChunkSize the len:%d", msgLen)
 		return
 	}
 	session.readAckSize = pio.U32BE(msgdata)
@@ -98,22 +98,22 @@ func (self *Session) writeWindowAckSize(size uint32) (err error) {
 	return
 }
 
-func RtmpMsgBandwidthHandler(session *Session,timestamp uint32,
-				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+func RtmpMsgBandwidthHandler(session *Session, timestamp uint32,
+	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
 	/*if (b->last - b->pos >= 5) {
-		limit = *(uint8_t*)&b->pos[4];
+	limit = *(uint8_t*)&b->pos[4];
 
-		(void)val;
-		(void)limit;
+	(void)val;
+	(void)limit;
 
-		s->log_bpos = ngx_sprintf(s->log_bpos, " bandwidth:%uD limit:%d", val, limit);
+	s->log_bpos = ngx_sprintf(s->log_bpos, " bandwidth:%uD limit:%d", val, limit);
 
-		ngx_log_debug2(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
-			"receive bandwidth=%uD limit=%d",
-			val, (int)limit);*/
+	ngx_log_debug2(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
+		"receive bandwidth=%uD limit=%d",
+		val, (int)limit);*/
 	msgLen := len(msgdata)
 	if msgLen < 5 {
-		err = fmt.Errorf("rtmp: short packet of BandWidthHandler the len:%d",msgLen)
+		err = fmt.Errorf("rtmp: short packet of BandWidthHandler the len:%d", msgLen)
 		return
 	}
 
@@ -132,20 +132,18 @@ func (self *Session) writeSetPeerBandwidth(acksize uint32, limittype uint8) (err
 	return
 }
 
-func RtmpMsgAudioHandler(session *Session,timestamp uint32,
-				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
-	err = RtmpMsgDecodeAudioHandler(session,timestamp,msgsid,msgtypeid,msgdata)
+func RtmpMsgAudioHandler(session *Session, timestamp uint32,
+	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
+	err = RtmpMsgDecodeAudioHandler(session, timestamp, msgsid, msgtypeid, msgdata)
 	return
 
 }
 
-func RtmpMsgVideoHandler(session *Session,timestamp uint32,
-				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
-	err = RtmpMsgDecodeVideoHandler(session,timestamp,msgsid,msgtypeid,msgdata)
+func RtmpMsgVideoHandler(session *Session, timestamp uint32,
+	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
+	err = RtmpMsgDecodeVideoHandler(session, timestamp, msgsid, msgtypeid, msgdata)
 	return
 }
-
-
 
 func (self *Session) handleCommandMsgAMF0(b []byte) (n int, err error) {
 	var name interface{}
@@ -162,17 +160,16 @@ func (self *Session) handleCommandMsgAMF0(b []byte) (n int, err error) {
 	}
 	n += size
 	if RtmpCmdHandles[commandname] != nil {
-		_,err = RtmpCmdHandles[commandname](self,b[n:])
+		_, err = RtmpCmdHandles[commandname](self, b[n:])
 	}
 	return
 }
 
-
-func RtmpMsgAmf3Handler(session *Session,timestamp uint32,
-				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+func RtmpMsgAmf3Handler(session *Session, timestamp uint32,
+	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
 	msgLen := len(msgdata)
 	if msgLen < 1 {
-		err = fmt.Errorf("rtmp: short packet of CommandMsgAMF3 the msgLen:%d",msgLen)
+		err = fmt.Errorf("rtmp: short packet of CommandMsgAMF3 the msgLen:%d", msgLen)
 		return
 	}
 	// skip first byte
@@ -182,17 +179,17 @@ func RtmpMsgAmf3Handler(session *Session,timestamp uint32,
 	return
 }
 
-func RtmpMsgAmfHandler(session *Session,timestamp uint32,
-				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+func RtmpMsgAmfHandler(session *Session, timestamp uint32,
+	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
 	/* AMF command names come with string type, but shared object names
-  * come without type */
+	 * come without type */
 	if _, err = session.handleCommandMsgAMF0(msgdata); err != nil {
 		return
 	}
 	return
 }
 
-func RrmpMsgAggregateHandler(session *Session,timestamp uint32,
-				msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+func RrmpMsgAggregateHandler(session *Session, timestamp uint32,
+	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
 	return
 }

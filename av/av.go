@@ -2,8 +2,8 @@
 package av
 
 import (
-"fmt"
-"time"
+	"fmt"
+	"time"
 )
 
 // Audio sample format.
@@ -138,7 +138,6 @@ NGX_RTMP_AUDIO_FRAME_SIZE_AAC   = 1024,
 NGX_RTMP_AUDIO_FRAME_SIZE_MP3   = 1152,
 };*/
 
-
 /* Video codecs */
 /*enum {
 NGX_RTMP_VIDEO_JPEG             = 1,
@@ -152,9 +151,7 @@ NGX_RTMP_VIDEO_H265             = 12
 };
 */
 
-var (
-
-)
+var ()
 
 var (
 	H264       = MakeVideoCodecType(avCodecTypeMagic + 1)
@@ -266,7 +263,6 @@ u_char                      device[32];
 
 */
 
-
 type VideoCodecData interface {
 	CodecData
 	Width() int  // Video height
@@ -318,9 +314,9 @@ type DemuxCloser interface {
 
 // Packet stores compressed audio/video/mesg data.
 type Packet struct {
-	IsKeyFrame      	bool          // video packet is key frame
-	GopIsKeyFrame   	bool          // just for no video
-	PacketType 		uint8
+	IsKeyFrame      bool // video packet is key frame
+	GopIsKeyFrame   bool // just for no video
+	PacketType      uint8
 	CompositionTime time.Duration // packet presentation time minus decode time for H264 B-Frame
 	Time            time.Duration // packet decode time
 
@@ -405,4 +401,3 @@ type AudioDecoder interface {
 type AudioResampler interface {
 	Resample(AudioFrame) (AudioFrame, error) // convert raw audio frames
 }
-

@@ -3,9 +3,9 @@ package rtmp
 import (
 	"rtmpServerStudy/amf"
 
-	"github.com/nareix/bits/pio"
-	"fmt"
 	"encoding/hex"
+	"fmt"
+	"github.com/nareix/bits/pio"
 )
 
 func (self *Session) writeDataMsg(csid, msgsid uint32, args ...interface{}) (err error) {
@@ -16,29 +16,29 @@ func (self *Session) writeCommandMsg(csid, msgsid uint32, args ...interface{}) (
 	return self.writeAMF0Msg(RtmpMsgAmfCMD, csid, msgsid, args...)
 }
 
-func (self *Session) DoSend(b []byte, csid uint32, timestamp uint32, msgtypeid uint8, msgsid uint32, msgdatalen int)(n int ,err error){
+func (self *Session) DoSend(b []byte, csid uint32, timestamp uint32, msgtypeid uint8, msgsid uint32, msgdatalen int) (n int, err error) {
 
-	pos:=0
-	sn:=0
-	last:=self.writeMaxChunkSize
-	end:= msgdatalen
-	testn:=0
-	for msgdatalen > 0{
+	pos := 0
+	sn := 0
+	last := self.writeMaxChunkSize
+	end := msgdatalen
+	testn := 0
+	for msgdatalen > 0 {
 		if pos == 0 {
 			n := self.fillChunk0Header(self.chunkHeaderBuf, csid, timestamp, msgtypeid, msgsid, msgdatalen)
 			fmt.Print(hex.Dump(self.chunkHeaderBuf[:n]))
 			testn, err = self.bufw.Write(self.chunkHeaderBuf[:n])
-			fmt.Printf("1-----------:%d\n",testn)
-		}else{
+			fmt.Printf("1-----------:%d\n", testn)
+		} else {
 			n := self.fillChunk3Header(self.chunkHeaderBuf, csid, timestamp)
 			fmt.Print(hex.Dump(self.chunkHeaderBuf[:n]))
 			testn, err = self.bufw.Write(self.chunkHeaderBuf[:n])
-			fmt.Printf("2-----------:%d\n",testn)
+			fmt.Printf("2-----------:%d\n", testn)
 		}
-		if msgdatalen>self.writeMaxChunkSize {
-			fmt.Printf("3*************:pos:%d****************last:%d\n",pos,last)
+		if msgdatalen > self.writeMaxChunkSize {
+			fmt.Printf("3*************:pos:%d****************last:%d\n", pos, last)
 			fmt.Print(hex.Dump(b[pos:last]))
-			if sn, err = self.bufw.Write(b[pos:last]);err != nil {
+			if sn, err = self.bufw.Write(b[pos:last]); err != nil {
 				return
 			}
 
@@ -48,8 +48,8 @@ func (self *Session) DoSend(b []byte, csid uint32, timestamp uint32, msgtypeid u
 			continue
 		}
 		fmt.Print(hex.Dump(b[pos:end]))
-		fmt.Printf("4************:pos:%d****************end:%d\n",pos,end)
-		if sn, err = self.bufw.Write(b[pos:end]);err !=nil {
+		fmt.Printf("4************:pos:%d****************end:%d\n", pos, end)
+		if sn, err = self.bufw.Write(b[pos:end]); err != nil {
 			return
 		}
 		pos += sn
@@ -66,7 +66,7 @@ func (self *Session) writeAMF0Msg(msgtypeid uint8, csid, msgsid uint32, args ...
 		size += amf.LenAMF0Val(arg)
 	}
 	b := self.GetWriteBuf(size)
-	n:=0
+	n := 0
 
 	for _, arg := range args {
 		n += amf.FillAMF0Val(b[n:], arg)
@@ -75,7 +75,7 @@ func (self *Session) writeAMF0Msg(msgtypeid uint8, csid, msgsid uint32, args ...
 	fmt.Print(hex.Dump(b[:n]))
 	fmt.Println("========================")
 
-	_,err = self.DoSend(b,csid,0,msgtypeid,msgsid,size)
+	_, err = self.DoSend(b, csid, 0, msgtypeid, msgsid, size)
 	return
 }
 

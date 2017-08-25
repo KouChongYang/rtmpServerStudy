@@ -1,4 +1,5 @@
 package AvQue
+
 import ()
 import "rtmpServerStudy/av"
 
@@ -59,7 +60,7 @@ func (rb *AvRingbuffer) RingBufferIsFull() int {
 	return 0
 }
 
-func(rb *AvRingbuffer) RingBufferGet() (ptr *av.Packet) {
+func (rb *AvRingbuffer) RingBufferGet() (ptr *av.Packet) {
 
 	if rb.write == rb.read {
 		return nil
@@ -71,7 +72,7 @@ func(rb *AvRingbuffer) RingBufferGet() (ptr *av.Packet) {
 	return ptr
 }
 
-func (rb *AvRingbuffer)RingBufferPut(ptr *av.Packet) int {
+func (rb *AvRingbuffer) RingBufferPut(ptr *av.Packet) int {
 
 	if ((rb.write + 1) & rb.mask) == rb.read {
 		return -1
@@ -80,6 +81,3 @@ func (rb *AvRingbuffer)RingBufferPut(ptr *av.Packet) int {
 	rb.write = (rb.write + 1) & rb.mask
 	return 0
 }
-
-
-

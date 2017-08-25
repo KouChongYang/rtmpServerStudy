@@ -1,8 +1,8 @@
 package AvQue
 
 import (
-	"rtmpServerStudy/av"
 	"fmt"
+	"rtmpServerStudy/av"
 )
 
 type Buf struct {
@@ -14,11 +14,11 @@ type Buf struct {
 
 func NewBuf(size int) *Buf {
 	return &Buf{
-		pkts: make([](*av.Packet),size),
+		pkts: make([](*av.Packet), size),
 	}
 }
 
-func (self *Buf)CleanUp(){
+func (self *Buf) CleanUp() {
 
 	for i := self.Head; i.LT(self.Tail); i++ {
 		self.pkts[int(i)&(len(self.pkts)-1)] = nil
@@ -29,7 +29,6 @@ func (self *Buf)CleanUp(){
 	self.Count = 0
 }
 
-
 func (self *Buf) Pop() *av.Packet {
 	fmt.Println("=======================================1=")
 	if self.Count == 0 {
@@ -38,10 +37,10 @@ func (self *Buf) Pop() *av.Packet {
 	fmt.Println("=======================================2=")
 
 	i := int(self.Head) & (int(self.Tail) - 1)
-	fmt.Println("=======================================3=:",i)
+	fmt.Println("=======================================3=:", i)
 	pkt := self.pkts[i]
 	self.pkts[i] = nil
-	if pkt == nil{
+	if pkt == nil {
 		fmt.Println("=============================is or nil ====================")
 	}
 	fmt.Println("=======================================3=:", len(pkt.Data))
@@ -56,8 +55,7 @@ func (self *Buf) PktsLen() int {
 	return len(self.pkts)
 }
 
-
-func (self *Buf)Copy(dst *Buf) *Buf{
+func (self *Buf) Copy(dst *Buf) *Buf {
 
 	dst.pkts = make([]*av.Packet, len(self.pkts))
 	for i := self.Head; i.LT(self.Tail); i++ {
@@ -109,4 +107,3 @@ func (self BufPos) GE(pos BufPos) bool {
 func (self BufPos) GT(pos BufPos) bool {
 	return self-pos > 0
 }
-

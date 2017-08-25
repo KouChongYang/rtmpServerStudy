@@ -6,25 +6,25 @@ import (
 )
 
 /*
-    { ngx_string("connect"),            ngx_rtmp_cmd_connect_init           },
-    { ngx_string("createStream"),       ngx_rtmp_cmd_create_stream_init     },
-    { ngx_string("closeStream"),        ngx_rtmp_cmd_close_stream_init      },
-    { ngx_string("deleteStream"),       ngx_rtmp_cmd_delete_stream_init     },
-    { ngx_string("publish"),            ngx_rtmp_cmd_publish_init           },
-    { ngx_string("play"),               ngx_rtmp_cmd_play_init              },
-    { ngx_string("play2"),              ngx_rtmp_cmd_play2_init             },
-    { ngx_string("seek"),               ngx_rtmp_cmd_seek_init              },
-    { ngx_string("pause"),              ngx_rtmp_cmd_pause_init             },
-    { ngx_string("pauseraw"),           ngx_rtmp_cmd_pause_init
+   { ngx_string("connect"),            ngx_rtmp_cmd_connect_init           },
+   { ngx_string("createStream"),       ngx_rtmp_cmd_create_stream_init     },
+   { ngx_string("closeStream"),        ngx_rtmp_cmd_close_stream_init      },
+   { ngx_string("deleteStream"),       ngx_rtmp_cmd_delete_stream_init     },
+   { ngx_string("publish"),            ngx_rtmp_cmd_publish_init           },
+   { ngx_string("play"),               ngx_rtmp_cmd_play_init              },
+   { ngx_string("play2"),              ngx_rtmp_cmd_play2_init             },
+   { ngx_string("seek"),               ngx_rtmp_cmd_seek_init              },
+   { ngx_string("pause"),              ngx_rtmp_cmd_pause_init             },
+   { ngx_string("pauseraw"),           ngx_rtmp_cmd_pause_init
 */
 
-type cmdHandler func (sesion *Session,b []byte) (n int,err error)
+type cmdHandler func(sesion *Session, b []byte) (n int, err error)
 type RtmpCmdHandle map[string]cmdHandler
 
 var RtmpCmdHandles RtmpCmdHandle
 
-func RtmpConnectCmdHandler(session *Session,b []byte)(n int ,err error){
-	var transid,obj interface{}
+func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
+	var transid, obj interface{}
 	var size int
 	if transid, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
 		return
@@ -96,10 +96,10 @@ func RtmpConnectCmdHandler(session *Session,b []byte)(n int ,err error){
 	if err = session.flushWrite(); err != nil {
 		return
 	}
-	return 
+	return
 }
 
-func RtmpCreateStreamCmdHandler(session *Session,b []byte)(n int ,err error){
+func RtmpCreateStreamCmdHandler(session *Session, b []byte) (n int, err error) {
 
 	session.avmsgsid = uint32(1)
 	var transid interface{}
@@ -115,23 +115,23 @@ func RtmpCreateStreamCmdHandler(session *Session,b []byte)(n int ,err error){
 	if err = session.flushWrite(); err != nil {
 		return
 	}
-	return 
+	return
 }
 
-func RtmpCloseStreamCmdHandler(sesion *Session,b []byte)(n int ,err error){
-	return 
+func RtmpCloseStreamCmdHandler(sesion *Session, b []byte) (n int, err error) {
+	return
 }
 
-func RtmpDeleteStreamCmdHandler(sesion *Session,b []byte)(n int ,err error){
+func RtmpDeleteStreamCmdHandler(sesion *Session, b []byte) (n int, err error) {
 	err = fmt.Errorf("rtmp: delateStream")
-	return 
+	return
 }
 
-func RtmpPublishCmdHandler(session *Session,b []byte)(n int ,err error){
+func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 	if Debug {
 		fmt.Println("rtmp: < publish")
 	}
-	var transid,obj interface{}
+	var transid, obj interface{}
 	var size int
 	if transid, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
 		return
@@ -194,11 +194,11 @@ func RtmpPublishCmdHandler(session *Session,b []byte)(n int ,err error){
 	return
 }
 
-func RtmpPlayCmdHandler(session *Session,b []byte)(n int ,err error){
+func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 	if Debug {
 		fmt.Println("rtmp: < play")
 	}
-	var transid,obj interface{}
+	var transid, obj interface{}
 	var size int
 	if transid, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
 		return
@@ -267,8 +267,7 @@ func RtmpPlayCmdHandler(session *Session,b []byte)(n int ,err error){
 	return
 }
 
-
-func init(){
+func init() {
 	RtmpCmdHandles = make(RtmpCmdHandle)
 	RtmpCmdHandles["connect"] = RtmpConnectCmdHandler
 	RtmpCmdHandles["createStream"] = RtmpCreateStreamCmdHandler

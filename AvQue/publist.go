@@ -1,7 +1,8 @@
 package AvQue
+
 import (
-//"sync"
-"container/list"
+	//"sync"
+	"container/list"
 )
 
 //just for
@@ -22,10 +23,9 @@ func (q *CursorList) PushFront(v interface{}) {
 	//q.Unlock()
 }
 
-func (q *CursorList)GetList() *list.List{
+func (q *CursorList) GetList() *list.List {
 	return q.data
 }
-
 
 func (q *CursorList) PushBack(v interface{}) {
 	//q.Lock()
@@ -49,4 +49,3 @@ func (q *CursorList) Pop() interface{} {
 	}
 	return q.data.Remove(iter)
 }
-

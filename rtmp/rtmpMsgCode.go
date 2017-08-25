@@ -1,25 +1,25 @@
 package rtmp
 
 const (
-	RtmpLimitSoft = 0
-	RtmpLimitHard = 1
+	RtmpLimitSoft    = 0
+	RtmpLimitHard    = 1
 	RtmpLimiTDynamic = 2 //only user this
 )
-const  (
-	RtmpMsgChunkSize =  1
-	RtmpMsgAbort = 2
-	RtmpMsgAck = 3
-	RtmpMsgUser = 4
-	RtmpMsgAckSize = 5
+const (
+	RtmpMsgChunkSize = 1
+	RtmpMsgAbort     = 2
+	RtmpMsgAck       = 3
+	RtmpMsgUser      = 4
+	RtmpMsgAckSize   = 5
 	RtmpMsgBandwidth = 6
-	RtmpMsgEdge = 7
-	RtmpMsgAudio = 8
-	RtmpMsgVideo = 9
-	RtmpMsgAmf3Meta = 15
-	RtmpMsgAmf3CMD = 17
-	RtmpMsgAmfMeta = 18
-	RtmpMsgAmfCMD = 20
-	NGX_RTMP_MSG_MAX =  22
+	RtmpMsgEdge      = 7
+	RtmpMsgAudio     = 8
+	RtmpMsgVideo     = 9
+	RtmpMsgAmf3Meta  = 15
+	RtmpMsgAmf3CMD   = 17
+	RtmpMsgAmfMeta   = 18
+	RtmpMsgAmfCMD    = 20
+	NGX_RTMP_MSG_MAX = 22
 )
 
 /*#define NGX_RTMP_CONNECT                NGX_RTMP_MSG_MAX + 1
@@ -33,25 +33,28 @@ const  (
 */
 
 /* RMTP control message types */
-const(
-	RtmpUserStreamBegin = 0
-	RtmpUserStreamEof = 1
-	RtmpUserStreamDRY = 2
-	RtmpUserSetBufLen  = 3
-	RtmpUserRecorded = 4
-	RtmpUserPingRequest = 6
+const (
+	RtmpUserStreamBegin  = 0
+	RtmpUserStreamEof    = 1
+	RtmpUserStreamDRY    = 2
+	RtmpUserSetBufLen    = 3
+	RtmpUserRecorded     = 4
+	RtmpUserPingRequest  = 6
 	RtmpUserPingResponse = 7
-	RtmpUserUnknown = 8
-	RtmpUserBufferEnd = 32
+	RtmpUserUnknown      = 8
+	RtmpUserBufferEnd    = 32
 )
 
-type msgHandler func (sesion *Session,timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error)
+type msgHandler func(sesion *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error)
 type RtmpMsgHandle map[uint8]msgHandler
+
 var RtmpMsgHandles RtmpMsgHandle
+
 type RtmpControlMsgHandle map[uint16]msgHandler
+
 var RtmpControlMsgHandles RtmpControlMsgHandle
 
-func init(){
+func init() {
 	RtmpControlMsgHandles = make(RtmpControlMsgHandle)
 	RtmpMsgHandles = make(RtmpMsgHandle)
 	RtmpMsgHandles[RtmpMsgChunkSize] = RtmpMsgChunkSizeHandler
@@ -67,12 +70,10 @@ func init(){
 	RtmpMsgHandles[RtmpMsgAmfMeta] = RtmpMsgAmfHandler
 	RtmpMsgHandles[RtmpMsgAmfCMD] = RtmpMsgAmfHandler
 
-
-
 	RtmpControlMsgHandles[RtmpUserStreamBegin] = RtmpUserStreamBeginHandler
 	RtmpControlMsgHandles[RtmpUserStreamEof] = RtmpUserStreamEofHandler
 
-	RtmpControlMsgHandles[RtmpUserSetBufLen]  = RtmpUserSetBufLenHandler
+	RtmpControlMsgHandles[RtmpUserSetBufLen] = RtmpUserSetBufLenHandler
 
 	RtmpControlMsgHandles[RtmpUserPingRequest] = RtmpUserPingRequestHandler
 	RtmpControlMsgHandles[RtmpUserPingResponse] = RtmpUserPingResponseHandler

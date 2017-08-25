@@ -1,10 +1,9 @@
 package AvQue
 
-
 import (
-"io"
-"sync"
-"rtmpServerStudy/av"
+	"io"
+	"rtmpServerStudy/av"
+	"sync"
 )
 
 //        time
@@ -24,8 +23,8 @@ const (
 // One publisher and multiple subscribers thread-safe packet buffer queue.
 type AvQueue struct {
 	buf                      *Buf
-	CachedVideoCount       uint32
-	audioAfterLastVideoCnt uint32
+	CachedVideoCount         uint32
+	audioAfterLastVideoCnt   uint32
 	head, tail               int
 	lock                     *sync.RWMutex
 	cond                     *sync.Cond
@@ -35,7 +34,7 @@ type AvQueue struct {
 	closed                   bool
 }
 
-func NewQueue(size int,gopsize int) *AvQueue {
+func NewQueue(size int, gopsize int) *AvQueue {
 	q := &AvQueue{}
 	q.buf = NewBuf(size)
 	q.maxgopcount = gopsize
@@ -46,7 +45,7 @@ func NewQueue(size int,gopsize int) *AvQueue {
 	return q
 }
 
-func (self *AvQueue)Copy(dst *AvQueue)(err error){
+func (self *AvQueue) Copy(dst *AvQueue) (err error) {
 
 	dst.closed = self.closed
 	dst.maxgopcount = self.maxgopcount
@@ -88,14 +87,14 @@ func (self *AvQueue) WritePacket(pkt *av.Packet) (err error) {
 	self.lock.Lock()
 
 	self.buf.Push(pkt)
-	if  pkt.GopIsKeyFrame {
+	if pkt.GopIsKeyFrame {
 		self.curgopcount++
 	}
 
 	//释放挤压的未发出的gop
 	for self.curgopcount >= self.maxgopcount && self.buf.Count > 1 {
 		pkt := self.buf.Pop()
-		if  pkt.GopIsKeyFrame {
+		if pkt.GopIsKeyFrame {
 			self.curgopcount--
 		}
 		if self.curgopcount < self.maxgopcount {
@@ -115,8 +114,6 @@ type QueueCursor struct {
 	gotpos bool
 	init   func(buf *Buf, videoidx int) BufPos
 }
-
-
 
 func (self *AvQueue) newCursor() *QueueCursor {
 	return &QueueCursor{
@@ -141,8 +138,6 @@ func (self *AvQueue) Oldest() *QueueCursor {
 	}
 	return cursor
 }
-
-
 
 // ReadPacket will not consume packets in Queue, it's just a cursor.
 func (self *QueueCursor) ReadPacket() (pkt *av.Packet, err error) {
@@ -172,5 +167,3 @@ func (self *QueueCursor) ReadPacket() (pkt *av.Packet, err error) {
 	self.que.cond.L.Unlock()
 	return
 }
-
-

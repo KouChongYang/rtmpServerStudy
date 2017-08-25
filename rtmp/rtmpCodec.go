@@ -1,16 +1,15 @@
 package rtmp
 
 import (
-
-	"fmt"
-	"rtmpServerStudy/h264Parse"
-	"rtmpServerStudy/flv/flvio"
-	"rtmpServerStudy/av"
 	"container/list"
+	"fmt"
 	"rtmpServerStudy/aacParse"
+	"rtmpServerStudy/av"
+	"rtmpServerStudy/flv/flvio"
+	"rtmpServerStudy/h264Parse"
 )
 
-func RtmpMsgDecodeVideoHandler(session *Session,timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
 
 	if msgtypeid != RtmpMsgVideo {
 		return
@@ -56,7 +55,7 @@ func RtmpMsgDecodeVideoHandler(session *Session,timestamp uint32, msgsid uint32,
 					}
 				}
 			}
-			if  len(sps) > 0 && len(pps) > 0 {
+			if len(sps) > 0 && len(pps) > 0 {
 				if stream, err = h264parser.NewCodecDataFromSPSAndPPS(sps, pps); err != nil {
 					return
 				}
@@ -67,28 +66,28 @@ func RtmpMsgDecodeVideoHandler(session *Session,timestamp uint32, msgsid uint32,
 	}
 
 	var pkt *av.Packet
-	pkt,_ = TagToPacket(tag,int32(timestamp),msgdata)
+	pkt, _ = TagToPacket(tag, int32(timestamp), msgdata)
 	//this is a long time lock may be something err must
 	//session.CursorList.Lock()
 	var next *list.Element
 	CursorList := session.CursorList.GetList()
 	pkt.GopIsKeyFrame = pkt.IsKeyFrame
 
-	flag:=0
-	for i:=0;i<MAXREGISTERCHANNEL;i++ {
+	flag := 0
+	for i := 0; i < MAXREGISTERCHANNEL; i++ {
 		select {
-		case registerSession,ok := <-session.RegisterChannel:
-		if ok {
-			CursorList.PushBack(registerSession)
-		}else{
-			//some log
-			break
-		}
+		case registerSession, ok := <-session.RegisterChannel:
+			if ok {
+				CursorList.PushBack(registerSession)
+			} else {
+				//some log
+				break
+			}
 		default:
 			flag = 1
 			break
 		}
-		if flag ==1{
+		if flag == 1 {
 			break
 		}
 	}
@@ -100,7 +99,7 @@ func RtmpMsgDecodeVideoHandler(session *Session,timestamp uint32, msgsid uint32,
 			if !cursorSession.isClosed {
 				cursorSession.CurQue.RingBufferPut(pkt)
 				e = e.Next()
-			}else{
+			} else {
 				next = e.Next()
 				CursorList.Remove(e)
 				e = next
@@ -113,7 +112,7 @@ func RtmpMsgDecodeVideoHandler(session *Session,timestamp uint32, msgsid uint32,
 	return
 }
 
-func RtmpMsgDecodeAudioHandler(session *Session,timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error){
+func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
 
 	if msgtypeid != RtmpMsgAudio {
 		return
@@ -144,22 +143,22 @@ func RtmpMsgDecodeAudioHandler(session *Session,timestamp uint32, msgsid uint32,
 		}
 	}
 	var pkt *av.Packet
-	pkt,_ = TagToPacket(tag,int32(timestamp),msgdata)
+	pkt, _ = TagToPacket(tag, int32(timestamp), msgdata)
 	//this is a long time lock may be something err must
 	//session.CursorList.Lock()
-	if session.audioAfterLastVideoCnt > audioAfterLastVideoCnt{
+	if session.audioAfterLastVideoCnt > audioAfterLastVideoCnt {
 		pkt.GopIsKeyFrame = true
 	}
 	var next *list.Element
 	CursorList := session.CursorList.GetList()
 
-	flag:=0
-	for i:=0;i<MAXREGISTERCHANNEL;i++ {
+	flag := 0
+	for i := 0; i < MAXREGISTERCHANNEL; i++ {
 		select {
-		case registerSession,ok := <-session.RegisterChannel:
+		case registerSession, ok := <-session.RegisterChannel:
 			if ok {
 				CursorList.PushBack(registerSession)
-			}else{
+			} else {
 				//some log
 				break
 			}
@@ -167,7 +166,7 @@ func RtmpMsgDecodeAudioHandler(session *Session,timestamp uint32, msgsid uint32,
 			flag = 1
 			break
 		}
-		if flag ==1{
+		if flag == 1 {
 			break
 		}
 	}
@@ -178,12 +177,12 @@ func RtmpMsgDecodeAudioHandler(session *Session,timestamp uint32, msgsid uint32,
 			cursorSession := value1
 			if !cursorSession.isClosed {
 				//jumst put may be the ring is full ,when the ring is full ,drop the pkt
-				if cursorSession.CurQue.RingBufferPut(pkt) != 0{
+				if cursorSession.CurQue.RingBufferPut(pkt) != 0 {
 					//fmt.Println("the cursorsession ring is full so drop the messg")
 				}
 				cursorSession.cond.Signal()
 				e = e.Next()
-			}else{
+			} else {
 				next = e.Next()
 				CursorList.Remove(e)
 				e = next
@@ -197,33 +196,33 @@ func RtmpMsgDecodeAudioHandler(session *Session,timestamp uint32, msgsid uint32,
 
 func (session *Session) rtmpUpdateGopCache(pkt *av.Packet) (err error) {
 
-	if session.vCodec == nil{
+	if session.vCodec == nil {
 		return
 	}
 
-	if (*session.vCodec).Type()!=av.H264{
+	if (*session.vCodec).Type() != av.H264 {
 		return
 	}
 
 	//the first pkt must keyframe
-	if session.curgopcount == 0 && pkt.IsKeyFrame != true{
+	if session.curgopcount == 0 && pkt.IsKeyFrame != true {
 		return
 	}
 
 	session.Lock()
 	session.GopCache.Push(pkt)
-	if  pkt.IsKeyFrame {
+	if pkt.IsKeyFrame {
 		session.curgopcount++
 	}
-	if pkt.PacketType == flvio.TAG_AUDIO{
+	if pkt.PacketType == flvio.TAG_AUDIO {
 		session.audioAfterLastVideoCnt++
-	}else{
+	} else {
 		session.audioAfterLastVideoCnt = 0
 	}
 
 	for session.curgopcount >= session.maxgopcount && session.GopCache.Count > 1 {
 		pkt := session.GopCache.Pop()
-		if  pkt.IsKeyFrame {
+		if pkt.IsKeyFrame {
 			session.curgopcount--
 		}
 		if session.curgopcount < session.maxgopcount {
@@ -241,8 +240,7 @@ func (session *Session) rtmpUpdateGopCache(pkt *av.Packet) (err error) {
 	return
 }
 
-
-func TagToPacket(tag *flvio.Tag, timestamp int32 ,b []byte) (pkt *av.Packet, ok bool) {
+func TagToPacket(tag *flvio.Tag, timestamp int32, b []byte) (pkt *av.Packet, ok bool) {
 	pkt = new(av.Packet)
 	switch tag.Type {
 	case flvio.TAG_VIDEO:
