@@ -3,13 +3,13 @@ package flv
 import (
 	"bufio"
 	"fmt"
-	"time"
+
 	"github.com/nareix/bits/pio"
 
 	"io"
 	"rtmpServerStudy/av"
 	"rtmpServerStudy/flv/flvio"
-
+	
 	"rtmpServerStudy/amf"
 	"rtmpServerStudy/h264Parse"
 	"rtmpServerStudy/aacParse"
@@ -66,24 +66,6 @@ type Prober struct {
 	CachedPkts                     []av.Packet
 }
 
-
-func (self *Prober) addPacket(payload []byte, timedelta time.Duration,tag flvio.Tag) {
-
-	pkt := av.Packet{
-	}
-
-	switch tag.Type {
-	case flvio.TAG_VIDEO:
-		pkt.Idx = int8(self.VideoStreamIdx)
-		switch tag.AVCPacketType {
-		case flvio.AVC_NALU:
-			pkt.Data = payload
-			pkt.CompositionTime = flvio.TsToTime(tag.CompositionTime)
-			pkt.IsKeyFrame = tag.FrameType == flvio.FRAME_KEY
-		}
-	}
-	self.CachedPkts = append(self.CachedPkts, pkt)
-}
 
 func (self *Prober) Empty() bool {
 	return len(self.CachedPkts) == 0
@@ -299,21 +281,5 @@ func (self *Muxer) WriteHeader(streams []av.CodecData) (err error) {
 	return
 }
 
-func (self *Muxer) WritePacket(pkt av.Packet) (err error) {
-	stream := self.streams[pkt.Idx]
-	tag, timestamp := PacketToTag(pkt, stream)
-
-	if err = flvio.WriteTag(self.bufw, tag, timestamp, self.b); err != nil {
-		return
-	}
-	return
-}
-
-func (self *Muxer) WriteTrailer() (err error) {
-	if err = self.bufw.Flush(); err != nil {
-		return
-	}
-	return
-}
 
 

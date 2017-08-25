@@ -145,52 +145,25 @@ func RtmpMsgVideoHandler(session *Session,timestamp uint32,
 	return
 }
 
+
+
 func (self *Session) handleCommandMsgAMF0(b []byte) (n int, err error) {
-	var name, transid, obj interface{}
+	var name interface{}
 	var size int
 
 	if name, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
 		return
 	}
-
-	n += size
-	if transid, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
-		return
-	}
-	n += size
-	if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
-		return
-	}
-	n += size
-
 	var ok bool
 	var commandname string
 	if commandname, ok = name.(string); !ok {
 		err = fmt.Errorf("rtmp: CommandMsgAMF0 command is not string")
 		return
 	}
-
-	self.commandtransid, _ = transid.(float64)
-	commandobj, _ := obj.(amf.AMFMap)
-	commandparams := []interface{}{}
-
-	for n < len(b) {
-		if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
-			return
-		}
-		n += size
-		commandparams = append(commandparams, obj)
-	}
-	if n < len(b) {
-		err = fmt.Errorf("rtmp: CommandMsgAMF0 left bytes=%d", len(b)-n)
-		return
-	}
-
-	//(sesion *Session,obj amf.AMFMap,amfParams[]interface{})
+	n += size
 	if RtmpCmdHandles[commandname] != nil {
-		err = RtmpCmdHandles[commandname](self,commandobj,commandparams)
+		_,err = RtmpCmdHandles[commandname](self,b[n:])
 	}
-
 	return
 }
 

@@ -9,7 +9,7 @@ import (
 	"github.com/nareix/bits/pio"
 	"context"
 	"io"
-	"encoding/hex"
+	//"encoding/hex"
 	"sync"
 
 	"rtmpServerStudy/AvQue"
@@ -18,11 +18,16 @@ import (
 
 	"strings"
 	"rtmpServerStudy/aacParse"
+	"rtmpServerStudy/flv"
+	"rtmpServerStudy/amf"
+	"rtmpServerStudy/flv/flvio"
+
+	"rtmpServerStudy/av"
 )
 
 /* RTMP message types */
 var(
-	Debug = true
+	Debug = false
 )
 
 const(
@@ -54,12 +59,14 @@ type Server struct{
 
 type Session struct {
 	sync.RWMutex
+	lock *sync.RWMutex
+	cond *sync.Cond
 	context           context.Context
 	CursorList  	  *AvQue.CursorList
 	GopCache          *AvQue.Buf
 	maxgopcount       int
 	audioAfterLastVideoCnt int
-	CurQue   	  *AvQue.AvQueue
+	CurQue   	  *AvQue.AvRingbuffer
 	vCodec 	  	  *h264parser.CodecData
 	aCodec    	  *aacparser.CodecData
 	RegisterChannel   chan *Session
@@ -135,12 +142,16 @@ func NewSesion(netconn net.Conn) *Session {
 	session.CursorList = AvQue.NewPublist()
 	session.maxgopcount = 2
 
+	session.lock =  &sync.RWMutex{}
+	session.cond = sync.NewCond(session.lock.RLocker())
+
 	//just for regist cursor session
 	session.RegisterChannel = make(chan *Session,MAXREGISTERCHANNEL)
 
 	//true register ok ,false register false
 	session.RegisterAck = make(chan bool,1)
-	session.context , session.cancel = context.WithCancel(context.Background())
+	//this maybe
+	//session.context , session.cancel = context.WithCancel(context.Background())
 	//
 
 	session.bufr = bufio.NewReaderSize(netconn, pio.RecommendBufioSize)
@@ -149,7 +160,7 @@ func NewSesion(netconn net.Conn) *Session {
 	session.readbuf = make([]byte, 4096)
 	session.chunkHeaderBuf = make([]byte,chunkHeaderLength)
 	session.GopCache = AvQue.NewBuf(64)
-	session.CurQue = AvQue.NewQueue(64,5)
+	session.CurQue = AvQue.RingBufferCreate(8)//
 	return session
 }
 
@@ -427,7 +438,7 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 	if cs.msgdataleft == 0 {
 		if Debug {
 			fmt.Println("rtmp: chunk data")
-			fmt.Print(hex.Dump(cs.msgdata))
+			//fmt.Print(hex.Dump(cs.msgdata))
 		}
 		if hands[cs.msgtypeid] != nil {
 			if err = hands[cs.msgtypeid](self,cs.timenow, cs.msgsid, cs.msgtypeid, cs.msgdata);err!=nil {
@@ -474,6 +485,126 @@ func (self *Session)rtmpCloseSessionHanler(){
 
 }
 
+func (self *Session) writeAVTag(tag flvio.Tag, ts int32) (err error) {
+	var msgtypeid uint8
+	var csid uint32
+
+	switch tag.Type {
+	case flvio.TAG_AUDIO:
+		msgtypeid = RtmpMsgAudio
+		csid = 6
+	case flvio.TAG_VIDEO:
+		msgtypeid = RtmpMsgVideo
+		csid = 7
+	}
+	n:=0
+	n,err= self.DoSend(tag.Data,csid,uint32(ts),msgtypeid,self.avmsgsid,len(tag.Data))
+	fmt.Println("send byte :%d",n)
+	return
+}
+
+func (self *Session) writeAVPacket(packet *av.Packet) (err error) {
+	var msgtypeid uint8
+	var csid uint32
+
+	switch  packet.PacketType{
+	case RtmpMsgAudio:
+		msgtypeid = RtmpMsgAudio
+		csid = 6
+	case RtmpMsgVideo:
+		msgtypeid = RtmpMsgVideo
+		csid = 7
+	}
+	n:=0
+	ts:=flvio.TimeToTs(packet.Time)
+
+	//DoSend(b []byte, csid uint32, timestamp uint32, msgtypeid uint8, msgsid uint32, msgdatalen int)(n int ,err error){
+	n,err= self.DoSend(packet.Data,csid,uint32(ts),msgtypeid,self.avmsgsid,len(packet.Data))
+	fmt.Println("send byte :%d",n)
+	return
+}
+
+
+func (self *Session)WriteHead()(err error){
+	var metadata amf.AMFMap
+	var streams []av.CodecData
+	
+	if  self.aCodec == nil && self.vCodec == nil{
+		return 
+	}
+	if self.aCodec != nil {
+		streams = append(streams,*self.aCodec)
+	}
+	if self.vCodec != nil {
+		streams = append(streams,*self.vCodec)
+	}
+
+	if metadata, err = flv.NewMetadataByStreams(streams); err != nil {
+		return
+	}
+	if err = self.writeDataMsg(5, self.avmsgsid, "onMetaData", metadata); err != nil {
+		return
+	}
+	for _, stream := range streams {
+		var ok bool
+		var tag flvio.Tag
+		if tag, ok, err = flv.CodecDataToTag(stream); err != nil {
+			return
+		}
+		if ok {
+			if err = self.writeAVTag(tag, 0); err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+func (self *Session) rtmpSendGop()(err error){
+	fmt.Println("=====================================gopcache len======================")
+	fmt.Println(self.GopCache.Count)
+	fmt.Println(self.GopCache.Head)
+	fmt.Println(self.GopCache.Size)
+	fmt.Println(self.GopCache.Count)
+	if self.GopCache == nil{
+	fmt.Println("=====================================gopcache len======================")
+	}
+	a:= self.GopCache.Pop()
+	fmt.Println(a)
+	for pkt:=self.GopCache.Pop();pkt != nil;{
+		err = self.writeAVPacket(pkt)
+		if err != nil{
+			return err
+		}
+	}
+	return
+}
+
+func (self *Session)sendRtmpAvPackets()(err error){
+	for {
+		pkt := self.CurQue.RingBufferGet()
+		if pkt == nil{
+			self.cond.L.Lock()
+			self.cond.Wait()
+			self.cond.L.Unlock()
+		}
+
+		select {
+		case <-self.context.Done():
+		// here publish may over so play is over
+			return
+		default:
+		// 没有结束 ... 执行 ...
+		}
+		if pkt != nil {
+			if err = self.writeAVPacket(pkt); err != nil {
+				return
+			}
+		}
+
+	}
+}
+
 func (self *Session) ClientSessionPrepare(stage,flags int)(err error){
 	for self.stage < stage {
 		switch self.stage {
@@ -510,11 +641,13 @@ func (self *Session) ServerSession(stage int) (err error) {
 			err = self.rtmpReadCmdMsgCycle()
 		case stageCommandDone:
 			if self.publishing{
+				self.context , self.cancel = context.WithCancel(context.Background())
 				PublishingSessionMap.Lock()
 				PublishingSessionMap.sessionIndex[self.URL.Path] = self
 				PublishingSessionMap.Unlock()
-				self.rtmpReadMsgCycle()
-
+				err = self.rtmpReadMsgCycle()
+				self.stage = stageSessionDone
+				continue
 			}else if self.playing{
 				PublishingSessionMap.Lock()
 				pubSession,ok:=PublishingSessionMap.sessionIndex[self.URL.Path]
@@ -522,11 +655,26 @@ func (self *Session) ServerSession(stage int) (err error) {
 				if ok {
 					//register play to the publish
 					pubSession.RegisterChannel<-self
+					//copy gop,codec
 					pubSession.Lock()
 					self.aCodec = pubSession.aCodec
 					self.vCodec = pubSession.vCodec
-
+					self.GopCache = pubSession.GopCache.Copy(self.GopCache)
 					pubSession.Unlock()
+					self.context , self.cancel  = pubSession.context , pubSession.cancel
+					if err = self.WriteHead();err != nil{
+						fmt.Println(err)
+						return err
+					}
+					if err = self.rtmpSendGop();err != nil {
+						fmt.Println(err)
+						return err
+					}
+					if err = self.sendRtmpAvPackets();err != nil{
+						fmt.Println(err)
+						return err
+					}
+
 				}else{
 					//relay play
 				}

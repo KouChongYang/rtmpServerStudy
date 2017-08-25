@@ -43,7 +43,6 @@ func RtmpMsgDecodeVideoHandler(session *Session,timestamp uint32, msgsid uint32,
 			session.vCodec = &stream
 		case flvio.AVC_NALU:
 			b := tag.Data
-			fmt.Println("test eeeeeee\n")
 			nalus, _ := h264parser.SplitNALUs(b)
 			var sps, pps [][]byte
 			for _, nalu := range nalus {
@@ -63,17 +62,17 @@ func RtmpMsgDecodeVideoHandler(session *Session,timestamp uint32, msgsid uint32,
 				}
 			}
 			session.vCodec = &stream
-			return
 		}
 		//
 	}
 
-	var pkt av.Packet
-	pkt,err = TagToPacket(tag,int32(timestamp),msgdata)
+	var pkt *av.Packet
+	pkt,_ = TagToPacket(tag,int32(timestamp),msgdata)
 	//this is a long time lock may be something err must
 	//session.CursorList.Lock()
 	var next *list.Element
 	CursorList := session.CursorList.GetList()
+	pkt.GopIsKeyFrame = pkt.IsKeyFrame
 
 	flag:=0
 	for i:=0;i<MAXREGISTERCHANNEL;i++ {
@@ -99,7 +98,7 @@ func RtmpMsgDecodeVideoHandler(session *Session,timestamp uint32, msgsid uint32,
 		case *Session:
 			cursorSession := value1
 			if !cursorSession.isClosed {
-				cursorSession.CurQue.WritePacket(pkt)
+				cursorSession.CurQue.RingBufferPut(pkt)
 				e = e.Next()
 			}else{
 				next = e.Next()
@@ -141,13 +140,16 @@ func RtmpMsgDecodeAudioHandler(session *Session,timestamp uint32, msgsid uint32,
 				fmt.Println(err)
 				return
 			}
-			session.aCodec = stream
+			session.aCodec = &stream
 		}
 	}
-	var pkt av.Packet
-	pkt,err = TagToPacket(tag,int32(timestamp),msgdata)
+	var pkt *av.Packet
+	pkt,_ = TagToPacket(tag,int32(timestamp),msgdata)
 	//this is a long time lock may be something err must
 	//session.CursorList.Lock()
+	if session.audioAfterLastVideoCnt > audioAfterLastVideoCnt{
+		pkt.GopIsKeyFrame = true
+	}
 	var next *list.Element
 	CursorList := session.CursorList.GetList()
 
@@ -175,14 +177,17 @@ func RtmpMsgDecodeAudioHandler(session *Session,timestamp uint32, msgsid uint32,
 		case *Session:
 			cursorSession := value1
 			if !cursorSession.isClosed {
-				cursorSession.CurQue.WritePacket(pkt)
+				//jumst put may be the ring is full ,when the ring is full ,drop the pkt
+				if cursorSession.CurQue.RingBufferPut(pkt) != 0{
+					//fmt.Println("the cursorsession ring is full so drop the messg")
+				}
+				cursorSession.cond.Signal()
 				e = e.Next()
 			}else{
 				next = e.Next()
 				CursorList.Remove(e)
 				e = next
 			}
-
 		}
 	}
 	session.rtmpUpdateGopCache(pkt)
@@ -190,7 +195,7 @@ func RtmpMsgDecodeAudioHandler(session *Session,timestamp uint32, msgsid uint32,
 	return
 }
 
-func (session *Session) rtmpUpdateGopCache(pkt av.Packet) (err error) {
+func (session *Session) rtmpUpdateGopCache(pkt *av.Packet) (err error) {
 
 	if session.vCodec == nil{
 		return
@@ -229,6 +234,7 @@ func (session *Session) rtmpUpdateGopCache(pkt av.Packet) (err error) {
 	if session.audioAfterLastVideoCnt > audioAfterLastVideoCnt {
 		session.GopCache.CleanUp()
 		session.curgopcount = 0
+		session.audioAfterLastVideoCnt = 0
 	}
 	//println("shrink", self.curgopcount, self.maxgopcount, self.buf.Head, self.buf.Tail, "count", self.buf.Count, "size", self.buf.Size)
 	session.Unlock()
@@ -236,18 +242,18 @@ func (session *Session) rtmpUpdateGopCache(pkt av.Packet) (err error) {
 }
 
 
-func TagToPacket(tag *flvio.Tag, timestamp int32 ,b []byte) (pkt av.Packet, ok bool) {
-
-	switch *tag.Type {
+func TagToPacket(tag *flvio.Tag, timestamp int32 ,b []byte) (pkt *av.Packet, ok bool) {
+	pkt = new(av.Packet)
+	switch tag.Type {
 	case flvio.TAG_VIDEO:
-		switch *tag.AVCPacketType {
+		switch tag.AVCPacketType {
 		case flvio.AVC_NALU:
-			pkt.CompositionTime = flvio.TsToTime(*tag.CompositionTime)
-			pkt.IsKeyFrame = *tag.FrameType == flvio.FRAME_KEY
+			pkt.CompositionTime = flvio.TsToTime(tag.CompositionTime)
+			pkt.IsKeyFrame = tag.FrameType == flvio.FRAME_KEY
 		}
 	case flvio.TAG_AUDIO:
 	}
-	pkt.PacketType = *tag.Type
+	pkt.PacketType = tag.Type
 	pkt.Data = b
 	pkt.Time = flvio.TsToTime(timestamp)
 	return

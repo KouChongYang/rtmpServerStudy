@@ -18,41 +18,67 @@ import (
     { ngx_string("pauseraw"),           ngx_rtmp_cmd_pause_init
 */
 
-type cmdHandler func (sesion *Session,obj amf.AMFMap,amfParams[]interface{}) (err error)
+type cmdHandler func (sesion *Session,b []byte) (n int,err error)
 type RtmpCmdHandle map[string]cmdHandler
 
 var RtmpCmdHandles RtmpCmdHandle
 
-func RtmpConnectCmdHandler(Session *Session,CmdObj amf.AMFMap,amfParams[]interface{})(err error){
+func RtmpConnectCmdHandler(session *Session,b []byte)(n int ,err error){
+	var transid,obj interface{}
+	var size int
+	if transid, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		return
+	}
+	n += size
+	if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		return
+	}
+	n += size
 
-	if CmdObj == nil {
+	session.commandtransid, _ = transid.(float64)
+	commandobj, _ := obj.(amf.AMFMap)
+	commandparams := []interface{}{}
+
+	for n < len(b) {
+		if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+			return
+		}
+		n += size
+		commandparams = append(commandparams, obj)
+	}
+	if n < len(b) {
+		err = fmt.Errorf("rtmp: CommandMsgAMF0 left bytes=%d", len(b)-n)
+		return
+	}
+
+	if commandobj == nil {
 		err = fmt.Errorf("rtmp: connect command params invalid")
 		return
 	}
 
 	var ok bool
 	var _app, _tcurl interface{}
-	if _app, ok = CmdObj["app"]; !ok {
+	if _app, ok = commandobj["app"]; !ok {
 		err = fmt.Errorf("rtmp: `connect` params missing `app`")
 		return
 	}
 	app, _ := _app.(string)
-	Session.App = &app
+	session.App = &app
 
 	var tcurl string
-	if _tcurl, ok = CmdObj["tcUrl"]; !ok {
+	if _tcurl, ok = commandobj["tcUrl"]; !ok {
 	}
 	if ok {
 		tcurl, _ = _tcurl.(string)
 	}
-	Session.TcUrl = &tcurl
+	session.TcUrl = &tcurl
 
-	if err = Session.writeBasicConf(); err != nil {
+	if err = session.writeBasicConf(); err != nil {
 		return
 	}
 
 	// > _result("NetConnection.Connect.Success")
-	if err = Session.writeCommandMsg(3, 0, "_result", Session.commandtransid,
+	if err = session.writeCommandMsg(3, 0, "_result", session.commandtransid,
 		amf.AMFMap{
 			"fmtVer":       "FMS/3,0,1,123",
 			"capabilities": 31,
@@ -67,15 +93,21 @@ func RtmpConnectCmdHandler(Session *Session,CmdObj amf.AMFMap,amfParams[]interfa
 		return
 	}
 
-	if err = Session.flushWrite(); err != nil {
+	if err = session.flushWrite(); err != nil {
 		return
 	}
-	return err
+	return 
 }
 
-func RtmpCreateStreamCmdHandler(session *Session,obj amf.AMFMap,amfParams[]interface{})(err error){
+func RtmpCreateStreamCmdHandler(session *Session,b []byte)(n int ,err error){
 
 	session.avmsgsid = uint32(1)
+	var transid interface{}
+
+	if transid, _, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		return
+	}
+	session.commandtransid, _ = transid.(float64)
 	// > _result(streamid)
 	if err = session.writeCommandMsg(3, 0, "_result", session.commandtransid, nil, session.avmsgsid); err != nil {
 		return
@@ -83,28 +115,53 @@ func RtmpCreateStreamCmdHandler(session *Session,obj amf.AMFMap,amfParams[]inter
 	if err = session.flushWrite(); err != nil {
 		return
 	}
-	return err
+	return 
 }
 
-func RtmpCloseStreamCmdHandler(sesion *Session,obj amf.AMFMap,amfParams[]interface{})(err error){
-	return err
+func RtmpCloseStreamCmdHandler(sesion *Session,b []byte)(n int ,err error){
+	return 
 }
 
-func RtmpDeleteStreamCmdHandler(sesion *Session,obj amf.AMFMap,amfParams[]interface{})(err error){
+func RtmpDeleteStreamCmdHandler(sesion *Session,b []byte)(n int ,err error){
 	err = fmt.Errorf("rtmp: delateStream")
-	return err
+	return 
 }
 
-func RtmpPublishCmdHandler(session *Session,obj amf.AMFMap,amfParams[]interface{})(err error){
+func RtmpPublishCmdHandler(session *Session,b []byte)(n int ,err error){
 	if Debug {
 		fmt.Println("rtmp: < publish")
 	}
+	var transid,obj interface{}
+	var size int
+	if transid, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		return
+	}
+	n += size
+	if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		return
+	}
+	n += size
 
-	if len(amfParams) < 1 {
+	session.commandtransid, _ = transid.(float64)
+	commandparams := []interface{}{}
+
+	for n < len(b) {
+		if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+			return
+		}
+		n += size
+		commandparams = append(commandparams, obj)
+	}
+	if n < len(b) {
+		err = fmt.Errorf("rtmp: CommandMsgAMF0 left bytes=%d", len(b)-n)
+		return
+	}
+
+	if len(commandparams) < 1 {
 		err = fmt.Errorf("rtmp: publish params invalid")
 		return
 	}
-	publishpath, _ := amfParams[0].(string)
+	publishpath, _ := commandparams[0].(string)
 	fmt.Println(publishpath)
 	var cberr error
 	// here must do something
@@ -137,16 +194,45 @@ func RtmpPublishCmdHandler(session *Session,obj amf.AMFMap,amfParams[]interface{
 	return
 }
 
-func RtmpPlayCmdHandler(session *Session,obj amf.AMFMap,amfParams[]interface{})(err error){
+func RtmpPlayCmdHandler(session *Session,b []byte)(n int ,err error){
 	if Debug {
 		fmt.Println("rtmp: < play")
 	}
+	var transid,obj interface{}
+	var size int
+	if transid, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		return
+	}
+	n += size
+	if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		return
+	}
+	n += size
 
-	if len(amfParams) < 1 {
+	session.commandtransid, _ = transid.(float64)
+	commandparams := []interface{}{}
+
+	for n < len(b) {
+		if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+			return
+		}
+		n += size
+		commandparams = append(commandparams, obj)
+	}
+	if n < len(b) {
+		err = fmt.Errorf("rtmp: CommandMsgAMF0 left bytes=%d", len(b)-n)
+		return
+	}
+
+	if len(commandparams) < 1 {
+		err = fmt.Errorf("rtmp: publish params invalid")
+		return
+	}
+	if len(commandparams) < 1 {
 		err = fmt.Errorf("rtmp: command play params invalid")
 		return
 	}
-	playpath, _ := amfParams[0].(string)
+	playpath, _ := commandparams[0].(string)
 	fmt.Println(playpath)
 	// > streamBegin(streamid)
 	if err = session.writeStreamBegin(session.avmsgsid); err != nil {

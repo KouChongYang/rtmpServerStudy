@@ -2,18 +2,19 @@ package AvQue
 
 import (
 	"rtmpServerStudy/av"
+	"fmt"
 )
 
 type Buf struct {
 	Head, Tail BufPos
-	pkts       []av.Packet
+	pkts       [](*av.Packet)
 	Size       int
 	Count      int
 }
 
 func NewBuf(size int) *Buf {
 	return &Buf{
-		pkts: make([]av.Packet,size),
+		pkts: make([](*av.Packet),size),
 	}
 }
 
@@ -29,14 +30,21 @@ func (self *Buf)CleanUp(){
 }
 
 
-func (self *Buf) Pop() av.Packet {
+func (self *Buf) Pop() *av.Packet {
+	fmt.Println("=======================================1=")
 	if self.Count == 0 {
-		panic("pktque.Buf: Pop() when count == 0")
+		return nil
 	}
+	fmt.Println("=======================================2=")
 
-	i := int(self.Head) & (len(self.pkts) - 1)
+	i := int(self.Head) & (int(self.Tail) - 1)
+	fmt.Println("=======================================3=:",i)
 	pkt := self.pkts[i]
-	self.pkts[i] = av.Packet{}
+	self.pkts[i] = nil
+	if pkt == nil{
+		fmt.Println("=============================is or nil ====================")
+	}
+	fmt.Println("=======================================3=:", len(pkt.Data))
 	self.Size -= len(pkt.Data)
 	self.Head++
 	self.Count--
@@ -51,26 +59,26 @@ func (self *Buf) PktsLen() int {
 
 func (self *Buf)Copy(dst *Buf) *Buf{
 
-	dst.pkts = make([]av.Packet, len(self.pkts))
+	dst.pkts = make([]*av.Packet, len(self.pkts))
 	for i := self.Head; i.LT(self.Tail); i++ {
 		dst.pkts[int(i)&(len(dst.pkts)-1)] = self.pkts[int(i)&(len(self.pkts)-1)]
 	}
 	dst.Tail = self.Tail
 	dst.Count = self.Count
-	self.Size = self.Size
+	dst.Size = self.Size
 
 	return dst
 }
 
 func (self *Buf) grow() {
-	newpkts := make([]av.Packet, len(self.pkts)*2)
+	newpkts := make([]*av.Packet, len(self.pkts)*2)
 	for i := self.Head; i.LT(self.Tail); i++ {
 		newpkts[int(i)&(len(newpkts)-1)] = self.pkts[int(i)&(len(self.pkts)-1)]
 	}
 	self.pkts = newpkts
 }
 
-func (self *Buf) Push(pkt av.Packet) {
+func (self *Buf) Push(pkt *av.Packet) {
 	if self.Count == len(self.pkts) {
 		self.grow()
 	}
@@ -80,7 +88,7 @@ func (self *Buf) Push(pkt av.Packet) {
 	self.Size += len(pkt.Data)
 }
 
-func (self *Buf) Get(pos BufPos) av.Packet {
+func (self *Buf) Get(pos BufPos) *av.Packet {
 	return self.pkts[int(pos)&(len(self.pkts)-1)]
 }
 
