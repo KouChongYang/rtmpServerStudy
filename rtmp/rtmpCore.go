@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"rtmpServerStudy/av"
+	"encoding/hex"
 )
 
 /* RTMP message types */
@@ -542,12 +543,14 @@ func (self *Session) WriteHead() (err error) {
 		if tag, ok, err = flv.CodecDataToTag(stream); err != nil {
 			return
 		}
+		fmt.Println(hex.Dump(tag.Data))
 		if ok {
 			if err = self.writeAVTag(tag, 0); err != nil {
 				return
 			}
 		}
 	}
+	panic(55)
 	return
 }
 

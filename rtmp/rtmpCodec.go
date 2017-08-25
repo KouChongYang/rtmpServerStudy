@@ -234,7 +234,7 @@ func (session *Session) rtmpUpdateGopCache(pkt *av.Packet) (err error) {
 	for session.curgopcount >= session.maxgopcount  {
 		session.GopCache.RingBufferCleanOldGop()
 		session.curgopcount--
-		if session.curgopcount < session.maxgopcount {
+		if session.curgopcount <= session.maxgopcount {
 			break
 		}
 	}
