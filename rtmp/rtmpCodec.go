@@ -43,7 +43,9 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 				fmt.Println("++++++++++++++++++err h264 err")
 				return
 			}
+			session.Lock()
 			session.vCodec = &stream
+			session.Unlock()
 		case flvio.AVC_NALU:
 			b := tag.Data
 			nalus, _ := h264parser.SplitNALUs(b)
@@ -64,7 +66,9 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 					return
 				}
 			}
+			session.Lock()
 			session.vCodec = &stream
+			session.Unlock()
 		}
 		//
 	}
@@ -151,7 +155,9 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 				fmt.Println(err)
 				return
 			}
+			session.Unlock()
 			session.aCodec = &stream
+			session.Unlock()
 		}
 	}
 	var pkt *av.Packet
