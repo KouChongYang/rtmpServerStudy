@@ -97,8 +97,11 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 		case *Session:
 			cursorSession := value1
 			if !cursorSession.isClosed {
-				cursorSession.CurQue.RingBufferPut(pkt)
-				e = e.Next()
+				if cursorSession.CurQue.RingBufferPut(pkt) != 0 {
+					//fmt.Println("the cursorsession ring is full so drop the messg")
+				}
+				cursorSession.cond.Signal()
+				next = e.Next()
 			} else {
 				next = e.Next()
 				CursorList.Remove(e)
@@ -213,7 +216,9 @@ func (session *Session) rtmpUpdateGopCache(pkt *av.Packet) (err error) {
 	session.Lock()
 	des:= session.GopCache.RingBufferABSPut(pkt)
 	if des == nil{
-
+		session.GopCache.RingBufferCleanGop()
+		session.curgopcount = 0
+		session.audioAfterLastVideoCnt = 0
 	}else{
 		session.GopCache = des
 	}
