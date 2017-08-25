@@ -60,7 +60,7 @@ type Session struct {
 	cond                   *sync.Cond
 	context                context.Context
 	CursorList             *AvQue.CursorList
-	GopCache               *AvQue.Buf
+	GopCache               *AvQue.AvRingbuffer
 	maxgopcount            int
 	audioAfterLastVideoCnt int
 	CurQue                 *AvQue.AvRingbuffer
@@ -154,8 +154,8 @@ func NewSesion(netconn net.Conn) *Session {
 	session.writebuf = make([]byte, 4096)
 	session.readbuf = make([]byte, 4096)
 	session.chunkHeaderBuf = make([]byte, chunkHeaderLength)
-	session.GopCache = AvQue.NewBuf(64)
-	session.CurQue = AvQue.RingBufferCreate(8) //
+	session.GopCache = AvQue.RingBufferCreate(10)
+	session.CurQue = AvQue.RingBufferCreate(10) //
 	return session
 }
 
