@@ -155,7 +155,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 				fmt.Println(err)
 				return
 			}
-			session.Unlock()
+			session.Lock()
 			session.aCodec = &stream
 			session.Unlock()
 		}
