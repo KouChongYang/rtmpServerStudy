@@ -13,6 +13,7 @@ import (
 	"rtmpServerStudy/aacParse"
 	"rtmpServerStudy/amf"
 	"rtmpServerStudy/h264Parse"
+	"encoding/hex"
 )
 
 var MaxProbePacketCount = 20
@@ -79,6 +80,7 @@ func (self *Prober) PopPacket() av.Packet {
 func CodecDataToTag(stream av.CodecData) (_tag flvio.Tag, ok bool, err error) {
 	switch stream.Type() {
 	case av.H264:
+		fmt.Println("head:h264")
 		h264 := stream.(h264parser.CodecData)
 		tag := flvio.Tag{
 			Type:          flvio.TAG_VIDEO,
@@ -87,6 +89,9 @@ func CodecDataToTag(stream av.CodecData) (_tag flvio.Tag, ok bool, err error) {
 			Data:          h264.AVCDecoderConfRecordBytes(),
 			FrameType:     flvio.FRAME_KEY,
 		}
+		fmt.Println("==================h264================")
+		fmt.Println(hex.Dump(tag.Data))
+		fmt.Println("==================================")
 		ok = true
 		_tag = tag
 
@@ -102,6 +107,10 @@ func CodecDataToTag(stream av.CodecData) (_tag flvio.Tag, ok bool, err error) {
 			AACPacketType: flvio.AAC_SEQHDR,
 			Data:          aac.MPEG4AudioConfigBytes(),
 		}
+
+		fmt.Println("=================aac=================")
+		fmt.Println(hex.Dump(tag.Data))
+		fmt.Println("==================================")
 		switch aac.SampleFormat().BytesPerSample() {
 		case 1:
 			tag.SoundSize = flvio.SOUND_8BIT
