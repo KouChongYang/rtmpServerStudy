@@ -7,6 +7,7 @@ import (
 	"rtmpServerStudy/av"
 	"rtmpServerStudy/flv/flvio"
 	"rtmpServerStudy/h264Parse"
+	"encoding/hex"
 )
 
 func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
@@ -34,6 +35,9 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 		switch tag.AVCPacketType {
 		case flvio.AVC_SEQHDR:
 			fmt.Println("find avc seqhdr")
+			fmt.Println("=======================h264====")
+			fmt.Println(hex.Dump(tag.Data))
+			fmt.Println("================================")
 			if stream, err = h264parser.NewCodecDataFromAVCDecoderConfRecord(tag.Data); err != nil {
 				err = fmt.Errorf("flv: h264 seqhdr invalid")
 				fmt.Println("++++++++++++++++++err h264 err")
@@ -138,6 +142,10 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 		case flvio.AAC_SEQHDR:
 			fmt.Println("find acc seqhdr")
 			var stream aacparser.CodecData
+			fmt.Println("=======================aac====")
+			fmt.Println(hex.Dump(tag.Data))
+			fmt.Println("================================")
+
 			if stream, err = aacparser.NewCodecDataFromMPEG4AudioConfigBytes(tag.Data); err != nil {
 				err = fmt.Errorf("flv: aac seqhdr invalid")
 				fmt.Println(err)
