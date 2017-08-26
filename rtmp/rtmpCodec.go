@@ -89,6 +89,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 	for i := 0; i < MAXREGISTERCHANNEL; i++ {
 		select {
 		case registerSession, ok := <-session.RegisterChannel:
+			fmt.Println("+++++++++++++++++++++++++++++++++++++++++veido++:1")
 			if ok {
 				CursorList.PushBack(registerSession)
 			} else {
@@ -112,8 +113,10 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 				if cursorSession.CurQue.RingBufferPut(pkt) != 0 {
 					//fmt.Println("the cursorsession ring is full so drop the messg")
 				}
+			fmt.Println("+++++++++++++++++++++++++++++++++++++++++veido++:2")
 				cursorSession.cond.Signal()
-				next = e.Next()
+			fmt.Println("+++++++++++++++++++++++++++++++++++++++++veido++:3")
+				e = e.Next()
 			} else {
 				next = e.Next()
 				CursorList.Remove(e)
@@ -143,6 +146,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 		return
 	}
 
+				fmt.Println("============================================audio==============1");
 	switch tag.SoundFormat {
 	case flvio.SOUND_AAC:
 		tag.Data = msgdata[n:]
@@ -175,10 +179,13 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 	var next *list.Element
 	CursorList := session.CursorList.GetList()
 
+				fmt.Println("============================================audio==============2");
 	flag := 0
 	for i := 0; i < MAXREGISTERCHANNEL; i++ {
+				fmt.Println("============================================audio==============3");
 		select {
 		case registerSession, ok := <-session.RegisterChannel:
+				fmt.Println("============================================audio==============8");
 			if ok {
 				CursorList.PushBack(registerSession)
 			} else {
@@ -199,6 +206,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 		case *Session:
 			cursorSession := value1
 			if !cursorSession.isClosed {
+				fmt.Println("============================================audio==============4");
 				//jumst put may be the ring is full ,when the ring is full ,drop the pkt
 				if cursorSession.CurQue.RingBufferPut(pkt) != 0 {
 					//fmt.Println("the cursorsession ring is full so drop the messg")

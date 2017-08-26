@@ -22,22 +22,22 @@ func (self *Session) DoSend(b []byte, csid uint32, timestamp uint32, msgtypeid u
 	sn := 0
 	last := self.writeMaxChunkSize
 	end := msgdatalen
-	testn := 0
+	//testn := 0
 	for msgdatalen > 0 {
 		if pos == 0 {
 			n := self.fillChunk0Header(self.chunkHeaderBuf, csid, timestamp, msgtypeid, msgsid, msgdatalen)
-			fmt.Print(hex.Dump(self.chunkHeaderBuf[:n]))
-			testn, err = self.bufw.Write(self.chunkHeaderBuf[:n])
-			fmt.Printf("1-----------:%d\n", testn)
+			//fmt.Print(hex.Dump(self.chunkHeaderBuf[:n]))
+			_, err = self.bufw.Write(self.chunkHeaderBuf[:n])
+			//fmt.Printf("1-----------:%d\n", testn)
 		} else {
 			n := self.fillChunk3Header(self.chunkHeaderBuf, csid, timestamp)
-			fmt.Print(hex.Dump(self.chunkHeaderBuf[:n]))
-			testn, err = self.bufw.Write(self.chunkHeaderBuf[:n])
-			fmt.Printf("2-----------:%d\n", testn)
+			//fmt.Print(hex.Dump(self.chunkHeaderBuf[:n]))
+			_, err = self.bufw.Write(self.chunkHeaderBuf[:n])
+			//fmt.Printf("2-----------:%d\n", testn)
 		}
 		if msgdatalen > self.writeMaxChunkSize {
-			fmt.Printf("3*************:pos:%d****************last:%d\n", pos, last)
-			fmt.Print(hex.Dump(b[pos:last]))
+			//fmt.Printf("3*************:pos:%d****************last:%d\n", pos, last)
+			//fmt.Print(hex.Dump(b[pos:last]))
 			if sn, err = self.bufw.Write(b[pos:last]); err != nil {
 				return
 			}
@@ -47,8 +47,8 @@ func (self *Session) DoSend(b []byte, csid uint32, timestamp uint32, msgtypeid u
 			msgdatalen -= sn
 			continue
 		}
-		fmt.Print(hex.Dump(b[pos:end]))
-		fmt.Printf("4************:pos:%d****************end:%d\n", pos, end)
+		//fmt.Print(hex.Dump(b[pos:end]))
+		//fmt.Printf("4************:pos:%d****************end:%d\n", pos, end)
 		if sn, err = self.bufw.Write(b[pos:end]); err != nil {
 			return
 		}

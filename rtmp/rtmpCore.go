@@ -138,7 +138,7 @@ func NewSesion(netconn net.Conn) *Session {
 	session.readMaxChunkSize = 128
 	session.writeMaxChunkSize = 128
 	session.CursorList = AvQue.NewPublist()
-	session.maxgopcount = 2
+	session.maxgopcount = 3
 
 	session.lock = &sync.RWMutex{}
 	session.cond = sync.NewCond(session.lock.RLocker())
@@ -510,12 +510,12 @@ func (self *Session) writeAVPacket(packet *av.Packet) (err error) {
 		msgtypeid = RtmpMsgVideo
 		csid = 7
 	}
-	n := 0
+	//n := 0
 	ts := flvio.TimeToTs(packet.Time)
 
 	//DoSend(b []byte, csid uint32, timestamp uint32, msgtypeid uint8, msgsid uint32, msgdatalen int)(n int ,err error){
-	n, err = self.DoSend(packet.Data, csid, uint32(ts), msgtypeid, self.avmsgsid, len(packet.Data))
-	fmt.Println("send byte :%d", n)
+	_, err = self.DoSend(packet.Data, csid, uint32(ts), msgtypeid, self.avmsgsid, len(packet.Data))
+	//fmt.Println("send byte :%d", n)
 	return
 }
 
@@ -537,11 +537,11 @@ func (self *Session)CodecDataToTag(stream av.CodecData) (tag *flvio.Tag, ok bool
 		tag.SoundRate = flvio.SOUND_44Khz
 		tag.AACPacketType = flvio.AAC_SEQHDR
 		tag.Data = self.aCodecData
+		ok = true
 	default:
 		err = fmt.Errorf("flv: unspported codecType=%v", stream.Type())
 		return
 	}
-	return
 	return
 }
 
@@ -576,7 +576,7 @@ func (self *Session) WriteHead() (err error) {
 			return
 		}
 
-		fmt.Println(hex.Dump(tag.Data))
+		fmt.Println("===========================|",hex.Dump(tag.Data))
 		if ok {
 			if err = self.writeAVTag(tag, 0); err != nil {
 				return
@@ -592,12 +592,13 @@ func (self *Session) rtmpSendGop() (err error) {
 	if self.GopCache == nil {
 		fmt.Println("=====================================gopcache len======================")
 	}
-
 	for pkt := self.GopCache.RingBufferGet(); pkt != nil; {
+		fmt.Println("=====================================gopcache len======================i:",self.GopCache.RingBufferSize())
 		err = self.writeAVPacket(pkt)
 		if err != nil {
 			return err
 		}
+		pkt = self.GopCache.RingBufferGet();
 	}
 	return
 }
@@ -610,18 +611,20 @@ func (self *Session) sendRtmpAvPackets() (err error) {
 			self.cond.Wait()
 			self.cond.L.Unlock()
 		}
-
+		
+		if pkt != nil {
+            if err = self.writeAVPacket(pkt); err != nil {
+                return
+            }
+        }
+		  //fmt.Println("=====================================gopcache len======================i:",self.CurQue.RingBufferSize())
+		//fmt.Println("***********************************")
 		select {
 		case <-self.context.Done():
 			// here publish may over so play is over
 			return
 		default:
 			// 没有结束 ... 执行 ...
-		}
-		if pkt != nil {
-			if err = self.writeAVPacket(pkt); err != nil {
-				return
-			}
 		}
 
 	}
