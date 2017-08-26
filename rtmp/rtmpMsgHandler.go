@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/nareix/bits/pio"
 	"rtmpServerStudy/amf"
-	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 // recv peer set chunk  size

@@ -22,8 +22,7 @@ import (
 	"strings"
 
 	"rtmpServerStudy/av"
-	"encoding/hex"
-	"github.com/aws/aws-sdk-go/aws/session"
+	//"encoding/hex"
 	"hash/fnv"
 	"container/list"
 )
@@ -108,7 +107,6 @@ type Server struct {
 type Session struct {
 	sync.RWMutex
 	lock                   *sync.RWMutex
-	cond                   *sync.Cond
 	context                context.Context
 	CursorList             *AvQue.CursorList
 	GopCache               *AvQue.AvRingbuffer
@@ -116,11 +114,11 @@ type Session struct {
 	audioAfterLastVideoCnt int
 	CurQue                 *AvQue.AvRingbuffer
 	vCodec                 *h264parser.CodecData
-	vCodecData 	       []byte
+	vCodecData             []byte
 	aCodec                 *aacparser.CodecData
-	aCodecData 	       []byte
+	aCodecData             []byte
 	RegisterChannel        chan *Session
-	RegisterAck            chan bool
+	PacketAck              chan bool
 	curgopcount            int
 	App                    *string
 	cancel                 context.CancelFunc
@@ -137,7 +135,7 @@ type Session struct {
 	publishing             bool
 	playing                bool
 	//状态机
-	stage int
+	stage                  int
 	//client
 	netconn           net.Conn
 	readcsmap         map[uint32]*chunkStream
@@ -191,13 +189,12 @@ func NewSesion(netconn net.Conn) *Session {
 	session.maxgopcount = 3
 
 	session.lock = &sync.RWMutex{}
-	session.cond = sync.NewCond(session.lock.RLocker())
 
 	//just for regist cursor session
 	//session.RegisterChannel = make(chan *Session, MAXREGISTERCHANNEL)
 	//true register ok ,false register false
 
-	session.RegisterAck = make(chan bool, 1)
+	session.PacketAck = make(chan bool, 1)
 
 	//this maybe
 	//session.context , session.cancel = context.WithCancel(context.Background())
@@ -541,7 +538,7 @@ func (self *Session)rtmpClosePublishingSession(){
 		switch value1 := e.Value.(type) {
 		case *Session:
 			cursorSession := value1
-			cursorSession.cond.Signal()
+			close(cursorSession.readAckSize)
 			next = e.Next()
 			CursorList.Remove(e)
 			e = next
@@ -687,16 +684,17 @@ func (self *Session) sendRtmpAvPackets() (err error) {
 		select {
 		case <-self.context.Done():
 		// here publish may over so play is over
+			fmt.Println("the publisher is close")
 			self.isClosed = true
 			return
 		default:
 		// 没有结束 ... 执行 ...
 		}
-		if pkt == nil && self.isClosed != true {
-			self.cond.L.Lock()
-			self.cond.Wait()
-			self.cond.L.Unlock()
+
+		if pkt == nil && self.isClosed  != true {
+			<-self.PacketAck
 		}
+
 		if pkt != nil {
 			if err = self.writeAVPacket(pkt); err != nil {
                 		return

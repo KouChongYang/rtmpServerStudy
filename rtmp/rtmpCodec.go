@@ -7,8 +7,6 @@ import (
 	"rtmpServerStudy/av"
 	"rtmpServerStudy/flv/flvio"
 	"rtmpServerStudy/h264Parse"
-	"encoding/hex"
-	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
@@ -86,7 +84,10 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 				if cursorSession.CurQue.RingBufferPut(pkt) != 0 {
 					//fmt.Println("the cursorsession ring is full so drop the messg")
 				}
-				cursorSession.cond.Signal()
+				select{
+				case cursorSession.PacketAck <- true:
+				default:
+				}
 				e = e.Next()
 			} else {
 				next = e.Next()
@@ -180,7 +181,11 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 				if cursorSession.CurQue.RingBufferPut(pkt) != 0 {
 					//fmt.Println("the cursorsession ring is full so drop the messg")
 				}
-				cursorSession.cond.Signal()
+				//just ack
+				select{
+				case cursorSession.PacketAck <- true:
+				default:
+				}
 				e = e.Next()
 			} else {
 				next = e.Next()
