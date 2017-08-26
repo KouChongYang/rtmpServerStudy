@@ -553,6 +553,7 @@ func (self *Session) rtmpClosePlaySession(){
 }
 
 func (self *Session) rtmpCloseSessionHanler() {
+	self.stage++
 	if self.publishing == true {
 		self.rtmpClosePublishingSession()
 	}else{
@@ -735,7 +736,7 @@ func (self *Session) ClientSessionPrepare(stage, flags int) (err error) {
 
 func (self *Session) ServerSession(stage int) (err error) {
 
-	for self.stage < stage {
+	for self.stage <= stage {
 		switch self.stage {
 		//first handshake
 		case stageHandshakeStart:
