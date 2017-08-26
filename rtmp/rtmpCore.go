@@ -110,6 +110,7 @@ type Session struct {
 	context                context.Context
 	CursorList             *AvQue.CursorList
 	GopCache               *AvQue.AvRingbuffer
+	pubSession 	       *Session
 	maxgopcount            int
 	audioAfterLastVideoCnt int
 	CurQue                 *AvQue.AvRingbuffer
@@ -529,16 +530,16 @@ func (self *Session) rtmpReadMsgCycle() (err error) {
 func (self *Session)rtmpClosePublishingSession(){
 	RtmpSessionDel(self)
 	self.cancel()
+	self.isClosed = true
 	var next *list.Element
 	CursorList := self.CursorList.GetList()
 	self.ReadRegister()
-
 	//free play session
 	for e := CursorList.Front(); e != nil; {
 		switch value1 := e.Value.(type) {
 		case *Session:
 			cursorSession := value1
-			close(cursorSession.readAckSize)
+			close(cursorSession.PacketAck)
 			next = e.Next()
 			CursorList.Remove(e)
 			e = next
@@ -693,9 +694,14 @@ func (self *Session) sendRtmpAvPackets() (err error) {
 		}
 
 		if pkt == nil && self.isClosed  != true {
-			<-self.PacketAck
+			select {
+			case <-self.PacketAck:
+			case <-time.After(time.Second * MAXREADTIMEOUT):
+			}
 		}
-
+		if self.pubSession.isClosed == true{
+			self.isClosed = true
+		}
 		if pkt != nil {
 			if err = self.writeAVPacket(pkt); err != nil {
                 		return
@@ -757,6 +763,7 @@ func (self *Session) ServerSession(stage int) (err error) {
 					case <-time.After(time.Second * MAXREADTIMEOUT):
 						//may be is err
 					}
+					self.pubSession = pubSession
 					//copy gop,codec here all new play Competitive the publishing lock
 					pubSession.RLock()
 					self.aCodec = pubSession.aCodec

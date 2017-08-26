@@ -182,7 +182,7 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 	}
 	session.publishing = true
 	if err = session.writeRtmpStatus(code , level,desc);err != nil{
-		return err
+		return
 	}
 	session.stage = stageCommandDone
 
@@ -235,7 +235,7 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 	}
 	// > onStatus()
 	if err = session.writeRtmpStatus("NetStream.Play.Start" , "status","Start live");err != nil{
-		return err
+		return
 	}
 	// > |RtmpSampleAccess()
 	if err = session.writeDataMsg(5, session.avmsgsid,
