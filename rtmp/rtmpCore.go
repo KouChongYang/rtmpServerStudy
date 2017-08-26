@@ -24,6 +24,8 @@ import (
 	"rtmpServerStudy/av"
 	"encoding/hex"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"hash/fnv"
+	"container/list"
 )
 
 /* RTMP message types */
@@ -32,8 +34,10 @@ var (
 )
 
 const (
-	MAXREGISTERCHANNEL     = 128
+	MAXREGISTERCHANNEL     = 512
 	audioAfterLastVideoCnt = 115
+	MAXREADTIMEOUT = 60
+	HashMapFactors = 101
 )
 
 type sessionIndex map[string](*Session)
@@ -42,11 +46,56 @@ type sessionIndexStruct struct {
 	sync.RWMutex
 }
 
-var PublishingSessionMap sessionIndexStruct
+
+var PublishingSessionMap [HashMapFactors]sessionIndexStruct
+
 
 func init() {
-	PublishingSessionMap.sessionIndex = make(sessionIndex)
+	for i := 0; i < HashMapFactors; i++ {
+		PublishingSessionMap[i].sessionIndex = make(sessionIndex)
+	}
 }
+
+func hash(s string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return h.Sum32()
+}
+
+func RtmpSessionGet(path string)(session *Session){
+	i:=hash(path)%HashMapFactors
+	PublishingSessionMap[i].RLock()
+	defer 	PublishingSessionMap[i].RUnlock()
+	pubSession, ok := PublishingSessionMap[i].sessionIndex[path]
+	if ok {
+		return pubSession
+	}else{
+		return nil
+	}
+	return
+}
+
+func RtmpSessionPush(session *Session) bool{
+	path:= session.URL.Path
+	i:=hash(path)%HashMapFactors
+	PublishingSessionMap[i].Lock()
+	defer 	PublishingSessionMap[i].Unlock()
+	if _, ok:= PublishingSessionMap[i].sessionIndex[path]; ok{
+		return false
+	}else{
+		PublishingSessionMap[i].sessionIndex[path] = session
+	}
+	return true
+}
+
+func RtmpSessionDel(session *Session) {
+	path:= session.URL.Path
+	i:=hash(path)%HashMapFactors
+	PublishingSessionMap[i].Lock()
+	delete(PublishingSessionMap[i].sessionIndex,path)
+	PublishingSessionMap[i].Unlock()
+}
+
 
 type Server struct {
 	RtmpAddr      string
@@ -145,10 +194,11 @@ func NewSesion(netconn net.Conn) *Session {
 	session.cond = sync.NewCond(session.lock.RLocker())
 
 	//just for regist cursor session
-	session.RegisterChannel = make(chan *Session, MAXREGISTERCHANNEL)
-
+	//session.RegisterChannel = make(chan *Session, MAXREGISTERCHANNEL)
 	//true register ok ,false register false
+
 	session.RegisterAck = make(chan bool, 1)
+
 	//this maybe
 	//session.context , session.cancel = context.WithCancel(context.Background())
 	//
@@ -438,6 +488,8 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 			fmt.Println("rtmp: chunk data")
 			//fmt.Print(hex.Dump(cs.msgdata))
 		}
+		//every chunk check the register
+		self.ReadRegister()
 		if hands[cs.msgtypeid] != nil {
 			if err = hands[cs.msgtypeid](self, cs.timenow, cs.msgsid, cs.msgtypeid, cs.msgdata); err != nil {
 				return
@@ -477,7 +529,37 @@ func (self *Session) rtmpReadMsgCycle() (err error) {
 	return
 }
 
+func (self *Session)rtmpClosePublishingSession(){
+	RtmpSessionDel(self)
+	self.cancel()
+	var next *list.Element
+	CursorList := self.CursorList.GetList()
+	self.ReadRegister()
+
+	//free play session
+	for e := CursorList.Front(); e != nil; {
+		switch value1 := e.Value.(type) {
+		case *Session:
+			cursorSession := value1
+			cursorSession.cond.Signal()
+			next = e.Next()
+			CursorList.Remove(e)
+			e = next
+		}
+	}
+}
+
+func (self *Session) rtmpClosePlaySession(){
+	self.isClosed == true
+	//some
+}
+
 func (self *Session) rtmpCloseSessionHanler() {
+	if self.publishing == true {
+		self.rtmpClosePublishingSession()
+	}else{
+		self.rtmpClosePlaySession()
+	}
 
 }
 
@@ -602,26 +684,24 @@ func (self *Session) rtmpSendGop() (err error) {
 func (self *Session) sendRtmpAvPackets() (err error) {
 	for {
 		pkt := self.CurQue.RingBufferGet()
-		if pkt == nil {
+		select {
+		case <-self.context.Done():
+		// here publish may over so play is over
+			self.isClosed = true
+			return
+		default:
+		// 没有结束 ... 执行 ...
+		}
+		if pkt == nil && self.isClosed != true {
 			self.cond.L.Lock()
 			self.cond.Wait()
 			self.cond.L.Unlock()
 		}
-		
 		if pkt != nil {
-            if err = self.writeAVPacket(pkt); err != nil {
-                return
-            }
-        }
-
-		select {
-		case <-self.context.Done():
-			// here publish may over so play is over
-			return
-		default:
-			// 没有结束 ... 执行 ...
-		}
-
+			if err = self.writeAVPacket(pkt); err != nil {
+                		return
+            		}
+        	}
 	}
 }
 
@@ -658,48 +738,53 @@ func (self *Session) ServerSession(stage int) (err error) {
 				return
 			}
 		case stageHandshakeDone:
-			err = self.rtmpReadCmdMsgCycle()
+			if err = self.rtmpReadCmdMsgCycle(); err != nil {
+				return
+			}
 		case stageCommandDone:
 			if self.publishing {
 				self.context, self.cancel = context.WithCancel(context.Background())
-				PublishingSessionMap.Lock()
-				PublishingSessionMap.sessionIndex[self.URL.Path] = self
-				PublishingSessionMap.Unlock()
-				err = self.rtmpReadMsgCycle()
-				self.stage = stageSessionDone
 				//only publish and relay need cache gop
 				self.GopCache = AvQue.RingBufferCreate(8)
+				err = self.rtmpReadMsgCycle()
+				self.stage = stageSessionDone
 				continue
 			} else if self.playing {
-				PublishingSessionMap.Lock()
-				pubSession, ok := PublishingSessionMap.sessionIndex[self.URL.Path]
-				PublishingSessionMap.Unlock()
-				if ok {
+				pubSession:= RtmpSessionGet(self.URL.Path)
+				if pubSession != nil {
 					//register play to the publish
-					pubSession.RegisterChannel <- self
-					//copy gop,codec
-					pubSession.Lock()
+					select {
+					case pubSession.RegisterChannel <- self:
+					case <-time.After(time.Second * MAXREADTIMEOUT):
+						//may be is err
+					}
+					//copy gop,codec here all new play Competitive the publishing lock
+					pubSession.RLock()
 					self.aCodec = pubSession.aCodec
 					self.vCodecData = pubSession.vCodecData
 					self.aCodecData = pubSession.aCodecData
 					self.vCodec = pubSession.vCodec
+					//copy all gop just ptr copy
 					self.GopCache = pubSession.GopCache.GopCopy()
-					pubSession.Unlock()
+					pubSession.RUnlock()
 
 					self.context, self.cancel = pubSession.context, pubSession.cancel
+					//send audio,video head and meta
 					if err = self.WriteHead(); err != nil {
-						fmt.Println(err)
+						self.isClosed = true
 						return err
 					}
+					//send gop for first screen
 					if err = self.rtmpSendGop(); err != nil {
-						fmt.Println(err)
+						self.isClosed = true
 						return err
 					}
 					if err = self.sendRtmpAvPackets(); err != nil {
-						fmt.Println(err)
+						self.isClosed = true
 						return err
 					}
-
+					self.isClosed = true
+					self.stage = stageSessionDone
 				} else {
 					//relay play
 				}

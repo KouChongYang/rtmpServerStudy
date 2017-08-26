@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/nareix/bits/pio"
 	"rtmpServerStudy/amf"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 // recv peer set chunk  size
@@ -57,6 +58,20 @@ func (self *Session) writeRtmpMsgAck(seqnum uint32) (err error) {
 	pio.PutU32BE(b[n:], seqnum)
 	n += 4
 	_, err = self.bufw.Write(b[:n])
+	return
+}
+
+func (self *Session) writeRtmpStatus(code , level,desc string) (err error){
+	if err = self.writeCommandMsg(5, self.avmsgsid,
+		"onStatus", self.commandtransid, nil,
+		amf.AMFMap{
+			"level":       level,
+			"code":        code,
+			"description": desc,
+		},
+	); err != nil {
+		return
+	}
 	return
 }
 
@@ -144,6 +159,7 @@ func RtmpMsgVideoHandler(session *Session, timestamp uint32,
 	err = RtmpMsgDecodeVideoHandler(session, timestamp, msgsid, msgtypeid, msgdata)
 	return
 }
+
 
 func (self *Session) handleCommandMsgAMF0(b []byte) (n int, err error) {
 	var name interface{}

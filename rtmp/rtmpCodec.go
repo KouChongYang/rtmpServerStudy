@@ -8,6 +8,7 @@ import (
 	"rtmpServerStudy/flv/flvio"
 	"rtmpServerStudy/h264Parse"
 	"encoding/hex"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
@@ -35,20 +36,14 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 		switch tag.AVCPacketType {
 		case flvio.AVC_SEQHDR:
 			fmt.Println("find avc seqhdr")
-			fmt.Println("=======================h264====")
-			fmt.Println(hex.Dump(tag.Data))
-			fmt.Println("================================")
+
 			if stream, err = h264parser.NewCodecDataFromAVCDecoderConfRecord(tag.Data); err != nil {
 				err = fmt.Errorf("flv: h264 seqhdr invalid")
-				fmt.Println("++++++++++++++++++err h264 err")
 				return
 			}
 			session.Lock()
 			session.vCodec = &stream
-			fmt.Println("=======================h264fffffffffffffffffffffffff====")
-			fmt.Println(hex.Dump(session.vCodec.Record))
 			session.vCodecData = msgdata
-			fmt.Println("================================")
 			session.Unlock()
 		case flvio.AVC_NALU:
 			b := tag.Data
@@ -76,35 +71,13 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 		}
 		//
 	}
-
 	var pkt *av.Packet
 	pkt, _ = TagToPacket(tag, int32(timestamp), msgdata)
 	//this is a long time lock may be something err must
-	//session.CursorList.Lock()
+
 	var next *list.Element
 	CursorList := session.CursorList.GetList()
 	pkt.GopIsKeyFrame = pkt.IsKeyFrame
-
-	flag := 0
-	for i := 0; i < MAXREGISTERCHANNEL; i++ {
-		select {
-		case registerSession, ok := <-session.RegisterChannel:
-			fmt.Println("+++++++++++++++++++++++++++++++++++++++++veido++:1")
-			if ok {
-				CursorList.PushBack(registerSession)
-			} else {
-				//some log
-				break
-			}
-		default:
-			flag = 1
-			break
-		}
-		if flag == 1 {
-			break
-		}
-	}
-
 	for e := CursorList.Front(); e != nil; {
 		switch value1 := e.Value.(type) {
 		case *Session:
@@ -113,9 +86,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 				if cursorSession.CurQue.RingBufferPut(pkt) != 0 {
 					//fmt.Println("the cursorsession ring is full so drop the messg")
 				}
-			fmt.Println("+++++++++++++++++++++++++++++++++++++++++veido++:2")
 				cursorSession.cond.Signal()
-			fmt.Println("+++++++++++++++++++++++++++++++++++++++++veido++:3")
 				e = e.Next()
 			} else {
 				next = e.Next()
@@ -126,8 +97,33 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 		}
 	}
 	session.rtmpUpdateGopCache(pkt)
-	//session.CursorList.Unlock()
 	return
+}
+
+func (self *Session)ReadRegister(){
+	if self.publishing != true{
+		return
+	}
+	flag := 0
+	CursorList := self.CursorList.GetList()
+	for i := 0; i < MAXREGISTERCHANNEL; i++ {
+		select {
+		case registerSession, ok := <-self.RegisterChannel:
+			if ok {
+				CursorList.PushBack(registerSession)
+			} else {
+				//some log
+				//may be register session is close
+				break
+			}
+		default:
+			flag = 1
+			break
+		}
+		if flag == 1 {
+			break
+		}
+	}
 }
 
 func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
@@ -146,7 +142,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 		return
 	}
 
-				fmt.Println("============================================audio==============1");
+
 	switch tag.SoundFormat {
 	case flvio.SOUND_AAC:
 		tag.Data = msgdata[n:]
@@ -154,9 +150,6 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 		case flvio.AAC_SEQHDR:
 			fmt.Println("find acc seqhdr")
 			var stream aacparser.CodecData
-			fmt.Println("=======================aac====")
-			fmt.Println(hex.Dump(tag.Data))
-			fmt.Println("================================")
 
 			if stream, err = aacparser.NewCodecDataFromMPEG4AudioConfigBytes(tag.Data); err != nil {
 				err = fmt.Errorf("flv: aac seqhdr invalid")
@@ -178,35 +171,11 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 	}
 	var next *list.Element
 	CursorList := session.CursorList.GetList()
-
-				fmt.Println("============================================audio==============2");
-	flag := 0
-	for i := 0; i < MAXREGISTERCHANNEL; i++ {
-				fmt.Println("============================================audio==============3");
-		select {
-		case registerSession, ok := <-session.RegisterChannel:
-				fmt.Println("============================================audio==============8");
-			if ok {
-				CursorList.PushBack(registerSession)
-			} else {
-				//some log
-				break
-			}
-		default:
-			flag = 1
-			break
-		}
-		if flag == 1 {
-			break
-		}
-	}
-
 	for e := CursorList.Front(); e != nil; {
 		switch value1 := e.Value.(type) {
 		case *Session:
 			cursorSession := value1
 			if !cursorSession.isClosed {
-				fmt.Println("============================================audio==============4");
 				//jumst put may be the ring is full ,when the ring is full ,drop the pkt
 				if cursorSession.CurQue.RingBufferPut(pkt) != 0 {
 					//fmt.Println("the cursorsession ring is full so drop the messg")

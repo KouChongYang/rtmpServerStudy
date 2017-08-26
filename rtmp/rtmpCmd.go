@@ -163,34 +163,29 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 	}
 	publishpath, _ := commandparams[0].(string)
 	fmt.Println(publishpath)
-	var cberr error
+
 	// here must do something
 	/*if session.OnPlayOrPublish != nil {
-		cberr = self.OnPlayOrPublish("publish", amfParams)
+		cberr = self.OnPlayOrPublish("publish", commandparams)
 	}*/
 
-	// > onStatus()
-	if err = session.writeCommandMsg(5, session.avmsgsid,
-		"onStatus", session.commandtransid, nil,
-		amf.AMFMap{
-			"level":       "status",
-			"code":        "NetStream.Publish.Start",
-			"description": "Start publishing",
-		},
-	); err != nil {
-		return
-	}
-	if err = session.flushWrite(); err != nil {
-		return
-	}
-
-	if cberr != nil {
-		err = fmt.Errorf("rtmp: OnPlayOrPublish check failed")
-		return
-	}
+	var code , level,desc string
 	session.URL = createURL(*session.TcUrl, *session.App, publishpath)
+
+	ok := RtmpSessionPush(session)
+	if !ok {
+		code ,level,desc = "NetStream.Publish.BadName","status","Already publishing"
+	}else {
+		code ,level,desc = "NetStream.Publish.Start","status","Start publishing"
+		//play register channel
+		session.RegisterChannel = make(chan *Session, MAXREGISTERCHANNEL)
+	}
 	session.publishing = true
+	if err = session.writeRtmpStatus(code , level,desc);err != nil{
+		return err
+	}
 	session.stage = stageCommandDone
+
 	return
 }
 
@@ -238,26 +233,16 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 	if err = session.writeStreamBegin(session.avmsgsid); err != nil {
 		return
 	}
-
 	// > onStatus()
-	if err = session.writeCommandMsg(5, session.avmsgsid,
-		"onStatus", session.commandtransid, nil,
-		amf.AMFMap{
-			"level":       "status",
-			"code":        "NetStream.Play.Start",
-			"description": "Start live",
-		},
-	); err != nil {
-		return
+	if err = session.writeRtmpStatus("NetStream.Play.Start" , "status","Start live");err != nil{
+		return err
 	}
-
 	// > |RtmpSampleAccess()
 	if err = session.writeDataMsg(5, session.avmsgsid,
 		"|RtmpSampleAccess", true, true,
 	); err != nil {
 		return
 	}
-
 	if err = session.flushWrite(); err != nil {
 		return
 	}
