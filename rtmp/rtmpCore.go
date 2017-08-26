@@ -688,6 +688,7 @@ func (self *Session) sendRtmpAvPackets() (err error) {
 			self.isClosed = true
 			return
 		default:
+
 		// 没有结束 ... 执行 ...
 		}
 
