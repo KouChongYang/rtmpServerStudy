@@ -548,7 +548,7 @@ func (self *Session)rtmpClosePublishingSession(){
 }
 
 func (self *Session) rtmpClosePlaySession(){
-	self.isClosed == true
+	self.isClosed = true
 	//some
 }
 
