@@ -23,6 +23,7 @@ import (
 
 	"rtmpServerStudy/av"
 	"encoding/hex"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 /* RTMP message types */
@@ -157,7 +158,7 @@ func NewSesion(netconn net.Conn) *Session {
 	session.writebuf = make([]byte, 4096)
 	session.readbuf = make([]byte, 4096)
 	session.chunkHeaderBuf = make([]byte, chunkHeaderLength)
-	session.GopCache = AvQue.RingBufferCreate(8)
+	//session.GopCache = AvQue.RingBufferCreate(8)
 	session.CurQue = AvQue.RingBufferCreate(10) //
 	return session
 }
@@ -557,9 +558,6 @@ func (self *Session) WriteHead() (err error) {
 		streams = append(streams, self.aCodec)
 	}
 	if self.vCodec != nil {
-		fmt.Println("==================h264===fff=============")
-		fmt.Println(hex.Dump(self.vCodec.Record))
-		fmt.Println("==================================")
 		streams = append(streams, self.vCodec)
 	}
 
@@ -576,7 +574,6 @@ func (self *Session) WriteHead() (err error) {
 			return
 		}
 
-		fmt.Println("===========================|",hex.Dump(tag.Data))
 		if ok {
 			if err = self.writeAVTag(tag, 0); err != nil {
 				return
@@ -588,12 +585,11 @@ func (self *Session) WriteHead() (err error) {
 }
 
 func (self *Session) rtmpSendGop() (err error) {
-	fmt.Println("=====================================gopcache len======================")
+
 	if self.GopCache == nil {
-		fmt.Println("=====================================gopcache len======================")
+		return
 	}
 	for pkt := self.GopCache.RingBufferGet(); pkt != nil; {
-		fmt.Println("=====================================gopcache len======================i:",self.GopCache.RingBufferSize())
 		err = self.writeAVPacket(pkt)
 		if err != nil {
 			return err
@@ -617,8 +613,7 @@ func (self *Session) sendRtmpAvPackets() (err error) {
                 return
             }
         }
-		  //fmt.Println("=====================================gopcache len======================i:",self.CurQue.RingBufferSize())
-		//fmt.Println("***********************************")
+
 		select {
 		case <-self.context.Done():
 			// here publish may over so play is over
@@ -672,6 +667,8 @@ func (self *Session) ServerSession(stage int) (err error) {
 				PublishingSessionMap.Unlock()
 				err = self.rtmpReadMsgCycle()
 				self.stage = stageSessionDone
+				//only publish and relay need cache gop
+				self.GopCache = AvQue.RingBufferCreate(8)
 				continue
 			} else if self.playing {
 				PublishingSessionMap.Lock()
