@@ -1,6 +1,7 @@
 <component name="libraryTable">
   <library name="GOPATH &lt;rtmpServerStudy&gt;">
     <CLASSES>
+      <root url="file://$PROJECT_DIR$/../ww" />
       <root url="file://$PROJECT_DIR$/../m3u8" />
       <root url="file://$PROJECT_DIR$/../vodUpload" />
       <root url="file://$PROJECT_DIR$/../newgit.op.ksyun.com" />
@@ -18,9 +19,12 @@
       <root url="file://$PROJECT_DIR$/../ceshi" />
       <root url="file://$PROJECT_DIR$/../untitled" />
       <root url="file://$PROJECT_DIR$/../os" />
+      <root url="file://$PROJECT_DIR$/../rtmpServerStudy-bak" />
+      <root url="file://$PROJECT_DIR$/../rtmpServer" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>
+      <root url="file://$PROJECT_DIR$/../ww" />
       <root url="file://$PROJECT_DIR$/../m3u8" />
       <root url="file://$PROJECT_DIR$/../vodUpload" />
       <root url="file://$PROJECT_DIR$/../newgit.op.ksyun.com" />
@@ -38,6 +42,8 @@
       <root url="file://$PROJECT_DIR$/../ceshi" />
       <root url="file://$PROJECT_DIR$/../untitled" />
       <root url="file://$PROJECT_DIR$/../os" />
+      <root url="file://$PROJECT_DIR$/../rtmpServerStudy-bak" />
+      <root url="file://$PROJECT_DIR$/../rtmpServer" />
     </SOURCES>
     <excluded>
       <root url="file://$PROJECT_DIR$" />
