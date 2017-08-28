@@ -33,7 +33,7 @@ func (self *HttpServe) httpServerStart() {
 	r := mux.NewRouter()
 	// Routes consist of a path and a handler function.
 	r.HandleFunc("/test", handler1)
-	r.HandleFunc("/*.flv",HdlHandler)
+	r.HandleFunc("/{app}/{name:*.flv}",HdlHandler)
 	// Bind to a port and pass our router in
 	log.Fatal(http.ListenAndServe(self.hostPort, r))
 }
