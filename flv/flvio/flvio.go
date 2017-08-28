@@ -161,7 +161,7 @@ type Tag struct {
 	AVCPacketType uint8
 
 	CompositionTime int32
-
+	NoHead bool
 	Data []byte
 }
 
@@ -358,10 +358,12 @@ func FillTagTrailer(b []byte, datalen int) (n int) {
 	return
 }
 
-func WriteTag(w io.Writer, tag Tag, ts int32, b []byte) (err error) {
+func WriteTag(w io.Writer, tag *Tag, ts int32, b []byte) (err error) {
 	data := tag.Data
-
-	n := tag.FillHeader(b[TagHeaderLength:])
+	n := 0
+	if tag.NoHead {
+		n = tag.FillHeader(b[TagHeaderLength:])
+	}
 	datalen := len(data) + n
 
 	n += FillTagHeader(b, tag.Type, datalen, ts)

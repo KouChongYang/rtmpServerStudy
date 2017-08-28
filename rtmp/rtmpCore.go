@@ -150,6 +150,7 @@ type Session struct {
 	metaversion       int
 	eventtype         uint16
 	ackSize           uint32
+
 }
 
 const (

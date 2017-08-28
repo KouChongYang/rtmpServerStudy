@@ -14,6 +14,7 @@ import (
 	"rtmpServerStudy/amf"
 	"rtmpServerStudy/h264Parse"
 	"encoding/hex"
+	"golang.org/x/crypto/openpgp/packet"
 )
 
 var MaxProbePacketCount = 20
@@ -77,56 +78,43 @@ func (self *Prober) PopPacket() av.Packet {
 	return pkt
 }
 
-
-func CodecDataToTag(stream av.CodecData) (_tag flvio.Tag, ok bool, err error) {
+func CodecDataToTag(stream av.CodecData) (_tag *flvio.Tag, ok bool, err error) {
+	_tag = new(flvio.Tag)
 	switch stream.Type() {
 	case av.H264:
 		fmt.Println("head:h264")
 		h264 := stream.(h264parser.CodecData)
-		tag := flvio.Tag{
-			Type:          flvio.TAG_VIDEO,
-			AVCPacketType: flvio.AVC_SEQHDR,
-			CodecID:       flvio.VIDEO_H264,
-			Data:          h264.AVCDecoderConfRecordBytes(),
-			FrameType:     flvio.FRAME_KEY,
-		}
-		fmt.Println("==================h264================")
-		fmt.Println(hex.Dump(tag.Data))
-		fmt.Println("==================================")
+		_tag.Type = flvio.TAG_VIDEO
+		_tag.AVCPacketType = flvio.AVC_SEQHDR
+		_tag.CodecID = flvio.VIDEO_H264
+		_tag.Data =  h264.AVCDecoderConfRecordBytes()
 		ok = true
-		_tag = tag
 
 	case av.NELLYMOSER:
 	case av.SPEEX:
 
 	case av.AAC:
 		aac := stream.(aacparser.CodecData)
-		tag := flvio.Tag{
-			Type:          flvio.TAG_AUDIO,
-			SoundFormat:   flvio.SOUND_AAC,
-			SoundRate:     flvio.SOUND_44Khz,
-			AACPacketType: flvio.AAC_SEQHDR,
-			Data:          aac.MPEG4AudioConfigBytes(),
-		}
+		_tag.Type = flvio.TAG_AUDIO
+		_tag.SoundFormat =    flvio.SOUND_AAC
+		_tag.SoundRate = flvio.SOUND_44Khz
+		_tag.AACPacketType = flvio.AAC_SEQHDR
+		_tag.Data =  aac.MPEG4AudioConfigBytes()
 
-		fmt.Println("=================aac=================")
-		fmt.Println(hex.Dump(tag.Data))
-		fmt.Println("==================================")
+		fmt.Println(hex.Dump(_tag.Data))
 		switch aac.SampleFormat().BytesPerSample() {
 		case 1:
-			tag.SoundSize = flvio.SOUND_8BIT
+			_tag.SoundSize = flvio.SOUND_8BIT
 		default:
-			tag.SoundSize = flvio.SOUND_16BIT
+			_tag.SoundSize = flvio.SOUND_16BIT
 		}
 		switch aac.ChannelLayout().Count() {
 		case 1:
-			tag.SoundType = flvio.SOUND_MONO
+			_tag.SoundType = flvio.SOUND_MONO
 		case 2:
-			tag.SoundType = flvio.SOUND_STEREO
+			_tag.SoundType = flvio.SOUND_STEREO
 		}
 		ok = true
-		_tag = tag
-
 	default:
 		err = fmt.Errorf("flv: unspported codecType=%v", stream.Type())
 		return
@@ -193,7 +181,7 @@ func PacketToTag(pkt av.Packet, stream av.CodecData) (tag flvio.Tag, timestamp i
 
 type Muxer struct {
 	bufw    writeFlusher
-	b       []byte
+	B       []byte
 	streams []av.CodecData
 }
 
@@ -205,7 +193,7 @@ type writeFlusher interface {
 func NewMuxerWriteFlusher(w writeFlusher) *Muxer {
 	return &Muxer{
 		bufw: w,
-		b:    make([]byte, 256),
+		B:    make([]byte, 256),
 	}
 }
 
@@ -223,7 +211,7 @@ func MetadeToTag(args ...interface{}) (_tag flvio.Tag, ok bool) {
 
 	b := make([]byte, size)
 	n := 0
-	//n := self.fillChunkHeader(b, csid, 0, msgtypeid, msgsid, size)
+
 	for _, arg := range args {
 		n += amf.FillAMF0Val(b[n:], arg)
 	}
@@ -238,54 +226,42 @@ func MetadeToTag(args ...interface{}) (_tag flvio.Tag, ok bool) {
 
 func (self *Muxer) WriteHeader(streams []av.CodecData) (err error) {
 	var flags uint8
-	fmt.Println("***************************34567891*****************************")
-	for _, stream := range streams {
-		if stream.Type().IsVideo() {
-			flags |= flvio.FILE_HAS_VIDEO
-		} else if stream.Type().IsAudio() {
-			flags |= flvio.FILE_HAS_AUDIO
-		}
-	}
-	fmt.Println("***************************34567892*****************************")
+	flags |= flvio.FILE_HAS_VIDEO
+	flags |= flvio.FILE_HAS_AUDIO
 
-	n := flvio.FillFileHeader(self.b, flags)
-	if _, err = self.bufw.Write(self.b[:n]); err != nil {
+	n := flvio.FillFileHeader(self.B, flags)
+	if _, err = self.bufw.Write(self.B[:n]); err != nil {
 		return
 	}
-	fmt.Println("***************************34567893*****************************")
+
 	metadata := amf.AMFMap{}
-	metadata["stream-id"] = "1234567894"
-	metadata["version"] = "golang v1.8.0"
+
 
 	var tag flvio.Tag
 	var ok bool
 	if tag, ok = MetadeToTag("onMetaData", metadata); err != nil {
-		fmt.Println("***************************34567895*****************************")
+
 	}
-	fmt.Println("***************************34567896*****************************")
+
 	if ok {
-		if err = flvio.WriteTag(self.bufw, tag, 0, self.b); err != nil {
+		if err = flvio.WriteTag(self.bufw, tag, 0, self.B); err != nil {
 			return
 		}
 	}
-	fmt.Println("***************************34567897*****************************")
 
 	for _, stream := range streams {
 		var tag flvio.Tag
 		var ok bool
 		if tag, ok, err = CodecDataToTag(stream); err != nil {
-			fmt.Println("***************************34567898*****************************")
 			return
 		}
+		tag.NoHead = true
 		if ok {
-			if err = flvio.WriteTag(self.bufw, tag, 0, self.b); err != nil {
-				fmt.Println("***************************34567899*****************************")
+			if err = flvio.WriteTag(self.bufw, tag, 0, self.B); err != nil {
 				return
 			}
 		}
 	}
-	fmt.Println("***************************345678910*****************************")
-
 	self.streams = streams
 	return
 }

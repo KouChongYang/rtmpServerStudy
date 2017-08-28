@@ -42,7 +42,7 @@ func (self *Session) rtmpCloseSessionHanler() {
 
 }
 
-func (self *Session) writeRtmpHead() (err error) {
+func (self *Session) rtmpSendHead() (err error) {
 	var metadata amf.AMFMap
 	var streams []av.CodecData
 
@@ -96,7 +96,7 @@ func (self *Session) rtmpSendGop() (err error) {
 	return
 }
 
-func (self *Session) sendRtmpAvPackets() (err error) {
+func (self *Session) RtmpSendAvPackets() (err error) {
 	for {
 		pkt := self.CurQue.RingBufferGet()
 		select {
@@ -170,7 +170,7 @@ func (self *Session) ServerSession(stage int) (err error) {
 
 					self.context, self.cancel = pubSession.context, pubSession.cancel
 					//send audio,video head and meta
-					if err = self.writeRtmpHead(); err != nil {
+					if err = self.rtmpSendHead(); err != nil {
 						self.isClosed = true
 						return err
 					}
@@ -179,7 +179,7 @@ func (self *Session) ServerSession(stage int) (err error) {
 						self.isClosed = true
 						return err
 					}
-					if err = self.sendRtmpAvPackets(); err != nil {
+					if err = self.RtmpSendAvPackets(); err != nil {
 						self.isClosed = true
 						return err
 					}
