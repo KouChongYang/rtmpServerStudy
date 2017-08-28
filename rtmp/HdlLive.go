@@ -150,18 +150,18 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 		if err := session.hdlSendHead(muxer,r); err != nil {
 			session.isClosed = true
 			flusher.Flush()
-			return err
+			return
 		}
 		//send gop for first screen
 		if err := session.hdlSendGop(muxer,r); err != nil {
 			session.isClosed = true
 			flusher.Flush()
-			return err
+			return
 		}
 		if err := session.hdlSendAvPackets(muxer,r); err != nil {
 			session.isClosed = true
 			flusher.Flush()
-			return err
+			return
 		}
 		flusher.Flush()
 	}else{
