@@ -673,10 +673,12 @@ func (self *Session) rtmpSendGop() (err error) {
 	for pkt := self.GopCache.RingBufferGet(); pkt != nil; {
 		err = self.writeAVPacket(pkt)
 		if err != nil {
+			self.GopCache = nil
 			return err
 		}
 		pkt = self.GopCache.RingBufferGet();
 	}
+	self.GopCache = nil
 	return
 }
 

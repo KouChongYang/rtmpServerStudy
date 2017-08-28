@@ -229,14 +229,18 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 	}
 	playpath, _ := commandparams[0].(string)
 	fmt.Println(playpath)
-	// > streamBegin(streamid)
-	if err = session.writeStreamBegin(session.avmsgsid); err != nil {
-		return
-	}
 	// > onStatus()
 	if err = session.writeRtmpStatus("NetStream.Play.Start" , "status","Start live");err != nil{
 		return
 	}
+	if err = session.flushWrite(); err != nil {
+		return
+	}
+	// > streamBegin(streamid)
+	if err = session.writeStreamBegin(session.avmsgsid); err != nil {
+		return
+	}
+
 	// > |RtmpSampleAccess()
 	if err = session.writeDataMsg(5, session.avmsgsid,
 		"|RtmpSampleAccess", true, true,
