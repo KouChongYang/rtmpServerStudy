@@ -14,6 +14,7 @@ import (
 	"rtmpServerStudy/amf"
 	"rtmpServerStudy/h264Parse"
 	"encoding/hex"
+	"github.com/gorilla/mux"
 )
 
 var MaxProbePacketCount = 20
@@ -190,10 +191,10 @@ type writeFlusher interface {
 }
 
 func NewMuxerWriteFlusher(w writeFlusher) *Muxer {
-	return &Muxer{
-		bufw: w,
-		B:    make([]byte, 256),
-	}
+	Muxer:=new(Muxer)
+	Muxer.B =  make([]byte, 256)
+	Muxer.bufw = w
+	return Muxer
 }
 
 func NewMuxer(w io.Writer) *Muxer {

@@ -18,6 +18,11 @@ type writeFlusher struct {
 	io.Writer
 }
 
+func (self writeFlusher) Flush() error {
+	self.httpflusher.Flush()
+	return nil
+}
+
 //r just write log
 func (self *Session) hdlSendHead(w * flv.Muxer, r *http.Request) (err error) {
 
