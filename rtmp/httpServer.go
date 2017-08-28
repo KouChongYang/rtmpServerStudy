@@ -10,12 +10,12 @@ import (
 )
 
 type HttpServe struct {
-	port string
+	hostPort string
 }
 
 func NewHttpServer(port string) {
 	var hs HttpServe
-	hs.port = port
+	hs.hostPort = port
 	go hs.httpServerStart()
 }
 
@@ -33,6 +33,7 @@ func (self *HttpServe) httpServerStart() {
 	r := mux.NewRouter()
 	// Routes consist of a path and a handler function.
 	r.HandleFunc("/test", handler1)
+	r.HandleFunc("{name}.flv",HdlHandler)
 	// Bind to a port and pass our router in
-	log.Fatal(http.ListenAndServe(self.port, r))
+	log.Fatal(http.ListenAndServe(self.hostPort, r))
 }
