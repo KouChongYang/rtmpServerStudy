@@ -1,16 +1,18 @@
 package main
-import "fmt"
-import "rtmpServerStudy/rtmp"
+
+import (
+	"rtmpServerStudy/rtmp"
+	"runtime"
+	"fmt"
+	"net/http"
+	_ "net/http/pprof"
+)
 
 func main() {
-	var p *int
-	a:=5
-	p = &a
-	var q *int
-	q = p
-	p=nil
-	
-	fmt.Println(q)
+	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	go func() {
+		fmt.Println(http.ListenAndServe(":6060", nil))
+	}()
 	server := &rtmp.Server{}
 	server.ListenAndServe()
 }
