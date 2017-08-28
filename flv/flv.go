@@ -218,6 +218,7 @@ func MetadeToTag(args ...interface{}) (_tag *flvio.Tag, ok bool) {
 	_tag = new(flvio.Tag)
 	_tag.Type = flvio.TAG_SCRIPTDATA
 	_tag.Data =  b
+
 	ok = true
 	return
 }
@@ -235,7 +236,7 @@ func (self *Muxer) WriteHeader(streams []av.CodecData) (err error) {
 	metadata := amf.AMFMap{}
 
 
-	var tag flvio.Tag
+	var tag *flvio.Tag
 	var ok bool
 	if tag, ok = MetadeToTag("onMetaData", metadata); err != nil {
 
