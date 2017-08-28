@@ -14,7 +14,6 @@ import (
 	"rtmpServerStudy/amf"
 	"rtmpServerStudy/h264Parse"
 	"encoding/hex"
-	"golang.org/x/crypto/openpgp/packet"
 )
 
 var MaxProbePacketCount = 20
@@ -203,7 +202,7 @@ func NewMuxer(w io.Writer) *Muxer {
 
 var CodecTypes = []av.CodecType{av.H264, av.AAC, av.SPEEX}
 
-func MetadeToTag(args ...interface{}) (_tag flvio.Tag, ok bool) {
+func MetadeToTag(args ...interface{}) (_tag *flvio.Tag, ok bool) {
 	size := 0
 	for _, arg := range args {
 		size += amf.LenAMF0Val(arg)
@@ -215,12 +214,11 @@ func MetadeToTag(args ...interface{}) (_tag flvio.Tag, ok bool) {
 	for _, arg := range args {
 		n += amf.FillAMF0Val(b[n:], arg)
 	}
-	tag := flvio.Tag{
-		Type: flvio.TAG_SCRIPTDATA,
-		Data: b,
-	}
+
+	_tag = new(flvio.Tag)
+	_tag.Type = flvio.TAG_SCRIPTDATA
+	_tag.Data =  b
 	ok = true
-	_tag = tag
 	return
 }
 
