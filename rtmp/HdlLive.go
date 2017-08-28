@@ -7,7 +7,7 @@ import (
 
 
 
-func HdlHandler(w http.ResponseWriter, r *http.Request){
+func HDLHandler(w http.ResponseWriter, r *http.Request){
 	fmt.Println(r.URL.Path)
 
 	name := mux.Vars(r)["name"]
