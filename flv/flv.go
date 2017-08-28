@@ -14,7 +14,6 @@ import (
 	"rtmpServerStudy/amf"
 	"rtmpServerStudy/h264Parse"
 	"encoding/hex"
-	"github.com/gorilla/mux"
 )
 
 var MaxProbePacketCount = 20

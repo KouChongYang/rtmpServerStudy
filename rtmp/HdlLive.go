@@ -2,7 +2,6 @@ package rtmp
 import (
 	"net/http"
 	"fmt"
-	"github.com/gorilla/mux"
 	"strings"
 	"rtmpServerStudy/AvQue"
 	"sync"
@@ -11,6 +10,7 @@ import (
 	"rtmpServerStudy/av"
 	"rtmpServerStudy/flv"
 	"rtmpServerStudy/flv/flvio"
+	"github.com/gorilla/mux"
 )
 
 type writeFlusher struct {
