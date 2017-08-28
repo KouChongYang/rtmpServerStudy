@@ -9,7 +9,7 @@ import (
 )
 
 func (self *Session) writeDataMsg(csid, msgsid uint32, args ...interface{}) (err error) {
-	return self.writeAMF0Msg(RtmpMsgAmfCMD, csid, msgsid, args...)
+	return self.writeAMF0Msg(RtmpMsgAmfMeta, csid, msgsid, args...)
 }
 
 func (self *Session) writeCommandMsg(csid, msgsid uint32, args ...interface{}) (err error) {
