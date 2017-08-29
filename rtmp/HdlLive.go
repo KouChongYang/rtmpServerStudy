@@ -51,6 +51,7 @@ func PacketToTag(pkt *av.Packet) (tag *flvio.Tag, timestamp int32) {
 		tag.Type  = flvio.TAG_VIDEO
 	}
 	timestamp = flvio.TimeToTs(pkt.Time)
+	tag.Data = pkt.Data
 	return
 }
 

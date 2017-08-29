@@ -243,7 +243,6 @@ func (self *Muxer) WriteHeader(streams []av.CodecData) (err error) {
 	var tag *flvio.Tag
 	var ok bool
 	if tag, ok = MetadeToTag("onMetaData", metadata); err != nil {
-
 	}
 
 	if ok {
