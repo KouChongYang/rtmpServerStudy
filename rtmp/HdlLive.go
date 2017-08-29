@@ -60,7 +60,7 @@ func (self *Session) hdlSendGop(w * flv.Muxer, r *http.Request) (err error) {
 	}
 	for pkt := self.GopCache.RingBufferGet(); pkt != nil; {
 		tag,ts := PacketToTag(pkt)
-		if err = flvio.WriteTag(w, tag, ts,w.B); err != nil {
+		if err = flvio.WriteTag(w.GetMuxerWrite(), tag, ts,w.B); err != nil {
 			return
 		}
 		if err != nil {
