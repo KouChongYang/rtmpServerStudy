@@ -32,10 +32,10 @@ func (self *Session) hdlSendHead(w * flv.Muxer, r *http.Request) (err error) {
 		return
 	}
 	if self.aCodec != nil {
-		streams = append(streams, self.aCodec)
+		streams = append(streams, *self.aCodec)
 	}
 	if self.vCodec != nil {
-		streams = append(streams, self.vCodec)
+		streams = append(streams, *self.vCodec)
 	}
 	w.WriteHeader(streams)
 	return
@@ -60,7 +60,7 @@ func (self *Session) hdlSendGop(w * flv.Muxer, r *http.Request) (err error) {
 	}
 	for pkt := self.GopCache.RingBufferGet(); pkt != nil; {
 		tag,ts := PacketToTag(pkt)
-		if err = flvio.WriteTag(self.bufw, tag, ts,w.B); err != nil {
+		if err = flvio.WriteTag(w, tag, ts,w.B); err != nil {
 			return
 		}
 		if err != nil {
@@ -150,7 +150,8 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 
 		flusher := w.(http.Flusher)
 		flusher.Flush()
-		muxer := flv.NewMuxerWriteFlusher(writeFlusher{httpflusher: flusher, Writer: w})
+		session.bufw = &writeFlusher{httpflusher: flusher, Writer: w}
+		muxer := flv.NewMuxerWriteFlusher(*session.bufw)
 		//send audio,video head and meta
 		if err := session.hdlSendHead(muxer,r); err != nil {
 			session.isClosed = true
