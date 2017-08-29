@@ -195,6 +195,10 @@ func NewMuxerWriteFlusher(w writeFlusher) *Muxer {
 	Muxer.bufw = w
 	return Muxer
 }
+func (m *Muxer)GetMuxerWrite() writeFlusher{
+	return m.bufw
+}
+
 
 func NewMuxer(w io.Writer) *Muxer {
 	return NewMuxerWriteFlusher(bufio.NewWriterSize(w, pio.RecommendBufioSize))

@@ -98,7 +98,7 @@ func (self *Session) hdlSendAvPackets(w * flv.Muxer, r *http.Request) (err error
 		}
 		if pkt != nil {
 			tag,ts := PacketToTag(pkt)
-			if err = flvio.WriteTag(self.bufw, tag, ts,w.B); err != nil {
+			if err = flvio.WriteTag(w.GetMuxerWrite(),tag, ts,w.B); err != nil {
 				return
 			}
 		}
@@ -151,7 +151,7 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 		flusher := w.(http.Flusher)
 		flusher.Flush()
 		session.bufw = &writeFlusher{httpflusher: flusher, Writer: w}
-		muxer := flv.NewMuxerWriteFlusher(*session.bufw)
+		muxer := flv.NewMuxerWriteFlusher(writeFlusher{httpflusher: flusher, Writer: w})
 		//send audio,video head and meta
 		if err := session.hdlSendHead(muxer,r); err != nil {
 			session.isClosed = true
