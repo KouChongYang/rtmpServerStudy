@@ -122,6 +122,7 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 		session.lock = &sync.RWMutex{}
 		session.PacketAck = make(chan bool, 1)
 		session.CurQue = AvQue.RingBufferCreate(10)
+		session.context, session.cancel = pubSession.context, pubSession.cancel
 		//onpublish handler
 		select {
 		case pubSession.RegisterChannel <- session:
