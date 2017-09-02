@@ -31,7 +31,9 @@ func (self *Session)rtmpClosePublishingSession(){
 			e = next
 		}
 	}
+	self.CursorList = nil
 	self.netconn.Close()
+
 }
 
 func (self *Session) rtmpCloseSessionHanler() {
