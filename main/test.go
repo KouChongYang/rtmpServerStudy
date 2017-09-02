@@ -14,6 +14,7 @@ func main() {
 		fmt.Println(http.ListenAndServe(":6060", nil))
 	}()
 	rtmp.NewHttpServer("0.0.0.0:80")
+
 	server := &rtmp.Server{}
 	server.ListenAndServe()
 }
