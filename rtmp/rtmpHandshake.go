@@ -205,7 +205,7 @@ func (self *Session) handshakeServer() (err error) {
 		// The second message (S2) is an echo of C1. Below is the packet format for S2
 		//simaple handshake
 		copy(S1, C1)
-		copy(S2, C2)
+		copy(S2, C1)
 	}
 
 	// > S0S1S2

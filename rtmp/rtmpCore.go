@@ -102,6 +102,11 @@ type Server struct {
 	HandleConn    func(*Session)
 }
 
+type RecordInfo struct {
+	flvVodPath string
+	hlsVodPath string
+}
+
 type Session struct {
 	sync.RWMutex
 	lock                   *sync.RWMutex
@@ -109,6 +114,7 @@ type Session struct {
 	CursorList             *AvQue.CursorList
 	GopCache               *AvQue.AvRingbuffer
 	pubSession 	       *Session
+	RecordCnf             *RecordInfo
 	maxgopcount            int
 	audioAfterLastVideoCnt int
 	CurQue                 *AvQue.AvRingbuffer
