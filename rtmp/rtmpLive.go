@@ -14,6 +14,7 @@ import (
 
 func (self *Session)rtmpClosePublishingSession(){
 	RtmpSessionDel(self)
+	//cancel all play
 	self.cancel()
 	self.isClosed = true
 	var next *list.Element
@@ -30,6 +31,7 @@ func (self *Session)rtmpClosePublishingSession(){
 			e = next
 		}
 	}
+	self.netconn.Close()
 }
 
 func (self *Session) rtmpCloseSessionHanler() {
@@ -116,9 +118,13 @@ func (self *Session) RtmpSendAvPackets() (err error) {
 			case <-time.After(time.Second * MAXREADTIMEOUT):
 			}
 		}
-		if self.pubSession.isClosed == true{
+
+		if self.pubSession.isClosed == true && pkt == nil{
 			self.isClosed = true
+			err = fmt.Errorf("rtmp: pubSession is close and pkt is nill")
+			return
 		}
+
 		if pkt != nil {
 			if err = self.writeAVPacket(pkt); err != nil {
 				return
@@ -177,10 +183,7 @@ func (self *Session) ServerSession(stage int) (err error) {
 						self.isClosed = true
 						return err
 					}
-					if err = self.RtmpSendAvPackets(); err != nil {
-						self.isClosed = true
-						return err
-					}
+					err = self.RtmpSendAvPackets()
 					self.isClosed = true
 					self.stage = stageSessionDone
 				} else {

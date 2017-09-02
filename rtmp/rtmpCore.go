@@ -534,6 +534,7 @@ func (self *Session) rtmpReadMsgCycle() (err error) {
 
 func (self *Session) rtmpClosePlaySession(){
 	self.isClosed = true
+	self.netconn.Close()
 	//some
 }
 
