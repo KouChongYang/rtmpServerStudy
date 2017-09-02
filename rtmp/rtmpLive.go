@@ -188,6 +188,7 @@ func (self *Session) ServerSession(stage int) (err error) {
 					self.stage = stageSessionDone
 				} else {
 					//relay play
+					self.stage++
 				}
 			}
 		case stageSessionDone:
