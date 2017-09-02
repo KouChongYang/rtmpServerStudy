@@ -152,7 +152,7 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 
 		flusher := w.(http.Flusher)
 		flusher.Flush()
-		session.bufw = &writeFlusher{httpflusher: flusher, Writer: w}
+
 		muxer := flv.NewMuxerWriteFlusher(writeFlusher{httpflusher: flusher, Writer: w})
 		//send audio,video head and meta
 		if err := session.hdlSendHead(muxer,r); err != nil {
