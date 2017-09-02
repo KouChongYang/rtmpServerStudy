@@ -22,6 +22,7 @@ import (
 	"rtmpServerStudy/av"
 	//"encoding/hex"
 	"hash/fnv"
+	"runtime"
 )
 
 /* RTMP message types */
@@ -679,6 +680,14 @@ func (self *Server) ListenAndServe() (err error) {
 		session := NewSesion(netconn)
 		session.isServer = true
 		go func() {
+			defer func() {
+				if err := recover(); err != nil  {
+					const size = 64 << 10
+					buf := make([]byte, size)
+					buf = buf[:runtime.Stack(buf, false)]
+					fmt.Println("rtmp: panic serving %v: %v\n%s", session.netconn.RemoteAddr(), err, buf)
+				}
+			}()
 			err := self.ServerHandle(session)
 			if Debug {
 				fmt.Println("rtmp: server: client closed err:", err)
