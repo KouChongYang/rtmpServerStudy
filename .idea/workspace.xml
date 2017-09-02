@@ -2,11 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="b74c92ed-2ad9-466f-94b1-c54d83ebdd44" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/rtmp/HdlLive.go" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/AvQue/buf.go" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/AvQue/que.go" afterPath="" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/rtmp/rtmpCore.go" afterPath="$PROJECT_DIR$/rtmp/rtmpCore.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/flv/flv.go" afterPath="$PROJECT_DIR$/flv/flv.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/main/test.go" afterPath="$PROJECT_DIR$/main/test.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/rtmp/rtmpCmd.go" afterPath="$PROJECT_DIR$/rtmp/rtmpCmd.go" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/rtmp/rtmpLive.go" afterPath="$PROJECT_DIR$/rtmp/rtmpLive.go" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
@@ -28,63 +27,12 @@
     <favorites_list name="rtmpServerStudy" />
   </component>
   <component name="FileEditorManager">
-    <leaf>
-      <file leaf-file-name="rtmpCore.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/rtmp/rtmpCore.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="92">
-              <caret line="4" column="17" lean-forward="true" selection-start-line="4" selection-start-column="17" selection-end-line="4" selection-end-column="17" />
-              <folding>
-                <element signature="e#367#479#0" expanded="false" />
-                <element signature="e#545#596#0" expanded="false" />
-                <element signature="n#!!block;n#hash#0" expanded="false" />
-                <element signature="n#!!block;n#RtmpSessionGet#0" expanded="false" />
-                <element signature="n#!!block;n#RtmpSessionPush#0" expanded="false" />
-                <element signature="n#!!block;n#RtmpSessionDel#0" expanded="false" />
-                <element signature="e#1710#1854#0" expanded="false" />
-                <element signature="e#1869#3331#0" expanded="false" />
-                <element signature="e#3333#3426#0" expanded="false" />
-                <element signature="e#3427#3479#0" expanded="false" />
-                <element signature="e#3532#3718#0" expanded="false" />
-                <element signature="n#!!block;n#NewSesion#0" expanded="false" />
-                <element signature="n#!!block;n#GetWriteBuf#0" expanded="false" />
-                <element signature="n#!!block;n#fillChunk3Header#0" expanded="false" />
-                <element signature="n#!!block;n#fillChunk0Header#0" expanded="false" />
-                <element signature="n#!!block;n#flushWrite#0" expanded="false" />
-                <element signature="n#!!block;n#Start#0" expanded="false" />
-                <element signature="n#!!block;n#readChunk#0" expanded="false" />
-                <element signature="n#!!block;n#rtmpReadCmdMsgCycle#0" expanded="false" />
-                <element signature="n#!!block;n#rtmpReadMsgCycle#0" expanded="false" />
-                <element signature="n#!!block;n#rtmpClosePlaySession#0" expanded="false" />
-                <element signature="n#!!block;n#writeAVTag#0" expanded="false" />
-                <element signature="n#!!block;n#writeAVPacket#0" expanded="false" />
-                <element signature="n#!!block;n#CodecDataToTag#0" expanded="false" />
-                <element signature="n#!!block;n#ClientSessionPrepare#0" expanded="false" />
-                <element signature="n#!!block;n#ServerHandle#0" expanded="false" />
-                <element signature="n#!!block;n#ListenAndServe#0" expanded="false" />
-                <element signature="n#!!block;n#SplitPath#0" expanded="false" />
-                <element signature="n#!!block;n#getTcUrl#0" expanded="false" />
-                <element signature="n#!!block;n#createURL#0" expanded="false" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="HdlLive.go" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/rtmp/HdlLive.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="23">
-              <caret line="1" column="0" lean-forward="true" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file leaf-file-name="rtmpLive.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/rtmp/rtmpLive.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="736">
-              <caret line="105" column="44" lean-forward="true" selection-start-line="105" selection-start-column="44" selection-end-line="105" selection-end-column="44" />
+            <state relative-caret-position="332">
+              <caret line="58" column="44" lean-forward="false" selection-start-line="58" selection-start-column="44" selection-end-line="58" selection-end-column="44" />
               <folding>
                 <element signature="e#14#190#0" expanded="true" />
               </folding>
@@ -92,54 +40,28 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="AvRing.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/AvQue/AvRing.go">
+      <file leaf-file-name="HdlLive.go" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/rtmp/HdlLive.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2001">
-              <caret line="87" column="23" lean-forward="false" selection-start-line="87" selection-start-column="23" selection-end-line="87" selection-end-column="23" />
-              <folding>
-                <element signature="e#15#57#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="rtmpHandler.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/rtmp/rtmpHandler.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="115">
-              <caret line="11" column="41" lean-forward="true" selection-start-line="11" selection-start-column="41" selection-end-line="11" selection-end-column="41" />
+            <state relative-caret-position="447">
+              <caret line="39" column="16" lean-forward="true" selection-start-line="39" selection-start-column="16" selection-end-line="39" selection-end-column="16" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="flv.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/flv/flv.go">
+      <file leaf-file-name="test.go" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/main/test.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="138">
-              <caret line="20" column="5" lean-forward="false" selection-start-line="20" selection-start-column="5" selection-end-line="20" selection-end-column="5" />
+            <state relative-caret-position="207">
+              <caret line="15" column="38" lean-forward="false" selection-start-line="15" selection-start-column="38" selection-end-line="15" selection-end-column="38" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="rtmpMsgCode.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/rtmp/rtmpMsgCode.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="345">
-              <caret line="19" column="8" lean-forward="false" selection-start-line="19" selection-start-column="8" selection-end-line="19" selection-end-column="8" />
-              <folding>
-                <element signature="e#14#106#0" expanded="false" />
-                <element signature="e#958#1202#0" expanded="false" />
-                <element signature="n#!!block;n#init#0" expanded="false" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="publist.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/AvQue/publist.go">
+      <file leaf-file-name="rtmpProxyProtocol.go" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/rtmp/rtmpProxyProtocol.go">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="0">
               <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
@@ -148,28 +70,92 @@
           </provider>
         </entry>
       </file>
+      <file leaf-file-name="rtmpCore.go" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/rtmp/rtmpCore.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="217">
+              <caret line="539" column="21" lean-forward="false" selection-start-line="539" selection-start-column="21" selection-end-line="539" selection-end-column="21" />
+              <folding>
+                <element signature="e#14#327#0" expanded="true" />
+                <element signature="e#378#490#0" expanded="false" />
+                <element signature="e#556#607#0" expanded="false" />
+                <element signature="n#!!block;n#hash#0" expanded="false" />
+                <element signature="n#!!block;n#RtmpSessionGet#0" expanded="false" />
+                <element signature="n#!!block;n#RtmpSessionDel#0" expanded="false" />
+                <element signature="e#1721#1865#0" expanded="false" />
+                <element signature="e#3446#3539#0" expanded="false" />
+                <element signature="e#3540#3592#0" expanded="false" />
+                <element signature="e#3645#3831#0" expanded="false" />
+                <element signature="n#!!block;n#NewSesion#0" expanded="false" />
+                <element signature="n#!!block;n#GetWriteBuf#0" expanded="false" />
+                <element signature="n#!!block;n#fillChunk3Header#0" expanded="false" />
+                <element signature="n#!!block;n#fillChunk0Header#0" expanded="false" />
+                <element signature="n#!!block;n#flushWrite#0" expanded="false" />
+                <element signature="n#!!block;n#Start#0" expanded="false" />
+                <element signature="n#!!block;n#readChunk#0" expanded="false" />
+                <element signature="n#!!block;n#rtmpReadMsgCycle#0" expanded="false" />
+                <element signature="n#!!block;n#rtmpClosePlaySession#0" expanded="false" />
+                <element signature="n#!!block;n#ClientSessionPrepare#0" expanded="false" />
+                <element signature="n#!!block;n#SplitPath#0" expanded="false" />
+                <element signature="n#!!block;n#getTcUrl#0" expanded="false" />
+                <element signature="n#!!block;n#createURL#0" expanded="false" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="flv.go" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/flv/flv.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="457">
+              <caret line="87" column="48" lean-forward="true" selection-start-line="87" selection-start-column="48" selection-end-line="87" selection-end-column="48" />
+              <folding>
+                <element signature="n#!!block;n#PacketToTag#0" expanded="false" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="rtmpMsgHandler.go" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/rtmp/rtmpMsgHandler.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-1373">
+              <caret line="119" column="18" lean-forward="true" selection-start-line="119" selection-start-column="18" selection-end-line="119" selection-end-column="18" />
+              <folding>
+                <element signature="e#14#84#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file leaf-file-name="rtmpCmd.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/rtmp/rtmpCmd.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="5681">
-              <caret line="250" column="22" lean-forward="true" selection-start-line="250" selection-start-column="22" selection-end-line="250" selection-end-column="22" />
+            <state relative-caret-position="114">
+              <caret line="5" column="8" lean-forward="false" selection-start-line="5" selection-start-column="8" selection-end-line="6" selection-end-column="31" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="rtmpCodec.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/rtmp/rtmpCodec.go">
+      <file leaf-file-name="flvio.go" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/flv/flvio/flvio.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="423">
-              <caret line="269" column="0" lean-forward="true" selection-start-line="269" selection-start-column="0" selection-end-line="269" selection-end-column="0" />
+            <state relative-caret-position="309">
+              <caret line="245" column="31" lean-forward="false" selection-start-line="245" selection-start-column="22" selection-end-line="245" selection-end-column="31" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="rtmpMsgCode.go" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/rtmp/rtmpMsgCode.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="135">
+              <caret line="52" column="5" lean-forward="false" selection-start-line="52" selection-start-column="5" selection-end-line="52" selection-end-column="5" />
               <folding>
-                <element signature="e#14#157#0" expanded="true" />
-                <element signature="n#!!block;n#RtmpMsgDecodeVideoHandler#0" expanded="false" />
-                <element signature="n#!!block;n#ReadRegister#0" expanded="false" />
-                <element signature="n#!!block;n#RtmpMsgDecodeAudioHandler#0" expanded="false" />
-                <element signature="n#!!block;n#rtmpUpdateGopCache#0" expanded="false" />
-                <element signature="n#!!block;n#TagToPacket#0" expanded="false" />
+                <element signature="e#14#106#0" expanded="false" />
+                <element signature="e#958#1202#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -194,6 +180,19 @@
       <find>ReadAck</find>
       <find>MAXREADTIMEOUT</find>
       <find>rtmpCloseSessionHanler</find>
+      <find>ResponseWriter</find>
+      <find>MetadeToTag</find>
+      <find>CodecDataToTag</find>
+      <find>Muxer</find>
+      <find>hdlSendHead</find>
+      <find>writeFlusher</find>
+      <find>WriteHeader</find>
+      <find>FillTagHeader</find>
+      <find>hex</find>
+      <find>WriteTag</find>
+      <find>PacketToTag</find>
+      <find>RtmpUserSetBufLenHandler</find>
+      <find>GetMuxerWrite</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -210,13 +209,21 @@
         <option value="$PROJECT_DIR$/rtmp/rtmpError.go" />
         <option value="$PROJECT_DIR$/rtmp/rtmpMsgHandler.go" />
         <option value="$PROJECT_DIR$/rtmp/rtmpCodec.go" />
-        <option value="$PROJECT_DIR$/main/test.go" />
-        <option value="$PROJECT_DIR$/rtmp/rtmpCmd.go" />
-        <option value="$PROJECT_DIR$/rtmp/rtmpHandler.go" />
         <option value="$PROJECT_DIR$/AvQue/buf.go" />
+        <option value="$PROJECT_DIR$/rtmp/httpServer.go" />
+        <option value="$PROJECT_DIR$/flv/flvio/flvio.go" />
+        <option value="$PROJECT_DIR$/rtmp/HdlLive.go" />
+        <option value="$PROJECT_DIR$/rtmp/rtmpHlsRecord.go" />
+        <option value="$PROJECT_DIR$/README.md" />
+        <option value="$PROJECT_DIR$/rtmp/rtmpFlvRecord.go" />
+        <option value="$PROJECT_DIR$/rtmp/rtmpHandler.go" />
+        <option value="$PROJECT_DIR$/rtmp/rtmpUserMsg.go" />
+        <option value="$PROJECT_DIR$/rtmp/rtmpHandshake.go" />
         <option value="$PROJECT_DIR$/rtmp/rtmpLive.go" />
         <option value="$PROJECT_DIR$/rtmp/rtmpCore.go" />
-        <option value="$PROJECT_DIR$/rtmp/HdlLive.go" />
+        <option value="$PROJECT_DIR$/rtmp/rtmpCmd.go" />
+        <option value="$PROJECT_DIR$/flv/flv.go" />
+        <option value="$PROJECT_DIR$/main/test.go" />
       </list>
     </option>
   </component>
@@ -225,6 +232,28 @@
     <option name="y" value="-8" />
     <option name="width" value="1936" />
     <option name="height" value="1056" />
+  </component>
+  <component name="ProjectInspectionProfilesVisibleTreeState">
+    <entry key="Project Default">
+      <profile-state>
+        <expanded-state>
+          <State>
+            <id />
+          </State>
+          <State>
+            <id>Go</id>
+          </State>
+          <State>
+            <id>Redeclared symbolsGo</id>
+          </State>
+        </expanded-state>
+        <selected-state>
+          <State>
+            <id>GoDuplicateFunctionOrMethod</id>
+          </State>
+        </selected-state>
+      </profile-state>
+    </entry>
   </component>
   <component name="ProjectView">
     <navigator currentView="ProjectPane" proportions="" version="1">
@@ -241,10 +270,18 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="PackagesPane" />
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="rtmpServerStudy" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="External Libraries" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ExternalLibrariesNode" />
+            </PATH_ELEMENT>
+          </PATH>
           <PATH>
             <PATH_ELEMENT>
               <option name="myItemId" value="rtmpServerStudy" />
@@ -279,7 +316,7 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="flv" />
+              <option name="myItemId" value="main" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -293,12 +330,14 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="AvQue" />
+              <option name="myItemId" value="flv" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
         </subPane>
       </pane>
+      <pane id="PackagesPane" />
+      <pane id="Scope" />
       <pane id="Scratches" />
     </panes>
   </component>
@@ -367,6 +406,9 @@
         <option name="SUPPORT_LIB_ENABLED" value="true" />
         <option name="INSTRUMENTATION_ENABLED" value="true" />
       </Profilers>
+      <method />
+    </configuration>
+    <configuration default="true" type="ApexTest" factoryName="Apex Test">
       <method />
     </configuration>
     <configuration default="true" type="Applet" factoryName="Applet">
@@ -531,6 +573,19 @@
       <listeners />
       <method />
     </configuration>
+    <configuration default="true" type="executeSpecs" factoryName="Gauge Execution">
+      <setting name="environment" value="" />
+      <setting name="specsToExecute" value="" />
+      <setting name="tags" value="" />
+      <setting name="parallelNodes" value="" />
+      <setting name="execInParallel" value="false" />
+      <setting name="programParameters" value="" />
+      <setting name="workingDirectory" value="" />
+      <setting name="moduleName" value="" />
+      <envMap />
+      <setting name="rowsRange" value="" />
+      <method />
+    </configuration>
   </component>
   <component name="ShelveChangesManager" show_recycled="false">
     <option name="remove_strategy" value="false" />
@@ -549,130 +604,190 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="1936" height="1056" extended-state="7" />
+    <frame x="-8" y="-8" width="1936" height="1056" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Nl-Palette" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Image Layers" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Capture Analysis" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
-      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Nl-Palette" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug Logs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Image Layers" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Capture Analysis" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Properties" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.33184358" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Properties" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Execute Anonymous" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25751072" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="UI Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Theme Preview" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="UI Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Theme Preview" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Salesforce" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.21675977" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
   <component name="VcsContentAnnotationSettings">
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="XDebuggerManager">
-    <breakpoint-manager />
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/rtmp/rtmpCore.go</url>
+          <line>635</line>
+        </line-breakpoint>
+      </breakpoints>
+      <option name="time" value="2" />
+    </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/rtmp/rtmpError.go">
+    <entry file="file://$PROJECT_DIR$/rtmp/rtmpHlsRecord.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <caret line="0" column="12" lean-forward="false" selection-start-line="0" selection-start-column="12" selection-end-line="0" selection-end-column="12" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rtmp/rtmpCore.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1771">
+          <caret line="145" column="8" lean-forward="false" selection-start-line="145" selection-start-column="8" selection-end-line="145" selection-end-column="8" />
+          <folding>
+            <element signature="e#14#327#0" expanded="true" />
+            <element signature="e#378#490#0" expanded="false" />
+            <element signature="e#556#607#0" expanded="false" />
+            <element signature="n#!!block;n#hash#0" expanded="false" />
+            <element signature="n#!!block;n#RtmpSessionGet#0" expanded="false" />
+            <element signature="n#!!block;n#RtmpSessionDel#0" expanded="false" />
+            <element signature="e#1721#1865#0" expanded="false" />
+            <element signature="e#3446#3539#0" expanded="false" />
+            <element signature="e#3540#3592#0" expanded="false" />
+            <element signature="e#3645#3831#0" expanded="false" />
+            <element signature="n#!!block;n#NewSesion#0" expanded="false" />
+            <element signature="n#!!block;n#GetWriteBuf#0" expanded="false" />
+            <element signature="n#!!block;n#fillChunk3Header#0" expanded="false" />
+            <element signature="n#!!block;n#fillChunk0Header#0" expanded="false" />
+            <element signature="n#!!block;n#flushWrite#0" expanded="false" />
+            <element signature="n#!!block;n#Start#0" expanded="false" />
+            <element signature="n#!!block;n#readChunk#0" expanded="false" />
+            <element signature="n#!!block;n#rtmpReadMsgCycle#0" expanded="false" />
+            <element signature="n#!!block;n#rtmpClosePlaySession#0" expanded="false" />
+            <element signature="n#!!block;n#ClientSessionPrepare#0" expanded="false" />
+            <element signature="n#!!block;n#SplitPath#0" expanded="false" />
+            <element signature="n#!!block;n#getTcUrl#0" expanded="false" />
+            <element signature="n#!!block;n#createURL#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/flv/flv.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3910">
+          <caret line="263" column="25" lean-forward="false" selection-start-line="263" selection-start-column="25" selection-end-line="263" selection-end-column="25" />
+          <folding>
+            <element signature="e#13#225#0" expanded="false" />
+            <element signature="n#!!block;n#NewMetadataByStreams#0" expanded="false" />
+            <element signature="n#!!block;n#PacketToTag#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/h264Parse/parse.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="11339">
+          <caret line="499" column="5" lean-forward="false" selection-start-line="499" selection-start-column="5" selection-end-line="499" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/av/av.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2553">
+          <caret line="114" column="5" lean-forward="false" selection-start-line="114" selection-start-column="5" selection-end-line="114" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/flv/flvio/flvio.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="7958">
+          <caret line="352" column="1" lean-forward="false" selection-start-line="352" selection-start-column="1" selection-end-line="352" selection-end-column="1" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/main/test.go">
       <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="253">
+          <caret line="17" column="19" lean-forward="false" selection-start-line="17" selection-start-column="19" selection-end-line="17" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rtmp/HdlLive.go">
+      <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="161">
-          <caret line="7" column="25" lean-forward="false" selection-start-line="7" selection-start-column="20" selection-end-line="7" selection-end-column="25" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://C:/Go/src/io/io.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="286">
-          <caret line="323" column="5" lean-forward="false" selection-start-line="323" selection-start-column="5" selection-end-line="323" selection-end-column="5" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/rtmp/rtmpMsgHandler.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="115">
-          <caret line="5" column="29" lean-forward="false" selection-start-line="5" selection-start-column="29" selection-end-line="5" selection-end-column="29" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://C:/Go/src/builtin/builtin.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2119">
-          <caret line="212" column="5" lean-forward="false" selection-start-line="212" selection-start-column="5" selection-end-line="212" selection-end-column="5" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/rtmp/rtmpCodec.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="423">
-          <caret line="269" column="0" lean-forward="true" selection-start-line="269" selection-start-column="0" selection-end-line="269" selection-end-column="0" />
+          <caret line="11" column="0" lean-forward="false" selection-start-line="11" selection-start-column="0" selection-end-line="11" selection-end-column="0" />
           <folding>
-            <element signature="e#14#157#0" expanded="true" />
-            <element signature="n#!!block;n#RtmpMsgDecodeVideoHandler#0" expanded="false" />
-            <element signature="n#!!block;n#ReadRegister#0" expanded="false" />
-            <element signature="n#!!block;n#RtmpMsgDecodeAudioHandler#0" expanded="false" />
-            <element signature="n#!!block;n#rtmpUpdateGopCache#0" expanded="false" />
-            <element signature="n#!!block;n#TagToPacket#0" expanded="false" />
+            <element signature="e#13#200#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/rtmp/rtmpCmd.go">
+    <entry file="file://$PROJECT_DIR$/rtmp/httpServer.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="5681">
-          <caret line="250" column="22" lean-forward="true" selection-start-line="250" selection-start-column="22" selection-end-line="250" selection-end-column="22" />
+        <state relative-caret-position="644">
+          <caret line="35" column="54" lean-forward="false" selection-start-line="35" selection-start-column="54" selection-end-line="35" selection-end-column="54" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/AvQue/buf.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1049">
-          <caret line="45" column="0" lean-forward="false" selection-start-line="45" selection-start-column="0" selection-end-line="45" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/AvQue/que.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1656">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/AvQue/publist.go">
+    <entry file="file://$PROJECT_DIR$/rtmp.md">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Go/src/net/url/url.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="7130">
+          <caret line="317" column="8" lean-forward="false" selection-start-line="317" selection-start-column="8" selection-end-line="317" selection-end-column="8" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/flv/flv.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="138">
+          <caret line="20" column="5" lean-forward="false" selection-start-line="20" selection-start-column="5" selection-end-line="20" selection-end-column="5" />
+          <folding>
+            <element signature="e#13#225#0" expanded="false" />
+            <element signature="n#!!block;n#NewMetadataByStreams#0" expanded="false" />
+            <element signature="n#!!block;n#PacketToTag#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -688,58 +803,260 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/flv/flv.go">
+    <entry file="file://$PROJECT_DIR$/AvQue/publist.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="138">
-          <caret line="20" column="5" lean-forward="false" selection-start-line="20" selection-start-column="5" selection-end-line="20" selection-end-column="5" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#15#53#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rtmp/rtmpCmd.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="322">
+          <caret line="17" column="62" lean-forward="false" selection-start-line="17" selection-start-column="62" selection-end-line="17" selection-end-column="62" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rtmp/rtmpError.go" />
+    <entry file="file://C:/Go/src/builtin/builtin.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2119">
+          <caret line="212" column="5" lean-forward="false" selection-start-line="212" selection-start-column="5" selection-end-line="212" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/AvQue/buf.go" />
+    <entry file="file://$PROJECT_DIR$/AvQue/que.go" />
+    <entry file="file://$PROJECT_DIR$/AvQue/AvRing.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2001">
+          <caret line="87" column="23" lean-forward="false" selection-start-line="87" selection-start-column="23" selection-end-line="87" selection-end-column="23" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Go/src/net/url/url.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="7130">
+          <caret line="317" column="8" lean-forward="false" selection-start-line="317" selection-start-column="8" selection-end-line="317" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/AvQue/publist.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#15#53#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rtmp.md">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Go/src/net/net.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-59">
+          <caret line="112" column="5" lean-forward="false" selection-start-line="112" selection-start-column="5" selection-end-line="112" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../github.com/nareix/joy4-bak/format/flv/flv.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="286">
+          <caret line="421" column="19" lean-forward="false" selection-start-line="421" selection-start-column="19" selection-end-line="421" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Go/src/bufio/bufio.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1114">
+          <caret line="521" column="5" lean-forward="false" selection-start-line="521" selection-start-column="5" selection-end-line="521" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Go/src/io/io.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="286">
+          <caret line="90" column="8" lean-forward="false" selection-start-line="90" selection-start-column="8" selection-end-line="90" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Go/src/net/http/request.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="516">
+          <caret line="229" column="18" lean-forward="false" selection-start-line="229" selection-start-column="8" selection-end-line="229" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/h264Parse/parse.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="11339">
+          <caret line="499" column="5" lean-forward="false" selection-start-line="499" selection-start-column="5" selection-end-line="499" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="46">
+          <caret line="2" column="0" lean-forward="true" selection-start-line="2" selection-start-column="0" selection-end-line="2" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/av/av.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-5927">
+          <caret line="114" column="5" lean-forward="false" selection-start-line="114" selection-start-column="5" selection-end-line="114" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Go/src/log/log.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-6157">
+          <caret line="47" column="5" lean-forward="false" selection-start-line="47" selection-start-column="5" selection-end-line="47" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rtmp/rtmpFlvRecord.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="352">
+          <caret line="33" column="52" lean-forward="true" selection-start-line="33" selection-start-column="52" selection-end-line="33" selection-end-column="52" />
+          <folding>
+            <element signature="e#14#25#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rtmp/rtmpCodec.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="322">
+          <caret line="269" column="0" lean-forward="true" selection-start-line="269" selection-start-column="0" selection-end-line="269" selection-end-column="0" />
+          <folding>
+            <element signature="n#!!block;n#RtmpMsgDecodeVideoHandler#0" expanded="false" />
+            <element signature="n#!!block;n#ReadRegister#0" expanded="false" />
+            <element signature="n#!!block;n#RtmpMsgDecodeAudioHandler#0" expanded="false" />
+            <element signature="n#!!block;n#rtmpUpdateGopCache#0" expanded="false" />
+            <element signature="n#!!block;n#TagToPacket#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Go/src/net/http/server.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="286">
+          <caret line="2128" column="26" lean-forward="false" selection-start-line="2128" selection-start-column="26" selection-end-line="2128" selection-end-column="26" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/rtmp/rtmpHandler.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="115">
-          <caret line="11" column="41" lean-forward="true" selection-start-line="11" selection-start-column="41" selection-end-line="11" selection-end-column="41" />
+        <state relative-caret-position="1449">
+          <caret line="69" column="0" lean-forward="true" selection-start-line="69" selection-start-column="0" selection-end-line="69" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/AvQue/AvRing.go">
+    <entry file="file://$PROJECT_DIR$/rtmp/rtmpHlsRecord.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2001">
-          <caret line="87" column="23" lean-forward="false" selection-start-line="87" selection-start-column="23" selection-end-line="87" selection-end-column="23" />
+        <state relative-caret-position="0">
+          <caret line="0" column="12" lean-forward="false" selection-start-line="0" selection-start-column="12" selection-end-line="0" selection-end-column="12" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rtmp/httpServer.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="674">
+          <caret line="37" column="30" lean-forward="false" selection-start-line="37" selection-start-column="30" selection-end-line="37" selection-end-column="30" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rtmp/rtmpHandshake.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="53">
+          <caret line="176" column="17" lean-forward="true" selection-start-line="176" selection-start-column="17" selection-end-line="176" selection-end-column="17" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rtmp/rtmpUserMsg.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="414">
+          <caret line="33" column="14" lean-forward="true" selection-start-line="33" selection-start-column="14" selection-end-line="33" selection-end-column="14" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rtmp/rtmpMsgHandler.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1373">
+          <caret line="119" column="18" lean-forward="true" selection-start-line="119" selection-start-column="18" selection-end-line="119" selection-end-column="18" />
           <folding>
-            <element signature="e#15#57#0" expanded="true" />
+            <element signature="e#14#84#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/rtmp/rtmpLive.go">
+    <entry file="file://$PROJECT_DIR$/rtmp/rtmpProxyProtocol.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="736">
-          <caret line="105" column="44" lean-forward="true" selection-start-line="105" selection-start-column="44" selection-end-line="105" selection-end-column="44" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rtmp/rtmpMsgCode.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="135">
+          <caret line="52" column="5" lean-forward="false" selection-start-line="52" selection-start-column="5" selection-end-line="52" selection-end-column="5" />
           <folding>
-            <element signature="e#14#190#0" expanded="true" />
+            <element signature="e#14#106#0" expanded="false" />
+            <element signature="e#958#1202#0" expanded="false" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rtmp/rtmpCmd.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="114">
+          <caret line="5" column="8" lean-forward="false" selection-start-line="5" selection-start-column="8" selection-end-line="6" selection-end-column="31" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/rtmp/rtmpCore.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="92">
-          <caret line="4" column="17" lean-forward="true" selection-start-line="4" selection-start-column="17" selection-end-line="4" selection-end-column="17" />
+        <state relative-caret-position="217">
+          <caret line="539" column="21" lean-forward="false" selection-start-line="539" selection-start-column="21" selection-end-line="539" selection-end-column="21" />
           <folding>
-            <element signature="e#367#479#0" expanded="false" />
-            <element signature="e#545#596#0" expanded="false" />
+            <element signature="e#14#327#0" expanded="true" />
+            <element signature="e#378#490#0" expanded="false" />
+            <element signature="e#556#607#0" expanded="false" />
             <element signature="n#!!block;n#hash#0" expanded="false" />
             <element signature="n#!!block;n#RtmpSessionGet#0" expanded="false" />
-            <element signature="n#!!block;n#RtmpSessionPush#0" expanded="false" />
             <element signature="n#!!block;n#RtmpSessionDel#0" expanded="false" />
-            <element signature="e#1710#1854#0" expanded="false" />
-            <element signature="e#1869#3331#0" expanded="false" />
-            <element signature="e#3333#3426#0" expanded="false" />
-            <element signature="e#3427#3479#0" expanded="false" />
-            <element signature="e#3532#3718#0" expanded="false" />
+            <element signature="e#1721#1865#0" expanded="false" />
+            <element signature="e#3446#3539#0" expanded="false" />
+            <element signature="e#3540#3592#0" expanded="false" />
+            <element signature="e#3645#3831#0" expanded="false" />
             <element signature="n#!!block;n#NewSesion#0" expanded="false" />
             <element signature="n#!!block;n#GetWriteBuf#0" expanded="false" />
             <element signature="n#!!block;n#fillChunk3Header#0" expanded="false" />
@@ -747,15 +1064,9 @@
             <element signature="n#!!block;n#flushWrite#0" expanded="false" />
             <element signature="n#!!block;n#Start#0" expanded="false" />
             <element signature="n#!!block;n#readChunk#0" expanded="false" />
-            <element signature="n#!!block;n#rtmpReadCmdMsgCycle#0" expanded="false" />
             <element signature="n#!!block;n#rtmpReadMsgCycle#0" expanded="false" />
             <element signature="n#!!block;n#rtmpClosePlaySession#0" expanded="false" />
-            <element signature="n#!!block;n#writeAVTag#0" expanded="false" />
-            <element signature="n#!!block;n#writeAVPacket#0" expanded="false" />
-            <element signature="n#!!block;n#CodecDataToTag#0" expanded="false" />
             <element signature="n#!!block;n#ClientSessionPrepare#0" expanded="false" />
-            <element signature="n#!!block;n#ServerHandle#0" expanded="false" />
-            <element signature="n#!!block;n#ListenAndServe#0" expanded="false" />
             <element signature="n#!!block;n#SplitPath#0" expanded="false" />
             <element signature="n#!!block;n#getTcUrl#0" expanded="false" />
             <element signature="n#!!block;n#createURL#0" expanded="false" />
@@ -763,10 +1074,46 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/rtmp/rtmpLive.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="332">
+          <caret line="58" column="44" lean-forward="false" selection-start-line="58" selection-start-column="44" selection-end-line="58" selection-end-column="44" />
+          <folding>
+            <element signature="e#14#190#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/flv/flvio/flvio.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="309">
+          <caret line="245" column="31" lean-forward="false" selection-start-line="245" selection-start-column="22" selection-end-line="245" selection-end-column="31" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/flv/flv.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="457">
+          <caret line="87" column="48" lean-forward="true" selection-start-line="87" selection-start-column="48" selection-end-line="87" selection-end-column="48" />
+          <folding>
+            <element signature="n#!!block;n#PacketToTag#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/rtmp/HdlLive.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="23">
-          <caret line="1" column="0" lean-forward="true" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
+        <state relative-caret-position="447">
+          <caret line="39" column="16" lean-forward="true" selection-start-line="39" selection-start-column="16" selection-end-line="39" selection-end-column="16" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/main/test.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="207">
+          <caret line="15" column="38" lean-forward="false" selection-start-line="15" selection-start-column="38" selection-end-line="15" selection-end-column="38" />
           <folding />
         </state>
       </provider>

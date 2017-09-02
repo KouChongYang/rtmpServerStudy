@@ -3,6 +3,8 @@ package rtmp
 import (
 	"fmt"
 	"rtmpServerStudy/amf"
+	"context"
+	"rtmpServerStudy/AvQue"
 )
 
 /*
@@ -171,7 +173,8 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 
 	var code , level,desc string
 	session.URL = createURL(*session.TcUrl, *session.App, publishpath)
-
+	session.context, session.cancel = context.WithCancel(context.Background())
+	session.GopCache = AvQue.RingBufferCreate(8)
 	ok := RtmpSessionPush(session)
 	if !ok {
 		code ,level,desc = "NetStream.Publish.BadName","status","Already publishing"

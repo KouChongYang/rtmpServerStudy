@@ -142,9 +142,7 @@ func (self *Session) ServerSession(stage int) (err error) {
 			}
 		case stageCommandDone:
 			if self.publishing {
-				self.context, self.cancel = context.WithCancel(context.Background())
 				//only publish and relay need cache gop
-				self.GopCache = AvQue.RingBufferCreate(8)
 				err = self.rtmpReadMsgCycle()
 				self.stage = stageSessionDone
 				continue
