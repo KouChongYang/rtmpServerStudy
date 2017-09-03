@@ -15,25 +15,31 @@ import (
 func (self *Session)rtmpClosePublishingSession(){
 	RtmpSessionDel(self)
 	//cancel all play
-	self.cancel()
+	if self.context != nil {
+		self.cancel()
+		self.context = nil
+	}
 	self.isClosed = true
 	var next *list.Element
-	CursorList := self.CursorList.GetList()
-	self.ReadRegister()
-	//free play session
-	for e := CursorList.Front(); e != nil; {
-		switch value1 := e.Value.(type) {
-		case *Session:
-			cursorSession := value1
-			close(cursorSession.PacketAck)
-			next = e.Next()
-			CursorList.Remove(e)
-			e = next
+	if self.CursorList != nil {
+		CursorList := self.CursorList.GetList()
+		self.ReadRegister()
+		//free play session
+		for e := CursorList.Front(); e != nil; {
+			switch value1 := e.Value.(type) {
+			case *Session:
+				cursorSession := value1
+
+				//so the play no block
+				close(cursorSession.PacketAck)
+				next = e.Next()
+				CursorList.Remove(e)
+				e = next
+			}
 		}
 	}
 	self.CursorList = nil
 	self.netconn.Close()
-
 }
 
 func (self *Session) rtmpCloseSessionHanler() {
@@ -103,15 +109,18 @@ func (self *Session) rtmpSendGop() (err error) {
 func (self *Session) RtmpSendAvPackets() (err error) {
 	for {
 		pkt := self.CurQue.RingBufferGet()
-		select {
-		case <-self.context.Done():
-		// here publish may over so play is over
-			fmt.Println("the publisher is close")
-			self.isClosed = true
-			return
-		default:
 
-		// 没有结束 ... 执行 ...
+		if self.context != nil  {
+			select {
+			case <-self.context.Done():
+			// here publish may over so play is over
+				fmt.Println("the publisher is close")
+				self.isClosed = true
+				return
+			default:
+
+			// 没有结束 ... 执行 ...
+			}
 		}
 
 		if pkt == nil && self.isClosed  != true {

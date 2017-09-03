@@ -1,6 +1,6 @@
 package rtmp
 
-import "os"
+//import "os"
 
 /*
 #define NGX_RTMP_RECORD_OFF                 0x01
@@ -18,20 +18,15 @@ const (
 	RtmpRecordManual = 0x10
 )
 
-const(
-	BasePath="/data/rtmp/"
-)
-
-
 
 //just make dirPath
 func (self *Session)RtmpRecordNodeInit()(err error){
 	//just create the flv path
-	if self.RecordCnf == nil{
-		self.RecordCnf = new(RecordInfo)
+	/*if self.RecordMuxerCnf[0] == nil{
+		self.RecordCnf = new(RecordMuxerInfo)
 	}
 	self.RecordCnf.flvVodPath = BasePath+ "/flv/"
-	os.MkdirAll(self.RecordCnf.flvVodPath, 0777)
+	os.MkdirAll(self.RecordCnf.flvVodPath, 0777)*/
 	return
 }
 

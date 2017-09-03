@@ -5,6 +5,7 @@ import (
 	"rtmpServerStudy/amf"
 	"context"
 	"rtmpServerStudy/AvQue"
+	"gout-test/joy4/format/flv/flvio"
 )
 
 /*
@@ -187,8 +188,13 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 	if err = session.writeRtmpStatus(code , level,desc);err != nil{
 		return
 	}
-	session.stage = stageCommandDone
 
+	if FlvRecord == true {
+	}
+	if HlsRecord == true {
+	}
+
+	session.stage = stageCommandDone
 	return
 }
 

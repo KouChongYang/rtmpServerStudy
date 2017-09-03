@@ -28,6 +28,8 @@ import (
 /* RTMP message types */
 var (
 	Debug = false
+	FlvRecord = true
+	HlsRecord = true
 )
 
 const (
@@ -102,11 +104,6 @@ type Server struct {
 	HandleConn    func(*Session)
 }
 
-type RecordInfo struct {
-	flvVodPath string
-	hlsVodPath string
-}
-
 type Session struct {
 	sync.RWMutex
 	lock                   *sync.RWMutex
@@ -114,7 +111,7 @@ type Session struct {
 	CursorList             *AvQue.CursorList
 	GopCache               *AvQue.AvRingbuffer
 	pubSession 	       *Session
-	RecordCnf             *RecordInfo
+	RecordMuxerCnf         RecordFormatMap
 	maxgopcount            int
 	audioAfterLastVideoCnt int
 	CurQue                 *AvQue.AvRingbuffer
@@ -436,32 +433,30 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 		cs.Start()
 
 	case 3:
-		if cs.msgdataleft == 0 {
+		if cs.hastimeext {
 			switch cs.msghdrtype {
 			case 0:
-				if cs.hastimeext {
-					if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
-						return
-					}
-					n += 4
-					timestamp = pio.U32BE(b)
-					cs.timenow = timestamp
+				if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
+					return
 				}
+				n += 4
+				timestamp = pio.U32BE(b)
+				cs.timenow = timestamp
 			case 1, 2:
-				if cs.hastimeext {
-					if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
-						return
-					}
-					n += 4
-					timestamp = pio.U32BE(b)
-				} else {
-					timestamp = cs.timedelta
+				if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
+					return
 				}
+				n += 4
+				timestamp = pio.U32BE(b)
 				cs.timenow += timestamp
 			}
-			cs.Start()
-		}
+		}else{
+			switch cs.msghdrtype {
+			case 1, 2:
+				cs.timenow += cs.timedelta
+			}
 
+		}
 	default:
 		err = fmt.Errorf("rtmp: invalid chunk msg header type=%d", fmtTpye)
 		return
@@ -534,6 +529,13 @@ func (self *Session) rtmpReadMsgCycle() (err error) {
 
 func (self *Session) rtmpClosePlaySession(){
 	self.isClosed = true
+	self.GopCache = nil
+	self.aCodec = nil
+	self.vCodec = nil
+	self.context = nil
+	self.aCodecData = byte{}
+	self.vCodecData = byte{}
+
 	self.netconn.Close()
 	//some
 }
@@ -692,6 +694,7 @@ func (self *Server) ListenAndServe() (err error) {
 					const size = 64 << 10
 					buf := make([]byte, size)
 					buf = buf[:runtime.Stack(buf, false)]
+					session.rtmpCloseSessionHanler()
 					fmt.Println("rtmp: panic serving %v: %v\n%s", session.netconn.RemoteAddr(), err, buf)
 				}
 			}()
