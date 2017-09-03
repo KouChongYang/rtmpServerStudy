@@ -533,8 +533,6 @@ func (self *Session) rtmpClosePlaySession(){
 	self.aCodec = nil
 	self.vCodec = nil
 	self.context = nil
-	self.aCodecData = byte{}
-	self.vCodecData = byte{}
 
 	self.netconn.Close()
 	//some
