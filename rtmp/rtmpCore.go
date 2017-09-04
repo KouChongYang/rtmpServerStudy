@@ -28,6 +28,7 @@ import (
 /* RTMP message types */
 var (
 	Debug = false
+	EXTTIME = true
 	FlvRecord = true
 	HlsRecord = true
 )
@@ -433,7 +434,7 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 		cs.Start()
 
 	case 3:
-		if cs.hastimeext {
+		if cs.hastimeext && EXTTIME==true {
 			switch cs.msghdrtype {
 			case 0:
 				if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
@@ -456,6 +457,9 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 				cs.timenow += cs.timedelta
 			}
 
+		}
+		if cs.msgdataleft == 0 {
+			cs.Start()
 		}
 	default:
 		err = fmt.Errorf("rtmp: invalid chunk msg header type=%d", fmtTpye)
