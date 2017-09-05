@@ -241,9 +241,6 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 	if err = session.writeRtmpStatus("NetStream.Play.Start" , "status","Start live");err != nil{
 		return
 	}
-	if err = session.flushWrite(); err != nil {
-		return
-	}
 	// > streamBegin(streamid)
 	if err = session.writeStreamBegin(session.avmsgsid); err != nil {
 		return
