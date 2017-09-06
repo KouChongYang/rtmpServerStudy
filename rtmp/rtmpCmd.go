@@ -183,10 +183,14 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 		//play register channel
 		session.RegisterChannel = make(chan *Session, MAXREGISTERCHANNEL)
 	}
-	session.publishing = true
+
 	if err = session.writeRtmpStatus(code , level,desc);err != nil{
 		return
 	}
+	if err = session.flushWrite(); err != nil {
+		return
+	}
+	session.publishing = true
 
 	if FlvRecord == true {
 	}

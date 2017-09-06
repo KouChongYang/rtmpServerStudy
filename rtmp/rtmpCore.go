@@ -137,6 +137,7 @@ type Session struct {
 	avmsgsid               uint32
 	publishing             bool
 	playing                bool
+	isRelay                bool
 	//状态机
 	stage                  int
 	//client
