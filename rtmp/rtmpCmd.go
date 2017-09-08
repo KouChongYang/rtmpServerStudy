@@ -5,6 +5,7 @@ import (
 	"rtmpServerStudy/amf"
 	"context"
 	"rtmpServerStudy/AvQue"
+	"net/url"
 )
 
 /*
@@ -74,6 +75,35 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 		tcurl, _ = _tcurl.(string)
 	}
 	session.TcUrl = &tcurl
+	u, err := url.Parse(tcurl)
+	if err != nil {
+		code ,level,desc := "NetStream.Connect.IllegalDomain","status","Illegal domain"
+		if err = session.writeRtmpStatus(code , level,desc);err != nil{
+			return
+		}
+		err = fmt.Errorf("NetStream.Connect.IllegalDomain")
+		return
+	}else{
+		host:=u.Host
+		m, _ := url.ParseQuery(u.RawQuery)
+		if len(m["vhost"])>0{
+			host = m["vhost"][0]
+		}
+		pubOk:=false
+		PlayOk:=false
+
+		_,PlayOk=Gconfig.UserConf.PlayDomain[host]
+		_,pubOk=Gconfig.UserConf.PlayDomain[host]
+		if (!PlayOk) && (!pubOk){
+			code ,level,desc := "NetStream.Connect.IllegalDomain","status","Illegal domain"
+			if err = session.writeRtmpStatus(code , level,desc);err != nil{
+				return
+			}
+			err = fmt.Errorf("NetStream.Connect.IllegalDomain")
+			return
+		}
+
+	}
 
 	if err = session.writeBasicConf(); err != nil {
 		return
