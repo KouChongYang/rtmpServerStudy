@@ -157,10 +157,12 @@ func (self *Session) ServerSession(stage int) (err error) {
 		//first handshake
 		case stageHandshakeStart:
 			if err = self.handshakeServer(); err != nil {
+				self.netconn.Close()
 				return
 			}
 		case stageHandshakeDone:
 			if err = self.rtmpReadCmdMsgCycle(); err != nil {
+				self.netconn.Close()
 				return
 			}
 		case stageCommandDone:
