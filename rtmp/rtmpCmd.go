@@ -99,6 +99,7 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 			if err = session.writeRtmpStatus(code , level,desc);err != nil{
 				return
 			}
+			session.flushWrite()
 			err = fmt.Errorf("NetStream.Connect.IllegalDomain")
 			return
 		}
