@@ -34,6 +34,8 @@ func ParseCommandLine() {
 	}
 }
 
+// obs push
+// ffplay.exe 'rtmp://127.0.0.1/live?vhost=test.live.com/1231'
 //./main -c config.yaml -p ./ >1 &
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)

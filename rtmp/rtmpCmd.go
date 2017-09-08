@@ -6,6 +6,7 @@ import (
 	"context"
 	"rtmpServerStudy/AvQue"
 	"net/url"
+	"github.com/go-akka/configuration/hocon"
 )
 
 /*
@@ -74,6 +75,8 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 	if ok {
 		tcurl, _ = _tcurl.(string)
 	}
+
+	host := ""
 	session.TcUrl = &tcurl
 	u, err := url.Parse(tcurl)
 	if err != nil {
@@ -85,14 +88,13 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 		err = fmt.Errorf("NetStream.Connect.IllegalDomain")
 		return
 	}else{
-		host:=u.Host
+		host =u.Host
 		m, _ := url.ParseQuery(u.RawQuery)
 		if len(m["vhost"])>0{
 			host = m["vhost"][0]
 		}
 		pubOk:=false
 		PlayOk:=false
-
 		_,PlayOk=Gconfig.UserConf.PlayDomain[host]
 		_,pubOk=Gconfig.UserConf.PublishDomain[host]
 		if (!PlayOk) && (!pubOk){
@@ -107,6 +109,7 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 
 	}
 
+	session.Vhost = host
 	if err = session.writeBasicConf(); err != nil {
 		return
 	}
@@ -164,6 +167,16 @@ func RtmpDeleteStreamCmdHandler(sesion *Session, b []byte) (n int, err error) {
 func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 	if Debug {
 		fmt.Println("rtmp: < publish")
+	}
+	_,pubOk:=Gconfig.UserConf.PublishDomain[session.Vhost]
+	if pubOk != true {
+		code ,level,desc := "NetStream.Publish.IllegalPublishDomain","status","Illegal publish domain"
+		if err = session.writeRtmpStatus(code , level,desc);err != nil{
+			return
+		}
+		session.flushWrite()
+		err = fmt.Errorf("NetStream.Publish.IllegalPublishDomain")
+		return
 	}
 	var transid, obj interface{}
 	var size int
@@ -236,6 +249,16 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 	if Debug {
 		fmt.Println("rtmp: < play")
+	}
+	_,playOk:=Gconfig.UserConf.PlayDomain[session.Vhost]
+	if playOk != true {
+		code ,level,desc := "NetStream.Play.IllegalPlayDomain","status","Illegal Play domain"
+		if err = session.writeRtmpStatus(code , level,desc);err != nil{
+			return
+		}
+		session.flushWrite()
+		err = fmt.Errorf("NetStream.Play.IllegalPlayDomain")
+		return
 	}
 	var transid, obj interface{}
 	var size int

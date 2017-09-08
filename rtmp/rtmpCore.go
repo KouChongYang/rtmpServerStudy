@@ -118,6 +118,7 @@ type Session struct {
 	GopCache               *AvQue.AvRingbuffer
 	pubSession 	       *Session
 	UserCnf                *config.App
+	Vhost                  string
 	RecordMuxerCnf         []*RecordMuxerInfo//hls,flv,other
 	maxgopcount            int
 	audioAfterLastVideoCnt int
