@@ -3,21 +3,12 @@ package rtmp
 import (
 	"fmt"
 	"github.com/gorilla/mux"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"time"
+	"net"
 )
 
-type HttpServe struct {
-	hostPort string
-}
-
-func NewHttpServer(port string) {
-	var hs HttpServe
-	hs.hostPort = port
-	go hs.httpServerStart()
-}
 
 func handler1(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("the listen port:80")
@@ -29,11 +20,16 @@ func handler1(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (self *HttpServe) httpServerStart() {
+func (self *Server) httpServerStart(addr string)(err error) {
 	r := mux.NewRouter()
 	// Routes consist of a path and a handler function.
 	r.HandleFunc("/test", handler1)
 	r.HandleFunc("/{app}/{name:[A-Za-z0-9-_+]+}.flv",HDLHandler)
+	var ln net.Listener
+	if ln,err=self.socketListen(addr);err != nil{
+		return  err
+	}
 	// Bind to a port and pass our router in
-	log.Fatal(http.ListenAndServe(self.hostPort, r))
+	Hserver := &http.Server{Addr: addr, Handler: r}
+	return Hserver.Serve(ln)
 }

@@ -23,6 +23,8 @@ import (
 	//"encoding/hex"
 	"hash/fnv"
 	"runtime"
+	"os"
+	"rtmpServerStudy/config"
 )
 
 /* RTMP message types */
@@ -32,6 +34,8 @@ var (
 	FlvRecord = true
 	HlsRecord = true
 )
+
+var Gconfig *config.RtmpServerCnf
 
 const (
 	MAXREGISTERCHANNEL     = 512
@@ -97,9 +101,10 @@ func RtmpSessionDel(session *Session) {
 }
 
 
+
 type Server struct {
-	RtmpAddr      string
-	HttpAddr      string
+	RtmpAddr      []string
+	HttpAddr      []string
 	HandlePublish func(*Session)
 	HandlePlay    func(*Session)
 	HandleConn    func(*Session)
@@ -191,7 +196,7 @@ func NewSesion(netconn net.Conn) *Session {
 	session.readMaxChunkSize = 128
 	session.writeMaxChunkSize = 128
 	session.CursorList = AvQue.NewPublist()
-	session.maxgopcount = 3
+	session.maxgopcount = 2
 
 	session.lock = &sync.RWMutex{}
 
@@ -639,20 +644,96 @@ func (self *Server) ServerHandle(session *Session) (err error) {
 	return
 }
 
-func (self *Server) ListenAndServe() (err error) {
-	addr := self.RtmpAddr
-	if addr == "" {
-		addr = ":1935"
-	}
-	var tcpaddr *net.TCPAddr
-	if tcpaddr, err = net.ResolveTCPAddr("tcp", addr); err != nil {
-		err = fmt.Errorf("rtmp: ListenAndServe: %s", err)
+func createUnixSocket(addr *net.UnixAddr) (l net.Listener, err error) {
+	l, err = net.ListenUnix("unix", addr)
+
+	if err != nil {
 		return
 	}
 
-	var listener *net.TCPListener
-	if listener, err = net.ListenTCP("tcp", tcpaddr); err != nil {
+	fi, err := os.Stat(addr.String())
+	if err != nil {
 		return
+	}
+
+	err = os.Chmod(addr.String(), fi.Mode()|0060)
+	return
+}
+
+func (srv *Server) socketListen(addr string) (net.Listener, error) {
+	var err error
+	var l net.Listener
+	if addr == "" {
+		addr = ":1935"
+	}
+	if strings.HasPrefix(addr, "/") {
+		var laddr *net.UnixAddr
+		if laddr, err = net.ResolveUnixAddr("unix", addr); err != nil {
+			return nil, err
+		}
+		if l, err = createUnixSocket(laddr); err != nil {
+			// Unix-domain-socket already exists, try to connect to it to
+			// see if it still is usedb by another process
+			if _, err = net.Dial("unix", addr); err != nil {
+				if err = os.Remove(addr); err != nil {
+					return nil, err
+				}
+				if l, err = createUnixSocket(laddr); err != nil {
+					return nil, err
+				}
+			} else {
+				return nil, fmt.Errorf("another process seems to be listening on %s already", addr)
+			}
+		}
+	} else {
+		var laddr *net.TCPAddr
+		if laddr, err = net.ResolveTCPAddr("tcp", addr); err != nil {
+			return nil, err
+		}
+		if l, err = net.ListenTCP("tcp", laddr); err != nil {
+			return nil, err
+		}
+	}
+
+	return l, nil
+
+}
+
+
+
+func (self *Server)ListenAndServersStart(){
+	done := make(chan bool)
+
+	//rtmp server start
+	for _, addr := range self.RtmpAddr {
+		go self.rtmpServeStart(addr)
+	}
+	//http server start
+	for _, addr :=  range self.HttpAddr{
+		go self.httpServerStart(addr)
+	}
+	<-done
+}
+
+func NewServer(file string) (err error,server *Server){
+	server = new(Server)
+	if err,Gconfig = config.ParseConfig(file);err != nil{
+		return
+	}
+	server.RtmpAddr ,server.HttpAddr =
+		Gconfig.RtmpServer.RtmpListen,Gconfig.RtmpServer.HttpListen
+	return
+}
+
+func (self *Server) rtmpServeStart(addr string,) (err error) {
+
+	if addr == "" {
+		addr = ":1935"
+	}
+
+	var listener net.Listener
+	if listener,err = self.socketListen(addr); err != nil {
+		return err
 	}
 
 	if Debug {
@@ -681,7 +762,7 @@ func (self *Server) ListenAndServe() (err error) {
 			if Debug {
 				fmt.Printf("rtmp: Accept error:%v\n", e)
 			}
-			return
+			return e
 		}
 		tempDelay = 0
 

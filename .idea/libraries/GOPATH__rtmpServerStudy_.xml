@@ -15,6 +15,7 @@
       <root url="file://$PROJECT_DIR$/../fmt" />
       <root url="file://$PROJECT_DIR$/../internal-api-set" />
       <root url="file://$PROJECT_DIR$/../bufio" />
+      <root url="file://$PROJECT_DIR$/../gopkg.in" />
       <root url="file://$PROJECT_DIR$/../Gout" />
       <root url="file://$PROJECT_DIR$/../ceshi" />
       <root url="file://$PROJECT_DIR$/../untitled" />
@@ -38,6 +39,7 @@
       <root url="file://$PROJECT_DIR$/../fmt" />
       <root url="file://$PROJECT_DIR$/../internal-api-set" />
       <root url="file://$PROJECT_DIR$/../bufio" />
+      <root url="file://$PROJECT_DIR$/../gopkg.in" />
       <root url="file://$PROJECT_DIR$/../Gout" />
       <root url="file://$PROJECT_DIR$/../ceshi" />
       <root url="file://$PROJECT_DIR$/../untitled" />
@@ -47,6 +49,7 @@
     </SOURCES>
     <excluded>
       <root url="file://$PROJECT_DIR$" />
+      <root url="file://$PROJECT_DIR$/config" />
     </excluded>
   </library>
 </component>

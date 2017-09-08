@@ -1,0 +1,37 @@
+RtmpServer:
+  ClusterCnf: ["127.0.0.1:1935","127.0.0.1:1936"]
+  RtmpListen: [":1935","rtmp.socket"]
+  HttpListen: [":80","http.socket"]
+
+UserConf:
+  PublishDomain:
+    test.uplive.com:
+      UniqueName: test
+      App:
+        live:
+          GopCacheNum: 1
+          ExtTimeSend: 1
+          RecodeFlv: 1
+          RecodeHls: 1
+          RecodeFlvPath: "/tmp/flv"
+          RecodeHlsPath: "/tmp/hls"
+          RecodePicture: 1
+          TurnHost: ["test.uplive.com/test","test.uplive.com/test1"]
+        test:
+          GopCacheNum: 1
+          RecodeHls: 1
+          RecodeFlvPath: "/tmp/flv"
+          RecodeHlsPath: "/tmp/hls"
+          RecodePicture: 1
+        test1:
+          GopCacheNum: 1
+          RecodeFlv: 1
+          RecodeHls: 1
+          RecodeFlvPath: "/tmp/flv"
+          RecodeHlsPath: "/tmp/hls"
+          RecodePicture: 1
+  PlayDomain:
+    test.live.com:
+      UniqueName: test
+      App:
+        live:

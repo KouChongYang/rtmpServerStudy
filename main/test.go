@@ -6,15 +6,44 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"flag"
+	"os"
 )
+
+var GConfFile string
+var GDefaultPath string
+var (
+	version = "1.0.0.0"
+)
+
+func ParseCommandLine() {
+
+	ok := flag.Bool("v", false, "is ok")
+	flag.StringVar(&GConfFile, "c", "config.yaml", "General configuration file of rtmpserver")
+
+	flag.StringVar(&GDefaultPath, "p", "/usr/local/rtmpserver/", "Default file path of rtmpserver")
+
+	if GDefaultPath[len(GDefaultPath)-1] != '/' {
+		GDefaultPath = GDefaultPath + "/"
+	}
+
+	flag.Parse()
+	if *ok == true {
+		fmt.Println(version)
+		os.Exit(1)
+	}
+}
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	go func() {
 		fmt.Println(http.ListenAndServe(":6060", nil))
 	}()
-	rtmp.NewHttpServer("0.0.0.0:80")
 
-	server := &rtmp.Server{}
-	server.ListenAndServe()
+	confFile := fmt.Sprintf("%s%s", GDefaultPath, GConfFile)
+	if err,srv:=rtmp.NewServer(confFile);err != nil {
+		return
+	}else{
+		srv.ListenAndServersStart()
+	}
 }

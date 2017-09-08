@@ -83,6 +83,9 @@ func (self *Session) rtmpSendHead() (err error) {
 			if err = self.writeAVTag(tag, 0); err != nil {
 				return
 			}
+			if err = self.flushWrite(); err != nil {
+				return
+			}
 		}
 	}
 	//panic(55)
@@ -99,6 +102,9 @@ func (self *Session) rtmpSendGop() (err error) {
 		if err != nil {
 			self.GopCache = nil
 			return err
+		}
+		if err = self.flushWrite(); err != nil {
+			return
 		}
 		pkt = self.GopCache.RingBufferGet();
 	}
