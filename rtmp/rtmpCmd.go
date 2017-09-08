@@ -95,7 +95,7 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 
 		_,PlayOk=Gconfig.UserConf.PlayDomain[host]
 		_,pubOk=Gconfig.UserConf.PublishDomain[host]
-		if (!PlayOk) || (!pubOk){
+		if (!PlayOk) && (!pubOk){
 			code ,level,desc := "NetStream.Connect.IllegalDomain","status","Illegal domain"
 			if err = session.writeRtmpStatus(code , level,desc);err != nil{
 				return
