@@ -52,11 +52,13 @@ func (self *Session)RtmpcheckHost(host string,cmd string)(err error){
 			err = fmt.Errorf("NetStream.Play.IllegalDomain")
 		}
 	}
+	errBak := err
 	if err != nil {
 		if err = self.writeRtmpStatus(code, level, desc); err != nil {
 			return
 		}
 		self.flushWrite()
+		err = errBak
 	}
 	return
 }
@@ -136,7 +138,8 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 
 	host := ""
 	session.TcUrl = tcurl
-	u, err := url.Parse(tcurl)
+	var u *url.URL
+	u, err = url.Parse(tcurl)
 	if err != nil {
 		code ,level,desc := "NetStream.Connect.IllegalDomain","status","Illegal domain"
 		if err = session.writeRtmpStatus(code , level,desc);err != nil{
@@ -151,7 +154,7 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 		if len(m["vhost"])>0{
 			host = m["vhost"][0]
 		}
-		if err = session.RtmpcheckHost(host,"connect");err !=nil{
+		if err = session.RtmpcheckHost(host,"connect");err != nil {
 			return
 		}
 
