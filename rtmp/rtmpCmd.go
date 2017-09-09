@@ -72,10 +72,11 @@ func (self *Session)RtmpChckeApp(host ,app string)(err error){
 	_,pubOk=Gconfig.UserConf.PublishDomain[host].App[app]
 	if (!PlayOk) && (!pubOk){
 		code ,level,desc = "NetStream.Connect.IllegalApplication","status","Illegal Application"
-		err = fmt.Errorf("NetStream.Connect.IllegalApplication")
+		errbak := fmt.Errorf("NetStream.Connect.IllegalApplication")
 		if err = self.writeRtmpStatus(code, level, desc); err != nil {
 			return
 		}
+		err = errbak
 		self.flushWrite()
 	}else{
 		if PlayOk{
