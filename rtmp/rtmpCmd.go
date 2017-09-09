@@ -46,7 +46,7 @@ func (self *Session)RtmpcheckHost(host string,cmd string)(err error){
 			err = fmt.Errorf("NetStream.Publish.IllegalDomain")
 		}
 	case "play":
-		_,pubOk:=Gconfig.UserConf.PublishDomain[host]
+		_,pubOk:=Gconfig.UserConf.PlayDomain[host]
 		if (!pubOk){
 			code ,level,desc = "NetStream.Play.IllegalDomain","status","Illegal play domain"
 			err = fmt.Errorf("NetStream.Play.IllegalDomain")
@@ -133,6 +133,7 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 	if u, err = url.Parse(app);err != nil {
 		return
 	}
+	fmt.Println(u.Path)
 	session.App = u.Path
 
 	var tcurl string
@@ -164,7 +165,7 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 		}
 
 	}
-	if err = session.RtmpChckeApp(host,app);err != nil{
+	if err = session.RtmpChckeApp(host,session.App);err != nil{
 		return
 	}
 

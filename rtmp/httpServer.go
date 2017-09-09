@@ -21,6 +21,9 @@ func handler1(w http.ResponseWriter, r *http.Request) {
 }
 
 func (self *Server) httpServerStart(addr string)(err error) {
+	defer func(){
+		self.done <- false
+	}()
 	r := mux.NewRouter()
 	// Routes consist of a path and a handler function.
 	r.HandleFunc("/test", handler1)

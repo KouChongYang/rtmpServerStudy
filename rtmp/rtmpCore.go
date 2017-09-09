@@ -105,6 +105,7 @@ func RtmpSessionDel(session *Session) {
 type Server struct {
 	RtmpAddr      []string
 	HttpAddr      []string
+	done          chan bool
 	HandlePublish func(*Session)
 	HandlePlay    func(*Session)
 	HandleConn    func(*Session)
@@ -706,8 +707,8 @@ func (srv *Server) socketListen(addr string) (net.Listener, error) {
 
 
 func (self *Server)ListenAndServersStart(){
-	done := make(chan bool)
 
+	self.done = make(chan bool)
 	//rtmp server start
 	for _, addr := range self.RtmpAddr {
 		go self.rtmpServeStart(addr)
@@ -716,7 +717,7 @@ func (self *Server)ListenAndServersStart(){
 	for _, addr :=  range self.HttpAddr{
 		go self.httpServerStart(addr)
 	}
-	<-done
+	<-self.done
 }
 
 func NewServer(file string) (err error,server *Server){
@@ -734,6 +735,10 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 	if addr == "" {
 		addr = ":1935"
 	}
+
+	defer func(){
+		self.done <- false
+	}()
 
 	var listener net.Listener
 	if listener,err = self.socketListen(addr); err != nil {
