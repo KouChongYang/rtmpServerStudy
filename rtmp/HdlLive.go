@@ -2,7 +2,7 @@ package rtmp
 import (
 	"net/http"
 	"fmt"
-	"strings"
+	//"strings"
 	"rtmpServerStudy/AvQue"
 	"sync"
 	"time"
@@ -11,6 +11,7 @@ import (
 	"rtmpServerStudy/flv"
 	"rtmpServerStudy/flv/flvio"
 	"github.com/gorilla/mux"
+	"net/url"
 )
 
 type writeFlusher struct {
@@ -109,13 +110,23 @@ func (self *Session) hdlSendAvPackets(w * flv.Muxer, r *http.Request) (err error
 
 func HDLHandler(w http.ResponseWriter, r *http.Request){
 	fmt.Println(r.URL.Path)
-	itmes:=strings.Split(r.URL.Path, ".flv")
-	hashPath:=itmes[0]
-	fmt.Println(hashPath)
+	//itmes:=strings.Split(r.URL.Path, ".flv")
+	host :=r.URL.Host
+	m, _ := url.ParseQuery(r.URL.RawQuery)
+	if len(m["vhost"])>0{
+		host = m["vhost"][0]
+	}
+	if _,PlayOk:=Gconfig.UserConf.PlayDomain[host];PlayOk == false{
+		w.WriteHeader(404)
+	}
+
+	//hashPath:=itmes[0]
+	//fmt.Println(hashPath)
 	name := mux.Vars(r)["name"]
 	app := mux.Vars(r)["app"]
 	fmt.Println(name,app)
-	pubSession:= RtmpSessionGet(hashPath)
+	StreamAnchor := name + ":" + Gconfig.UserConf.PublishDomain[host].UniqueName + ":" + app
+	pubSession:= RtmpSessionGet(StreamAnchor)
 	if pubSession != nil {
 		session:=new(Session)
 		session.CursorList = AvQue.NewPublist()
@@ -129,7 +140,13 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 		case <-time.After(time.Second * MAXREADTIMEOUT):
 		//may be is err
 		}
+
 		session.pubSession = pubSession
+		session.StreamAnchor = StreamAnchor
+		session.StreamId = name
+		session.App = app
+		session.Vhost = host
+
 		//copy gop,codec here all new play Competitive the publishing lock
 		pubSession.RLock()
 		session.aCodec = pubSession.aCodec

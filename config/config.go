@@ -21,12 +21,12 @@ type App struct {
 
 type playDomain struct {
 	UniqueName string `yaml:"UniqueName"`
-	App map[string]App `yaml:"App"`
+	App map[string]*App `yaml:"App"`
 }
 
 type publishdomain struct {
 	UniqueName string `yaml:"UniqueName"`
-	App map[string]App `yaml:"App"`
+	App map[string]*App `yaml:"App"`
 }
 
 type Rtmpserver struct{

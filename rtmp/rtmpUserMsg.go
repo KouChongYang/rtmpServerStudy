@@ -18,7 +18,7 @@ func RtmpUserStreamEofHandler(session *Session, timestamp uint32, msgsid uint32,
 }
 
 func RtmpUserSetBufLenHandler(session *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
-	fmt.Printf("%s %s RtmpUserSetBufLenHandler\n", *session.App, *session.TcUrl)
+	fmt.Printf("%s %s RtmpUserSetBufLenHandler\n", session.App, session.TcUrl)
 	return
 	//do something your self
 }

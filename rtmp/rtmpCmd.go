@@ -26,6 +26,65 @@ type RtmpCmdHandle map[string]cmdHandler
 
 var RtmpCmdHandles RtmpCmdHandle
 
+func (self *Session)RtmpcheckHost(host string,cmd string)(err error){
+
+	code,level,desc:="","",""
+	switch cmd {
+	case "connect":
+		pubOk:=false
+		PlayOk:=false
+		_,PlayOk=Gconfig.UserConf.PlayDomain[host]
+		_,pubOk=Gconfig.UserConf.PublishDomain[host]
+		if (!PlayOk) && (!pubOk){
+			code ,level,desc = "NetStream.Connect.IllegalDomain","status","Illegal domain"
+			err = fmt.Errorf("NetStream.Connect.IllegalDomain")
+		}
+	case "publish":
+		_,pubOk:=Gconfig.UserConf.PublishDomain[host]
+		if (!pubOk){
+			code ,level,desc = "NetStream.Publish.IllegalDomain","status","Illegal publish domain"
+			err = fmt.Errorf("NetStream.Publish.IllegalDomain")
+		}
+	case "play":
+		_,pubOk:=Gconfig.UserConf.PublishDomain[host]
+		if (!pubOk){
+			code ,level,desc = "NetStream.Play.IllegalDomain","status","Illegal play domain"
+			err = fmt.Errorf("NetStream.Play.IllegalDomain")
+		}
+	}
+	if err != nil {
+		if err = self.writeRtmpStatus(code, level, desc); err != nil {
+			return
+		}
+		self.flushWrite()
+	}
+	return
+}
+
+func (self *Session)RtmpChckeApp(host ,app string)(err error){
+
+	code,level,desc:="","",""
+	pubOk:=false
+	PlayOk:=false
+	_,PlayOk=Gconfig.UserConf.PlayDomain[host].App[app]
+	_,pubOk=Gconfig.UserConf.PublishDomain[host].App[app]
+	if (!PlayOk) && (!pubOk){
+		code ,level,desc = "NetStream.Connect.IllegalApplication","status","Illegal Application"
+		err = fmt.Errorf("NetStream.Connect.IllegalApplication")
+		if err = self.writeRtmpStatus(code, level, desc); err != nil {
+			return
+		}
+		self.flushWrite()
+	}else{
+		if PlayOk{
+			self.UserCnf = Gconfig.UserConf.PlayDomain[host].App[app]
+		}else{
+			self.UserCnf = Gconfig.UserConf.PublishDomain[host].App[app]
+		}
+	}
+	return
+}
+
 func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 	var transid, obj interface{}
 	var size int
@@ -66,7 +125,7 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 		return
 	}
 	app, _ := _app.(string)
-	session.App = &app
+	session.App = app
 
 	var tcurl string
 	if _tcurl, ok = commandobj["tcUrl"]; !ok {
@@ -76,7 +135,7 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 	}
 
 	host := ""
-	session.TcUrl = &tcurl
+	session.TcUrl = tcurl
 	u, err := url.Parse(tcurl)
 	if err != nil {
 		code ,level,desc := "NetStream.Connect.IllegalDomain","status","Illegal domain"
@@ -92,20 +151,13 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 		if len(m["vhost"])>0{
 			host = m["vhost"][0]
 		}
-		pubOk:=false
-		PlayOk:=false
-		_,PlayOk=Gconfig.UserConf.PlayDomain[host]
-		_,pubOk=Gconfig.UserConf.PublishDomain[host]
-		if (!PlayOk) && (!pubOk){
-			code ,level,desc := "NetStream.Connect.IllegalDomain","status","Illegal domain"
-			if err = session.writeRtmpStatus(code , level,desc);err != nil{
-				return
-			}
-			session.flushWrite()
-			err = fmt.Errorf("NetStream.Connect.IllegalDomain")
+		if err = session.RtmpcheckHost(host,"connect");err !=nil{
 			return
 		}
 
+	}
+	if err = session.RtmpChckeApp(host,app);err != nil{
+		return
 	}
 
 	session.Vhost = host
@@ -167,14 +219,7 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 	if Debug {
 		fmt.Println("rtmp: < publish")
 	}
-	_,pubOk:=Gconfig.UserConf.PublishDomain[session.Vhost]
-	if pubOk != true {
-		code ,level,desc := "NetStream.Publish.IllegalPublishDomain","status","Illegal publish domain"
-		if err = session.writeRtmpStatus(code , level,desc);err != nil{
-			return
-		}
-		session.flushWrite()
-		err = fmt.Errorf("NetStream.Publish.IllegalPublishDomain")
+	if err = session.RtmpcheckHost(session.Vhost,"publish");err !=nil{
 		return
 	}
 	var transid, obj interface{}
@@ -209,14 +254,20 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 	}
 	publishpath, _ := commandparams[0].(string)
 	fmt.Println(publishpath)
+	var u *url.URL
+	if u, err = url.Parse(publishpath);err != nil {
+		return
+	}else{
+		session.StreamId = u.Path
+		session.StreamAnchor = u.Path + ":" + Gconfig.UserConf.PublishDomain[session.Vhost].UniqueName + ":" + session.App
+	}
 
 	// here must do something
 	/*if session.OnPlayOrPublish != nil {
 		cberr = self.OnPlayOrPublish("publish", commandparams)
 	}*/
-
 	var code , level,desc string
-	session.URL = createURL(*session.TcUrl, *session.App, publishpath)
+	session.URL = createURL(session.TcUrl, session.App, publishpath)
 	session.context, session.cancel = context.WithCancel(context.Background())
 	session.GopCache = AvQue.RingBufferCreate(8)
 	ok := RtmpSessionPush(session)
@@ -249,14 +300,7 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 	if Debug {
 		fmt.Println("rtmp: < play")
 	}
-	_,playOk:=Gconfig.UserConf.PlayDomain[session.Vhost]
-	if playOk != true {
-		code ,level,desc := "NetStream.Play.IllegalPlayDomain","status","Illegal Play domain"
-		if err = session.writeRtmpStatus(code , level,desc);err != nil{
-			return
-		}
-		session.flushWrite()
-		err = fmt.Errorf("NetStream.Play.IllegalPlayDomain")
+	if err = session.RtmpcheckHost(session.Vhost,"play");err !=nil{
 		return
 	}
 	var transid, obj interface{}
@@ -295,6 +339,13 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 	}
 	playpath, _ := commandparams[0].(string)
 	fmt.Println(playpath)
+	var u *url.URL
+	if u, err = url.Parse(playpath);err != nil {
+		return
+	}else{
+		session.StreamId = u.Path
+		session.StreamAnchor = u.Path + ":" + Gconfig.UserConf.PlayDomain[session.Vhost].UniqueName + ":" + session.App
+	}
 	// > onStatus()
 	if err = session.writeRtmpStatus("NetStream.Play.Start" , "status","Start live");err != nil{
 		return
@@ -313,7 +364,7 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 	if err = session.flushWrite(); err != nil {
 		return
 	}
-	session.URL = createURL(*session.TcUrl, *session.App, playpath)
+	session.URL = createURL(session.TcUrl, session.App, playpath)
 	session.playing = true
 	session.stage = stageCommandDone
 	return

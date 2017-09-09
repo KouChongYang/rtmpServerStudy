@@ -80,7 +80,7 @@ func RtmpSessionGet(path string)(session *Session){
 }
 
 func RtmpSessionPush(session *Session) bool{
-	path:= session.URL.Path
+	path:= session.StreamAnchor
 	i:=hash(path)%HashMapFactors
 	PublishingSessionMap[i].Lock()
 	defer 	PublishingSessionMap[i].Unlock()
@@ -93,7 +93,7 @@ func RtmpSessionPush(session *Session) bool{
 }
 
 func RtmpSessionDel(session *Session) {
-	path:= session.URL.Path
+	path:= session.StreamAnchor
 	i:=hash(path)%HashMapFactors
 	PublishingSessionMap[i].Lock()
 	delete(PublishingSessionMap[i].sessionIndex,path)
@@ -130,10 +130,12 @@ type Session struct {
 	RegisterChannel        chan *Session
 	PacketAck              chan bool
 	curgopcount            int
-	App                    *string
+	App                    string
+	StreamId               string
+	StreamAnchor           string
 	cancel                 context.CancelFunc
 	URL                    *url.URL
-	TcUrl                  *string
+	TcUrl                  string
 	isClosed               bool
 	isServer               bool
 	isPlay                 bool
@@ -148,7 +150,7 @@ type Session struct {
 	//状态机
 	stage                  int
 	//client
-	netconn           net.Conn
+	netconn                net.Conn
 	readcsmap         map[uint32]*chunkStream
 	writeMaxChunkSize int
 	readMaxChunkSize  int

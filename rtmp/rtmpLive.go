@@ -172,7 +172,7 @@ func (self *Session) ServerSession(stage int) (err error) {
 				self.stage = stageSessionDone
 				continue
 			} else if self.playing {
-				pubSession:= RtmpSessionGet(self.URL.Path)
+				pubSession:= RtmpSessionGet(self.StreamAnchor)
 				if pubSession != nil {
 					//register play to the publish
 					select {
