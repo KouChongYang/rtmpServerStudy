@@ -127,8 +127,13 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 		err = fmt.Errorf("rtmp: `connect` params missing `app`")
 		return
 	}
+
 	app, _ := _app.(string)
-	session.App = app
+	var u *url.URL
+	if u, err = url.Parse(app);err != nil {
+		return
+	}
+	session.App = u.Path
 
 	var tcurl string
 	if _tcurl, ok = commandobj["tcUrl"]; !ok {
@@ -139,7 +144,6 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 
 	host := ""
 	session.TcUrl = tcurl
-	var u *url.URL
 	u, err = url.Parse(tcurl)
 	if err != nil {
 		code ,level,desc := "NetStream.Connect.IllegalDomain","status","Illegal domain"
