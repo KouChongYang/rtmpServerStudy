@@ -652,7 +652,7 @@ func ClientSessionPrepare(self *Session,stage, flags int) (err error) {
 			fmt.Println("rtmp: panic ClientSessionPrepare %v: %v\n%s", self.netconn.RemoteAddr(), err, buf)
 		}
 	}()
-
+	
 	for self.stage < stage {
 		switch self.stage {
 		case stageClientConnect:

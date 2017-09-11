@@ -223,7 +223,7 @@ func RtmpDeleteStreamCmdHandler(sesion *Session, b []byte) (n int, err error) {
 	return
 }
 
-func (self *Session)RtmpCheckStreamIsSelf()bool{
+func (self *Session)RtmpCheckStreamIsSelf() bool{
 
 	index:=hash(self.StreamAnchor)%uint32(len(Gconfig.RtmpServer.ClusterCnf))
 	if Gconfig.RtmpServer.ClusterCnf[index] == Gconfig.RtmpServer.SelfIp{
@@ -321,6 +321,9 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 
 	if noSelf := session.RtmpCheckStreamIsSelf();noSelf != true{
 		//push stream to the true server
+		//rtmp://127.0.0.1/live?vhost=test.uplive.com/123
+		url:= "rtmp://" + session.pushIp + "?" + "vhost=" + session.Vhost + "/" + session.StreamId +"?hashpull=1"
+		rtmpPush(session,"tcp",session.pushIp,url)
 	}
 	session.stage = stageCommandDone
 	return
