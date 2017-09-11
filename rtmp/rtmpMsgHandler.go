@@ -160,7 +160,7 @@ func RtmpMsgVideoHandler(session *Session, timestamp uint32,
 }
 
 
-func (self *Session) handleCommandMsgAMF0(b []byte) (n int, err error) {
+func (self *Session) handleCommandMsgAMF0(b []byte,RtmpCmdHandles RtmpCmdHandle) (n int, err error) {
 	var name interface{}
 	var size int
 
@@ -188,7 +188,7 @@ func RtmpMsgAmf3Handler(session *Session, timestamp uint32,
 		return
 	}
 	// skip first byte
-	if _, err = session.handleCommandMsgAMF0(msgdata[1:]); err != nil {
+	if _, err = session.handleCommandMsgAMF0(msgdata[1:],session.rtmpCmdHandler); err != nil {
 		return
 	}
 	return
@@ -198,7 +198,7 @@ func RtmpMsgAmfHandler(session *Session, timestamp uint32,
 	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
 	/* AMF command names come with string type, but shared object names
 	 * come without type */
-	if _, err = session.handleCommandMsgAMF0(msgdata); err != nil {
+	if _, err = session.handleCommandMsgAMF0(msgdata,session.rtmpCmdHandler); err != nil {
 		return
 	}
 	return

@@ -6,6 +6,7 @@ import (
 	"context"
 	"rtmpServerStudy/AvQue"
 	"net/url"
+
 )
 
 /*
@@ -23,8 +24,6 @@ import (
 
 type cmdHandler func(sesion *Session, b []byte) (n int, err error)
 type RtmpCmdHandle map[string]cmdHandler
-
-var RtmpCmdHandles RtmpCmdHandle
 
 func (self *Session)RtmpcheckHost(host string,cmd string)(err error){
 
@@ -224,6 +223,18 @@ func RtmpDeleteStreamCmdHandler(sesion *Session, b []byte) (n int, err error) {
 	return
 }
 
+func (self *Session)RtmpCheckStreamIsSelf()bool{
+
+	index:=hash(self.StreamAnchor)%uint32(len(Gconfig.RtmpServer.ClusterCnf))
+	if Gconfig.RtmpServer.ClusterCnf[index] == Gconfig.RtmpServer.SelfIp{
+		return true
+	}else{
+		self.pushIp = Gconfig.RtmpServer.ClusterCnf[index]
+	}
+	return false
+}
+
+
 func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 	if Debug {
 		fmt.Println("rtmp: < publish")
@@ -295,12 +306,22 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 		return
 	}
 	session.publishing = true
-
-	if FlvRecord == true {
+	if session.selfPush == false {
+		if session.UserCnf.RecodeFlv == 1 {
+			//flv recode start
+		}
+		if session.UserCnf.RecodeHls == 1 {
+			//hls recode start
+		}
 	}
-	if HlsRecord == true {
+	//
+	if len(session.UserCnf.TurnHost) > 0{
+
 	}
 
+	if noSelf := session.RtmpCheckStreamIsSelf();noSelf != true{
+		//push stream to the true server
+	}
 	session.stage = stageCommandDone
 	return
 }
@@ -379,7 +400,162 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 	return
 }
 
-func init() {
+func CheckOnStatus(session *Session,b[]byte)(n int ,err error){
+	var transid, obj interface{}
+	var size int
+	if transid, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		return
+	}
+	n += size
+	if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		return
+	}
+	n += size
+
+	session.commandtransid, _ = transid.(float64)
+	commandobj, _ := obj.(amf.AMFMap)
+	commandparams := []interface{}{}
+
+	for n < len(b) {
+		if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+			return
+		}
+		n += size
+		commandparams = append(commandparams, obj)
+	}
+	if n < len(b) {
+		err = fmt.Errorf("rtmp: CommandMsgAMF0 left bytes=%d", len(b)-n)
+		return
+	}
+
+	if commandobj == nil {
+		err = fmt.Errorf("rtmp: connect result command params invalid")
+		return
+	}
+	objs, _ := commandparams[0].(amf.AMFMap)
+	if objs == nil {
+		err = fmt.Errorf("params[0] not object")
+		return
+	}
+
+	_code, _:= objs["code"]
+	if _code == nil {
+		err = fmt.Errorf("code invalid")
+		return
+	}
+
+	code, _ := _code.(string)
+	switch session.OnStatusStage {
+	case ConnectStage:
+		err = fmt.Errorf("code != NetConnection.Connect.Success")
+		return
+	case PublishStage:
+		if code != "NetStream.Publish.Start"{
+			err = fmt.Errorf("code != NetConnection.Connect.Success")
+			return
+		}
+	case PlayStage:
+		if code != "NetStream.Play.Start"{
+			err = fmt.Errorf("code != NetConnection.Connect.Success")
+			return
+		}
+
+	}
+
+	err = fmt.Errorf("NetConnection.Onstatus.Success")
+	return
+
+}
+
+func CheckCreateStreamResult(session *Session,b []byte)(n int ,err error){
+	var transid, obj interface{}
+	var size int
+	if transid, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		return
+	}
+	n += size
+	if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		return
+	}
+	n += size
+
+	session.commandtransid, _ = transid.(float64)
+	commandparams := []interface{}{}
+
+	for n < len(b) {
+		if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+			return
+		}
+		n += size
+		commandparams = append(commandparams, obj)
+	}
+
+	if n < len(b) {
+		err = fmt.Errorf("rtmp: CommandMsgAMF0 left bytes=%d", len(b)-n)
+		return
+	}
+
+	_avmsgsid, _ := commandparams[0].(float64)
+	session.avmsgsid = uint32(_avmsgsid)
+	err = fmt.Errorf("NetConnection.CreateStream.Success")
+	return
+}
+
+func CheckConnectResult(session *Session, b []byte) (n int, err error){
+	var transid, obj interface{}
+	var size int
+	if transid, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		return
+	}
+	n += size
+	if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		return
+	}
+	n += size
+
+	session.commandtransid, _ = transid.(float64)
+	commandobj, _ := obj.(amf.AMFMap)
+	commandparams := []interface{}{}
+
+	for n < len(b) {
+		if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+			return
+		}
+		n += size
+		commandparams = append(commandparams, obj)
+	}
+	if n < len(b) {
+		err = fmt.Errorf("rtmp: CommandMsgAMF0 left bytes=%d", len(b)-n)
+		return
+	}
+
+	if commandobj == nil {
+		err = fmt.Errorf("rtmp: connect result command params invalid")
+		return
+	}
+	objs, _ := commandparams[0].(amf.AMFMap)
+	if objs == nil {
+		err = fmt.Errorf("params[0] not object")
+		return
+	}
+
+	_code, _:= objs["code"]
+	if _code == nil {
+		err = fmt.Errorf("code invalid")
+		return
+	}
+
+	code, _ := _code.(string)
+	if code != "NetConnection.Connect.Success" {
+		err = fmt.Errorf("code != NetConnection.Connect.Success")
+		return
+	}
+	err = fmt.Errorf("NetConnection.Connect.Success")
+	return
+}
+
+
+func newRtmpCmdHandler() (RtmpCmdHandles RtmpCmdHandle){
 	RtmpCmdHandles = make(RtmpCmdHandle)
 	RtmpCmdHandles["connect"] = RtmpConnectCmdHandler
 	RtmpCmdHandles["createStream"] = RtmpCreateStreamCmdHandler
@@ -387,4 +563,6 @@ func init() {
 	RtmpCmdHandles["deleteStream"] = RtmpDeleteStreamCmdHandler
 	RtmpCmdHandles["publish"] = RtmpPublishCmdHandler
 	RtmpCmdHandles["play"] = RtmpPlayCmdHandler
+	return
 }
+

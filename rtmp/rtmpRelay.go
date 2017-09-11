@@ -4,6 +4,8 @@ import (
 	"net"
 	"net/url"
 	"time"
+	"fmt"
+	"rtmpServerStudy/amf"
 )
 
 func ParseURL(uri string) (u *url.URL, err error) {
@@ -16,31 +18,8 @@ func ParseURL(uri string) (u *url.URL, err error) {
 	return
 }
 
-func Dial(uri string) (conn *Session, err error) {
-	return DialTimeout(uri, 0)
-}
-
-func DialTimeout(uri string, timeout time.Duration) (session *Session, err error) {
-	var u *url.URL
-	if u, err = ParseURL(uri); err != nil {
-		return
-	}
-
-	dailer := net.Dialer{Timeout: timeout}
-	var netconn net.Conn
-	if netconn, err = dailer.Dial("tcp", u.Host); err != nil {
-		return
-	}
-
-	session = NewSesion(netconn)
-	session.URL = u
-	session.ClientSessionPrepare(stageSessionDone, prepareWriting)
-	return
-}
-
 func (session *Session) AutoRelay(uri string, timeout time.Duration, retryTime int) (err error) {
 	stage := stageHandshakeStart
-
 	for i := 0; i < retryTime; i++ {
 		switch stage {
 		case stageHandshakeStart:
@@ -55,4 +34,50 @@ func (session *Session) AutoRelay(uri string, timeout time.Duration, retryTime i
 
 func (self *Session) connectPlay() (err error) {
 	return err
+}
+
+func (self *Session) writeConnect(path string) (err error) {
+	if err = self.writeBasicConf(); err != nil {
+		return
+	}
+	// > connect("app")
+	if Debug {
+		fmt.Printf("rtmp: > connect('%s') host=%s\n", path, self.URL.Host)
+	}
+	if err = self.writeCommandMsg(3, 0, "connect", 1,
+		amf.AMFMap{
+			"app":           path,
+			"flashVer":      "kingsoft paly",
+			"tcUrl":         getTcUrl(self.URL),
+			"audioCodecs":   3575,
+			"videoCodecs":   252,
+			"videoFunction": 1,
+		},
+	); err != nil {
+		return
+	}
+
+	if err = self.flushWrite(); err != nil {
+		return
+	}
+
+	self.rtmpCmdHandler["_result"] =CheckConnectResult
+
+	connectOk:=false
+	for i:= 0;i<15;i++{
+		if err = self.readChunk(RtmpMsgHandles); err != nil {
+			if err.Error() == "NetConnection.Connect.Success" {
+				connectOk = true
+				err = nil
+				break
+			}
+			return err
+		}
+	}
+
+	if connectOk == false {
+		err = fmt.Errorf("NetConnection.Connect.err")
+		return
+	}
+	return
 }

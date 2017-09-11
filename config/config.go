@@ -32,6 +32,7 @@ type publishdomain struct {
 type Rtmpserver struct{
 	RtmpListen []string `yaml:"RtmpListen"`
 	ClusterCnf []string `yaml:"ClusterCnf"`
+	SelfIp string `yaml:"SelfIp"`
 	HttpListen []string `yaml:"HttpListen"`
 }
 type UserConf struct {

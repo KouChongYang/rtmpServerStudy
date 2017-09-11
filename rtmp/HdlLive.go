@@ -111,7 +111,7 @@ func (self *Session) hdlSendAvPackets(w * flv.Muxer, r *http.Request) (err error
 func HDLHandler(w http.ResponseWriter, r *http.Request){
 	fmt.Println(r.URL.Path)
 	//itmes:=strings.Split(r.URL.Path, ".flv")
-	host :=r.URL.Host
+	host :=r.Host
 	m, _ := url.ParseQuery(r.URL.RawQuery)
 	if len(m["vhost"])>0{
 		host = m["vhost"][0]
@@ -125,7 +125,7 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 	name := mux.Vars(r)["name"]
 	app := mux.Vars(r)["app"]
 	fmt.Println(name,app)
-	StreamAnchor := name + ":" + Gconfig.UserConf.PublishDomain[host].UniqueName + ":" + app
+	StreamAnchor := name + ":" + Gconfig.UserConf.PlayDomain[host].UniqueName + ":" + app
 	pubSession:= RtmpSessionGet(StreamAnchor)
 	if pubSession != nil {
 		session:=new(Session)

@@ -53,6 +53,105 @@ type sessionIndexStruct struct {
 
 var PublishingSessionMap [HashMapFactors]sessionIndexStruct
 
+type Server struct {
+	RtmpAddr      []string
+	HttpAddr      []string
+	done          chan bool
+	HandlePublish func(*Session)
+	HandlePlay    func(*Session)
+	HandleConn    func(*Session)
+}
+
+type Session struct {
+	sync.RWMutex
+	lock                   *sync.RWMutex
+	context                context.Context
+	CursorList             *AvQue.CursorList
+	GopCache               *AvQue.AvRingbuffer
+	pubSession 	       *Session
+	rtmpCmdHandler         RtmpCmdHandle
+	selfPush               bool
+	relayPush              bool
+	UserCnf                *config.App
+	Vhost                  string
+	RecordMuxerCnf         []*RecordMuxerInfo//hls,flv,other
+	maxgopcount            int
+	audioAfterLastVideoCnt int
+	CurQue                 *AvQue.AvRingbuffer
+	vCodec                 *h264parser.CodecData
+	vCodecData             []byte
+	aCodec                 *aacparser.CodecData
+	aCodecData             []byte
+	RegisterChannel        chan *Session
+	PacketAck              chan bool
+	curgopcount            int
+	App                    string
+	StreamId               string
+	StreamAnchor           string
+	cancel                 context.CancelFunc
+	URL                    *url.URL
+	TcUrl                  string
+	isClosed               bool
+	isServer               bool
+	isPlay                 bool
+	isPublish              bool
+	connected              bool
+	ackn                   uint32
+	readAckSize            uint32
+	avmsgsid               uint32
+	publishing             bool
+	playing                bool
+	isRelay                bool
+	//状态机
+	stage             int
+	//client
+	netconn           net.Conn
+	readcsmap         map[uint32]*chunkStream
+	writeMaxChunkSize int
+	readMaxChunkSize  int
+	chunkHeaderBuf    []byte
+	writebuf          []byte
+	readbuf           []byte
+	bufr              *bufio.Reader
+	bufw              *bufio.Writer
+	commandtransid    float64
+	gotmsg            bool
+	gotcommand        bool
+	metaversion       int
+	eventtype         uint16
+	ackSize           uint32
+	pushIp            string
+	network           string
+	Host              string
+	OnStatusStage     int
+}
+
+const (
+	stageClientConnect = iota
+	stageHandshakeStart
+	stageHandshakeDone
+	stageCommandDone
+	stageSessionDone
+)
+const (
+	preparePlayReading = iota + 1
+	preparePullWriting
+)
+
+const chunkHeaderLength = 12 + 4
+
+type chunkStream struct {
+	timenow     uint32
+	timedelta   uint32
+	hastimeext  bool
+	msgsid      uint32
+	msgtypeid   uint8
+	msgdatalen  uint32
+	msgdataleft uint32
+	msghdrtype  uint8
+	msgdata     []byte
+}
+
 
 func init() {
 	for i := 0; i < HashMapFactors; i++ {
@@ -100,100 +199,6 @@ func RtmpSessionDel(session *Session) {
 	PublishingSessionMap[i].Unlock()
 }
 
-
-
-type Server struct {
-	RtmpAddr      []string
-	HttpAddr      []string
-	done          chan bool
-	HandlePublish func(*Session)
-	HandlePlay    func(*Session)
-	HandleConn    func(*Session)
-}
-
-type Session struct {
-	sync.RWMutex
-	lock                   *sync.RWMutex
-	context                context.Context
-	CursorList             *AvQue.CursorList
-	GopCache               *AvQue.AvRingbuffer
-	pubSession 	       *Session
-	UserCnf                *config.App
-	Vhost                  string
-	RecordMuxerCnf         []*RecordMuxerInfo//hls,flv,other
-	maxgopcount            int
-	audioAfterLastVideoCnt int
-	CurQue                 *AvQue.AvRingbuffer
-	vCodec                 *h264parser.CodecData
-	vCodecData             []byte
-	aCodec                 *aacparser.CodecData
-	aCodecData             []byte
-	RegisterChannel        chan *Session
-	PacketAck              chan bool
-	curgopcount            int
-	App                    string
-	StreamId               string
-	StreamAnchor           string
-	cancel                 context.CancelFunc
-	URL                    *url.URL
-	TcUrl                  string
-	isClosed               bool
-	isServer               bool
-	isPlay                 bool
-	isPublish              bool
-	connected              bool
-	ackn                   uint32
-	readAckSize            uint32
-	avmsgsid               uint32
-	publishing             bool
-	playing                bool
-	isRelay                bool
-	//状态机
-	stage                  int
-	//client
-	netconn                net.Conn
-	readcsmap         map[uint32]*chunkStream
-	writeMaxChunkSize int
-	readMaxChunkSize  int
-	chunkHeaderBuf    []byte
-	writebuf          []byte
-	readbuf           []byte
-	bufr              *bufio.Reader
-	bufw              *bufio.Writer
-	commandtransid    float64
-	gotmsg            bool
-	gotcommand        bool
-	metaversion       int
-	eventtype         uint16
-	ackSize           uint32
-
-}
-
-const (
-	stageHandshakeStart = iota
-	stageHandshakeDone
-	stageCommandDone
-	stageSessionDone
-)
-const (
-	prepareReading = iota + 1
-	prepareWriting
-)
-
-const chunkHeaderLength = 12 + 4
-
-type chunkStream struct {
-	timenow     uint32
-	timedelta   uint32
-	hastimeext  bool
-	msgsid      uint32
-	msgtypeid   uint8
-	msgdatalen  uint32
-	msgdataleft uint32
-	msghdrtype  uint8
-	msgdata     []byte
-}
-
 func NewSesion(netconn net.Conn) *Session {
 	session := &Session{}
 	session.netconn = netconn
@@ -202,7 +207,7 @@ func NewSesion(netconn net.Conn) *Session {
 	session.writeMaxChunkSize = 128
 	session.CursorList = AvQue.NewPublist()
 	session.maxgopcount = 2
-
+	session.rtmpCmdHandler = newRtmpCmdHandler()
 	session.lock = &sync.RWMutex{}
 
 	//just for regist cursor session
@@ -618,15 +623,55 @@ func (self *Session)CodecDataToTag(stream av.CodecData) (tag *flvio.Tag, ok bool
 	return
 }
 
-func (self *Session) ClientSessionPrepare(stage, flags int) (err error) {
+func DialTimeout(network,host string ,timeout time.Duration) (netconn net.Conn,err error) {
+	dailer := net.Dialer{Timeout: timeout}
+
+	if netconn, err = dailer.Dial(network, host); err != nil {
+		return
+	}
+
+	return
+}
+
+func Dial(network,host string) (netconn net.Conn,err error) {
+	return DialTimeout(network,host,5*time.Second)
+}
+
+//rtmp://tmp.socket0/live/streamid
+//rtmp://test.uplive.com/live/streamid
+//rtmp://127.0.0.1/live?vhost=test.uplive.com/123
+
+func ClientSessionPrepare(self *Session,stage, flags int) (err error) {
+
+	defer func() {
+		if err := recover(); err != nil  {
+			const size = 64 << 10
+			buf := make([]byte, size)
+			buf = buf[:runtime.Stack(buf, false)]
+			self.rtmpCloseSessionHanler()
+			fmt.Println("rtmp: panic ClientSessionPrepare %v: %v\n%s", self.netconn.RemoteAddr(), err, buf)
+		}
+	}()
+
 	for self.stage < stage {
 		switch self.stage {
+		case stageClientConnect:
+			var netConn net.Conn
+			if netConn,err=Dial(self.network,self.Host); err != nil{
+				return
+			}
+			session:=NewSesion(netConn)
+			session.network = self.network
+			session.Host = self.Host
+			session.netconn = netConn
+			session.pubSession = self.pubSession
+			self = session
 		case stageHandshakeStart:
 			if err = self.handshakeClient(); err != nil {
 				return
 			}
 		case stageHandshakeDone:
-			if flags == prepareReading {
+			if flags == preparePlayReading {
 				if err = self.connectPlay(); err != nil {
 					return
 				}
@@ -635,6 +680,7 @@ func (self *Session) ClientSessionPrepare(stage, flags int) (err error) {
 					return
 				}
 			}
+		case stageSessionDone:
 		}
 
 	}
