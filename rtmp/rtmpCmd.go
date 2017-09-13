@@ -322,7 +322,8 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 	if noSelf := session.RtmpCheckStreamIsSelf();noSelf != true{
 		//push stream to the true server
 		//rtmp://127.0.0.1/live?vhost=test.uplive.com/123
-		url:= "rtmp://" + session.pushIp + "?" + "vhost=" + session.Vhost + "/" + session.StreamId +"?hashpull=1"
+		url:= "rtmp://" + session.pushIp + "/" + session.App +"?" + "vhost=" + session.Vhost + "/" + session.StreamId +"?hashpull=1"
+
 		rtmpPush(session,"tcp",session.pushIp,url)
 	}
 	session.stage = stageCommandDone
