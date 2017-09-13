@@ -417,7 +417,7 @@ func CheckOnStatus(session *Session,b[]byte)(n int ,err error){
 	n += size
 
 	session.commandtransid, _ = transid.(float64)
-	commandobj, _ := obj.(amf.AMFMap)
+
 	commandparams := []interface{}{}
 
 	for n < len(b) {
@@ -432,10 +432,7 @@ func CheckOnStatus(session *Session,b[]byte)(n int ,err error){
 		return
 	}
 
-	if commandobj == nil {
-		err = fmt.Errorf("rtmp: connect result command params invalid")
-		return
-	}
+
 	objs, _ := commandparams[0].(amf.AMFMap)
 	if objs == nil {
 		err = fmt.Errorf("params[0] not object")

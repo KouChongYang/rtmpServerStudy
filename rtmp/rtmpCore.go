@@ -649,7 +649,7 @@ func ClientSessionPrepare(self *Session,stage, flags int) (err error) {
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
 			self.rtmpCloseSessionHanler()
-			fmt.Println("rtmp: panic ClientSessionPrepare %v: %v\n%s", self.netconn.RemoteAddr(), err, buf)
+			fmt.Println("rtmp: panic ClientSessionPrepare %v: %v\n%s", self.netconn.RemoteAddr(), err, string(buf))
 		}
 	}()
 
@@ -860,7 +860,7 @@ func getTcUrl(u *url.URL) string {
 	app, _ := SplitPath(u)
 	nu := *u
 	nu.Path = "/" + app
-	return nu.String()
+	return u.Scheme +"://" + u.Host + nu.Path
 }
 
 func createURL(tcurl, app, play string) (u *url.URL) {

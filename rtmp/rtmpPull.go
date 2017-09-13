@@ -4,6 +4,7 @@ import (
 	"net"
 	"fmt"
 	"time"
+	"net/url"
 )
 
 const (
@@ -13,7 +14,7 @@ const (
 )
 //hash pull rtmp trunk to right server
 
-func rtmpPush(srcsession *Session,network, host ,url string)(err error){
+func rtmpPush(srcsession *Session,network, host ,url1 string)(err error){
 	var netConn net.Conn
 	if netConn,err=Dial(network,host); err != nil{
 		return
@@ -23,11 +24,17 @@ func rtmpPush(srcsession *Session,network, host ,url string)(err error){
 	session.Host = host
 	session.pubSession = srcsession
 	session.stage = stageHandshakeStart
+	session.URL ,err = url.Parse(url1)
+	if err != nil {
+		return
+	}
+
 	go ClientSessionPrepare(session,stageSessionDone,preparePullWriting)
 	return
 }
 
 func (self *Session) connectPublish() (err error) {
+
 	connectpath, publishpath := SplitPath(self.URL)
 
 	//write connect
@@ -53,6 +60,7 @@ func (self *Session) connectPublish() (err error) {
 	if Debug {
 		fmt.Printf("rtmp: > publish('%s')\n", publishpath)
 	}
+	self.rtmpCmdHandler["_result"] =CheckCreateStreamResult
 	//check create stream
 	CreatStreamOk:=false
 	for i:= 0;i<15;i++{
