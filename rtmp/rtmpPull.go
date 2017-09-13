@@ -22,7 +22,8 @@ func rtmpPush(srcsession *Session,network, host ,url string)(err error){
 	session.network = network
 	session.Host = host
 	session.pubSession = srcsession
-	go ClientSessionPrepare(session,stageHandshakeStart,preparePullWriting)
+	session.stage = stageHandshakeStart
+	go ClientSessionPrepare(session,stageSessionDone,preparePullWriting)
 	return
 }
 

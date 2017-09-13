@@ -209,7 +209,7 @@ func NewSesion(netconn net.Conn) *Session {
 	session.maxgopcount = 2
 	session.rtmpCmdHandler = newRtmpCmdHandler()
 	session.lock = &sync.RWMutex{}
-
+	session.stage = stageHandshakeStart
 	//just for regist cursor session
 	//session.RegisterChannel = make(chan *Session, MAXREGISTERCHANNEL)
 	//true register ok ,false register false
@@ -652,7 +652,7 @@ func ClientSessionPrepare(self *Session,stage, flags int) (err error) {
 			fmt.Println("rtmp: panic ClientSessionPrepare %v: %v\n%s", self.netconn.RemoteAddr(), err, buf)
 		}
 	}()
-	
+
 	for self.stage < stage {
 		switch self.stage {
 		case stageClientConnect:
