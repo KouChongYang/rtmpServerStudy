@@ -25,7 +25,6 @@ import (
 	"runtime"
 	"os"
 	"rtmpServerStudy/config"
-	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 /* RTMP message types */
