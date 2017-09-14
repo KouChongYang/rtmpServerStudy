@@ -672,7 +672,7 @@ func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage, f
 					time.Sleep(1*time.Second)
 					continue
 				}
-				self := NewSesion(netConn)
+				self = NewSesion(netConn)
 				self.network = network
 				self.netconn = netConn
 				self.URL = url1
