@@ -25,6 +25,7 @@ import (
 	"runtime"
 	"os"
 	"rtmpServerStudy/config"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 /* RTMP message types */
@@ -641,48 +642,62 @@ func Dial(network,host string) (netconn net.Conn,err error) {
 //rtmp://test.uplive.com/live/streamid
 //rtmp://127.0.0.1/live?vhost=test.uplive.com/123
 
-func ClientSessionPrepare(self *Session,stage, flags int) (err error) {
+func (self *Session)rtmpCheckErr(err error) bool{
+	return true
+}
 
+func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage, flags int) (err error) {
+
+	var self *Session
+	var url1 *url.URL
+	url1 ,err = url.Parse(desUrl)
+	proxyStage := stageClientConnect
 	defer func() {
 		if err := recover(); err != nil  {
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			self.rtmpCloseSessionHanler()
+			if self != nil {
+				self.rtmpCloseSessionHanler()
+			}
 			fmt.Println("rtmp: panic ClientSessionPrepare %v: %v\n%s", self.netconn.RemoteAddr(), err, string(buf))
 		}
 	}()
-
-	for self.stage < stage {
-		switch self.stage {
-		case stageClientConnect:
-			var netConn net.Conn
-			if netConn,err=Dial(self.network,self.Host); err != nil{
-				return
-			}
-			session:=NewSesion(netConn)
-			session.network = self.network
-			session.Host = self.Host
-			session.netconn = netConn
-			session.pubSession = self.pubSession
-			self = session
-		case stageHandshakeStart:
-			if err = self.handshakeClient(); err != nil {
-				return
-			}
-		case stageHandshakeDone:
-			if flags == preparePlayReading {
-				if err = self.connectPlay(); err != nil {
-					return
+	isBreak := true
+	for srcSession.isClosed != true{
+		for (proxyStage < stage ) && srcSession.isClosed != true && isBreak{
+			switch proxyStage {
+			case stageClientConnect:
+				var netConn net.Conn
+				if netConn, err = Dial(network,host); err != nil {
+					time.Sleep(1*time.Second)
+					continue
 				}
-			} else {
+				self := NewSesion(netConn)
+				self.network = network
+				self.netconn = netConn
+				self.URL = url1
+				self.pubSession = srcSession
+				proxyStage++
+			case stageHandshakeStart:
+				if err = self.handshakeClient(); err != nil {
+					proxyStage = stageClientConnect
+					continue
+				}
+				proxyStage++
+			case stageHandshakeDone:
 				if err = self.connectPublish(); err != nil {
-					return
+					if self.rtmpCheckErr(err) != true{
+						return err
+					}
+					proxyStage = stageClientConnect
+					continue
 				}
+			case stageSessionDone:
+				isBreak = false
 			}
-		case stageSessionDone:
-		}
 
+		}
 	}
 	return
 }

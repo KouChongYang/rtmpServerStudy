@@ -1,10 +1,8 @@
 package rtmp
 
 import (
-	"net"
 	"fmt"
 	"time"
-	"net/url"
 )
 
 const (
@@ -13,26 +11,6 @@ const (
 	PlayStage
 )
 //hash pull rtmp trunk to right server
-
-func rtmpPush(srcsession *Session,network, host ,url1 string)(err error){
-	var netConn net.Conn
-	if netConn,err=Dial(network,host); err != nil{
-		return
-	}
-	session:=NewSesion(netConn)
-	session.network = network
-	session.Host = host
-	session.pubSession = srcsession
-	session.stage = stageHandshakeStart
-	session.URL ,err = url.Parse(url1)
-	if err != nil {
-		return
-	}
-
-	go ClientSessionPrepare(session,stageSessionDone,preparePullWriting)
-	return
-}
-
 func (self *Session) connectPublish() (err error) {
 
 	connectpath, publishpath := SplitPath(self.URL)
@@ -89,7 +67,6 @@ func (self *Session) connectPublish() (err error) {
 		return
 	}
 
-	self.rtmpCmdHandler["onStatus"] =CheckOnStatus
 	publishOk:=false
 	for i:= 0;i<15;i++{
 		if err = self.readChunk(RtmpMsgHandles); err != nil {

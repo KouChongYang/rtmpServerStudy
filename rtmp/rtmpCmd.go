@@ -322,9 +322,8 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 	if noSelf := session.RtmpCheckStreamIsSelf();noSelf != true{
 		//push stream to the true server
 		//rtmp://127.0.0.1/live?vhost=test.uplive.com/123
-		url:= "rtmp://" + session.pushIp + "/" + session.App +"?" + "vhost=" + session.Vhost + "/" + session.StreamId +"?hashpull=1"
-
-		rtmpPush(session,"tcp",session.pushIp,url)
+		url1:= "rtmp://" + session.pushIp + "/" + session.App +"?" + "vhost=" + session.Vhost + "/" + session.StreamId +"?hashpull=1"
+		go rtmpClientPullProxy(session,"tcp",url1, session.pushIp, stageSessionDone,preparePullWriting)
 	}
 	session.stage = stageCommandDone
 	return
@@ -564,6 +563,7 @@ func newRtmpCmdHandler() (RtmpCmdHandles RtmpCmdHandle){
 	RtmpCmdHandles["deleteStream"] = RtmpDeleteStreamCmdHandler
 	RtmpCmdHandles["publish"] = RtmpPublishCmdHandler
 	RtmpCmdHandles["play"] = RtmpPlayCmdHandler
+	RtmpCmdHandles["onStatus"] =CheckOnStatus
 	return
 }
 
