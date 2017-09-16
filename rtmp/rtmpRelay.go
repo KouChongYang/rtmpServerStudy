@@ -12,7 +12,7 @@ import (
 	"rtmpServerStudy/AvQue"
 )
 
-func rtmpClientRelayProxy(network,host,desUrl string,stage int) (err error) {
+func rtmpClientRelayProxy(network,host,vhost,App,streamId,desUrl string,stage int) (err error) {
 
 	var self *Session
 	var url1 *url.URL
@@ -43,6 +43,9 @@ func rtmpClientRelayProxy(network,host,desUrl string,stage int) (err error) {
 				self.network = network
 				self.netconn = netConn
 				self.URL = url1
+				self.Vhost = vhost
+				self.StreamId = streamId
+				self.App = App
 				proxyStage++
 			case stageHandshakeStart:
 				if err = self.handshakeClient(); err != nil {
@@ -72,7 +75,27 @@ func rtmpClientRelayProxy(network,host,desUrl string,stage int) (err error) {
 func (self *Session) connectPlay() (err error) {
 	//write connect
 	connectpath, playpath := SplitPath(self.URL)
-
+	fmt.Println(playpath)
+	fmt.Println(connectpath)
+	fmt.Println(self.URL.RawQuery)
+	fmt.Println(self.URL.Path)
+	host :=self.URL.Host
+	m, _ := url.ParseQuery(self.URL.RawQuery)
+	if len(m["vhost"])>0{
+		host = m["vhost"][0]
+	}
+	self.Vhost = host
+	var u *url.URL
+	if u, err = url.Parse(connectpath);err != nil {
+		return
+	}
+	fmt.Println(u.Path)
+	self.App = u.Path
+	if u, err = url.Parse(playpath);err != nil {
+		return
+	}
+	fmt.Println(u.Path)
+	self.StreamId = u.Path
 	//write connect
 	self.OnStatusStage = ConnectStage
 	if err=self.writeConnect(connectpath);err != nil{
@@ -114,7 +137,7 @@ func (self *Session) connectPlay() (err error) {
 		err = fmt.Errorf("NetConnection.Connect.err")
 		return
 	}
-	self.OnStatusStage++
+	self.OnStatusStage = PlayStage
 	self.rtmpCmdHandler["_result"] =CheckCreateStreamResult
 
 	if err = self.writeCommandMsg(8, self.avmsgsid, "play", 0, nil, playpath); err != nil {
@@ -142,6 +165,7 @@ func (self *Session) connectPlay() (err error) {
 		err = fmt.Errorf("NetConnection.Play.err")
 		return
 	}
+
 	self.context, self.cancel = context.WithCancel(context.Background())
 	self.GopCache = AvQue.RingBufferCreate(8)
 	ok := RtmpSessionPush(self)

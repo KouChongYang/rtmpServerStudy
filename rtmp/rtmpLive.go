@@ -211,7 +211,7 @@ func (self *Session) ServerSession(stage int) (err error) {
 						if playTimes == 0 {
 							url1:= "rtmp://" + self.pushIp + "/" + self.App +"?" + "vhost=" + self.Vhost + "/" + self.StreamId +"?relay=1"
 							fmt.Println(url1)
-							go rtmpClientRelayProxy("tcp", self.pushIp, url1,stageSessionDone)
+							go rtmpClientRelayProxy("tcp", self.pushIp,self.Vhost,self.App,self.StreamId,url1,stageSessionDone)
 						}
 						time.Sleep(1000*time.Millisecond)
 						playTimes++
