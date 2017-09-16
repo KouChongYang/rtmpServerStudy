@@ -79,23 +79,7 @@ func (self *Session) connectPlay() (err error) {
 	fmt.Println(connectpath)
 	fmt.Println(self.URL.RawQuery)
 	fmt.Println(self.URL.Path)
-	host :=self.URL.Host
-	m, _ := url.ParseQuery(self.URL.RawQuery)
-	if len(m["vhost"])>0{
-		host = m["vhost"][0]
-	}
-	self.Vhost = host
-	var u *url.URL
-	if u, err = url.Parse(connectpath);err != nil {
-		return
-	}
-	fmt.Println(u.Path)
-	self.App = u.Path
-	if u, err = url.Parse(playpath);err != nil {
-		return
-	}
-	fmt.Println(u.Path)
-	self.StreamId = u.Path
+	fmt.Println(self.Vhost,self.App,self.StreamId)
 	//write connect
 	self.OnStatusStage = ConnectStage
 	if err=self.writeConnect(connectpath);err != nil{
