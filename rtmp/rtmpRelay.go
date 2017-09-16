@@ -149,7 +149,7 @@ func (self *Session) connectPlay() (err error) {
 		err = fmt.Errorf("NetConnection.Play.err")
 		return
 	}
-
+	self.StreamAnchor = self.StreamId + ":" + Gconfig.UserConf.PublishDomain[self.Vhost].UniqueName + ":" + self.App
 	self.context, self.cancel = context.WithCancel(context.Background())
 	self.GopCache = AvQue.RingBufferCreate(8)
 	ok := RtmpSessionPush(self)
