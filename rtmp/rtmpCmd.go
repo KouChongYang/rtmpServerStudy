@@ -323,7 +323,7 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 		//push stream to the true server
 		//rtmp://127.0.0.1/live?vhost=test.uplive.com/123
 		url1:= "rtmp://" + session.pushIp + "/" + session.App +"?" + "vhost=" + session.Vhost + "/" + session.StreamId +"?hashpull=1"
-		go rtmpClientPullProxy(session,"tcp", session.pushIp,url1,stageSessionDone,preparePullWriting)
+		go rtmpClientPullProxy(session,"tcp", session.pushIp,url1,stageSessionDone)
 		//rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage, flags int)
 	}
 	session.stage = stageCommandDone

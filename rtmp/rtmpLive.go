@@ -151,7 +151,7 @@ func (self *Session) RtmpSendAvPackets() (err error) {
 }
 
 func (self *Session) ServerSession(stage int) (err error) {
-
+	playTimes:=0
 	for self.stage <= stage {
 		switch self.stage {
 		//first handshake
@@ -206,8 +206,22 @@ func (self *Session) ServerSession(stage int) (err error) {
 					self.isClosed = true
 					self.stage = stageSessionDone
 				} else {
-					//relay play
-					self.stage++
+
+					if noSelf := self.RtmpCheckStreamIsSelf();noSelf != true {
+						if playTimes == 0 {
+							url1:= "rtmp://" + self.pushIp + "/" + self.App +"?" + "vhost=" + self.Vhost + "/" + self.StreamId +"?relay=1"
+							fmt.Println(url1)
+							go rtmpClientRelayProxy("tcp", self.pushIp, url1,stageSessionDone)
+						}
+						time.Sleep(1000*time.Millisecond)
+						playTimes++
+						if playTimes == 10 {
+							self.stage++
+						}
+					}else{
+						self.stage++
+					}
+					continue
 				}
 			}
 		case stageSessionDone:

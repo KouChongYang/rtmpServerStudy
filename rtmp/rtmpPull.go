@@ -3,6 +3,9 @@ package rtmp
 import (
 	"fmt"
 	"time"
+	"net/url"
+	"runtime"
+	"net"
 )
 
 const (
@@ -10,6 +13,65 @@ const (
 	PublishStage
 	PlayStage
 )
+
+func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage int) (err error) {
+
+	var self *Session
+	var url1 *url.URL
+	url1 ,err = url.Parse(desUrl)
+	proxyStage := stageClientConnect
+	defer func() {
+		if self != nil {
+			self.rtmpCloseSessionHanler()
+		}
+		if err := recover(); err != nil  {
+			const size = 64 << 10
+			buf := make([]byte, size)
+			buf = buf[:runtime.Stack(buf, false)]
+			fmt.Println("rtmp: panic ClientSessionPrepare %v: %v\n%s", self.netconn.RemoteAddr(), err, string(buf))
+		}
+	}()
+	isBreak := true
+	for srcSession.isClosed != true{
+		for (proxyStage < stage ) && srcSession.isClosed != true && isBreak{
+			switch proxyStage {
+			case stageClientConnect:
+				var netConn net.Conn
+				if netConn, err = Dial(network,host); err != nil {
+					time.Sleep(1*time.Second)
+					continue
+				}
+				self = NewSesion(netConn)
+				self.network = network
+				self.netconn = netConn
+				self.URL = url1
+				self.pubSession = srcSession
+				proxyStage++
+			case stageHandshakeStart:
+				if err = self.handshakeClient(); err != nil {
+					proxyStage = stageClientConnect
+					time.Sleep(1*time.Second)
+					continue
+				}
+				proxyStage++
+			case stageHandshakeDone:
+				if err = self.connectPublish(); err != nil {
+					if self.rtmpCheckErr(err) != true{
+						return err
+					}
+					proxyStage = stageClientConnect
+					time.Sleep(1*time.Second)
+					continue
+				}
+			case stageSessionDone:
+				isBreak = false
+			}
+
+		}
+	}
+	return
+}
+
 //hash pull rtmp trunk to right server
 func (self *Session) connectPublish() (err error) {
 
@@ -17,6 +79,7 @@ func (self *Session) connectPublish() (err error) {
 
 	//write connect
 	self.OnStatusStage = ConnectStage
+	self.isPull = true
 	if err=self.writeConnect(connectpath);err != nil{
 		return err
 	}
@@ -93,6 +156,7 @@ func (self *Session) connectPublish() (err error) {
 		err = fmt.Errorf("EOF")
 		return
 	}
+
 	pubSession := self.pubSession
 	pubSession.RLock()
 	self.aCodec = pubSession.aCodec

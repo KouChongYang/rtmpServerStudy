@@ -6,33 +6,151 @@ import (
 	"time"
 	"fmt"
 	"rtmpServerStudy/amf"
+	"runtime"
+	//"github.com/aws/aws-sdk-go/aws/session"
+	"context"
+	"rtmpServerStudy/AvQue"
 )
 
-func ParseURL(uri string) (u *url.URL, err error) {
-	if u, err = url.Parse(uri); err != nil {
-		return
-	}
-	if _, _, serr := net.SplitHostPort(u.Host); serr != nil {
-		u.Host += ":1935"
+func rtmpClientRelayProxy(network,host,desUrl string,stage int) (err error) {
+
+	var self *Session
+	var url1 *url.URL
+	url1 ,err = url.Parse(desUrl)
+	proxyStage := stageClientConnect
+	defer func() {
+		if self != nil {
+			self.rtmpCloseSessionHanler()
+		}
+		if err := recover(); err != nil  {
+			const size = 64 << 10
+			buf := make([]byte, size)
+			buf = buf[:runtime.Stack(buf, false)]
+			fmt.Println("rtmp: panic ClientSessionPrepare %v: %v\n%s", self.netconn.RemoteAddr(), err, string(buf))
+		}
+	}()
+	isBreak := true
+	for isBreak {
+		for (proxyStage < stage ) && isBreak{
+			switch proxyStage {
+			case stageClientConnect:
+				var netConn net.Conn
+				if netConn, err = Dial(network,host); err != nil {
+					time.Sleep(1*time.Second)
+					continue
+				}
+				self = NewSesion(netConn)
+				self.network = network
+				self.netconn = netConn
+				self.URL = url1
+				proxyStage++
+			case stageHandshakeStart:
+				if err = self.handshakeClient(); err != nil {
+					proxyStage = stageClientConnect
+					time.Sleep(1*time.Second)
+					continue
+				}
+				proxyStage++
+			case stageHandshakeDone:
+				if err = self.connectPlay(); err != nil {
+					if self.rtmpCheckErr(err) != true{
+						return err
+					}
+					proxyStage = stageClientConnect
+					time.Sleep(1*time.Second)
+					continue
+				}
+			case stageSessionDone:
+				isBreak = false
+			}
+
+		}
 	}
 	return
 }
 
-func (session *Session) AutoRelay(uri string, timeout time.Duration, retryTime int) (err error) {
-	stage := stageHandshakeStart
-	for i := 0; i < retryTime; i++ {
-		switch stage {
-		case stageHandshakeStart:
-			if err = session.handshakeClient(); err != nil {
-				stage = stageHandshakeStart
+func (self *Session) connectPlay() (err error) {
+	//write connect
+	connectpath, playpath := SplitPath(self.URL)
+
+	//write connect
+	self.OnStatusStage = ConnectStage
+	if err=self.writeConnect(connectpath);err != nil{
+		return err
+	}
+	transid := 2
+	// > createStream()
+	if Debug {
+		fmt.Printf("rtmp: > createStream()\n")
+	}
+
+	//create stream
+	if err = self.writeCommandMsg(3, 0, "createStream", transid, nil); err != nil {
+		return
+	}
+	if err = self.flushWrite(); err != nil {
+		return
+	}
+	transid++
+
+	if Debug {
+		fmt.Printf("rtmp: > play('%s')\n", playpath)
+	}
+	self.rtmpCmdHandler["_result"] =CheckCreateStreamResult
+	//check create stream
+	CreatStreamOk:=false
+	for i:= 0;i<15;i++{
+		if err = self.readChunk(RtmpMsgHandles); err != nil {
+			if err.Error() == "NetConnection.CreateStream.Success" {
+				CreatStreamOk = true
+				err = nil
+				break
 			}
-		case stageHandshakeDone:
+			return err
 		}
 	}
-	return err
-}
 
-func (self *Session) connectPlay() (err error) {
+	if CreatStreamOk == false {
+		err = fmt.Errorf("NetConnection.Connect.err")
+		return
+	}
+	self.OnStatusStage++
+	self.rtmpCmdHandler["_result"] =CheckCreateStreamResult
+
+	if err = self.writeCommandMsg(8, self.avmsgsid, "play", 0, nil, playpath); err != nil {
+		return
+	}
+	if err = self.flushWrite(); err != nil {
+		return
+	}
+	transid++
+
+
+	playOk :=false
+	for i:= 0;i<15;i++{
+		if err = self.readChunk(RtmpMsgHandles); err != nil {
+			if err.Error() == "NetConnection.Onstatus.Success" {
+				playOk = true
+				err = nil
+				break
+			}
+			return err
+		}
+	}
+
+	if playOk != true{
+		err = fmt.Errorf("NetConnection.Play.err")
+		return
+	}
+	self.context, self.cancel = context.WithCancel(context.Background())
+	self.GopCache = AvQue.RingBufferCreate(8)
+	ok := RtmpSessionPush(self)
+	if !ok {
+		err = fmt.Errorf("Already publishing")
+	}
+	self.publishing = true
+	err = self.rtmpReadMsgCycle()
+
 	return err
 }
 
@@ -47,7 +165,7 @@ func (self *Session) writeConnect(path string) (err error) {
 	if err = self.writeCommandMsg(3, 0, "connect", 1,
 		amf.AMFMap{
 			"app":           path,
-			"flashVer":      "kingsoft paly",
+			"flashVer":      "Golang 1.8 rtmp server",
 			"tcUrl":         getTcUrl(self.URL),
 			"audioCodecs":   3575,
 			"videoCodecs":   252,

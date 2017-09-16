@@ -96,9 +96,12 @@ func RtmpMsgAckSizeHandler(session *Session, timestamp uint32,
 		err = fmt.Errorf("rtmp: short packet of SetChunkSize the len:%d", msgLen)
 		return
 	}
-	session.readAckSize = pio.U32BE(msgdata)
-	/*if err = session.writeWindowAckSize(0xffffffff); err != nil {
-		return
+	session.readAckSize= pio.U32BE(msgdata)
+	/*if session.readAckSize != readAckSize {
+		if err = session.writeWindowAckSize(0xffffffff); err != nil {
+			return
+		}
+		session.readAckSize = readAckSize
 	}*/
 	return
 }

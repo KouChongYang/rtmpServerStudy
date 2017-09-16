@@ -78,30 +78,30 @@ type Session struct {
 	maxgopcount            int
 	audioAfterLastVideoCnt int
 	CurQue                 *AvQue.AvRingbuffer
-	vCodec                 *h264parser.CodecData
-	vCodecData             []byte
-	aCodec                 *aacparser.CodecData
-	aCodecData             []byte
-	RegisterChannel        chan *Session
-	PacketAck              chan bool
-	curgopcount            int
-	App                    string
-	StreamId               string
-	StreamAnchor           string
-	cancel                 context.CancelFunc
-	URL                    *url.URL
-	TcUrl                  string
-	isClosed               bool
-	isServer               bool
-	isPlay                 bool
-	isPublish              bool
-	connected              bool
-	ackn                   uint32
-	readAckSize            uint32
-	avmsgsid               uint32
-	publishing             bool
-	playing                bool
-	isRelay                bool
+	vCodec            *h264parser.CodecData
+	vCodecData        []byte
+	aCodec            *aacparser.CodecData
+	aCodecData        []byte
+	RegisterChannel   chan *Session
+	PacketAck         chan bool
+	curgopcount       int
+	App               string
+	StreamId          string
+	StreamAnchor      string
+	cancel            context.CancelFunc
+	URL               *url.URL
+	TcUrl             string
+	isClosed          bool
+	isServer          bool
+	isPlay            bool
+	isPull            bool
+	connected         bool
+	ackn              uint32
+	readAckSize       uint32
+	avmsgsid          uint32
+	publishing        bool
+	playing           bool
+	isRelay           bool
 	//状态机
 	stage             int
 	//client
@@ -643,62 +643,6 @@ func Dial(network,host string) (netconn net.Conn,err error) {
 
 func (self *Session)rtmpCheckErr(err error) bool{
 	return true
-}
-
-func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage, flags int) (err error) {
-
-	var self *Session
-	var url1 *url.URL
-	url1 ,err = url.Parse(desUrl)
-	proxyStage := stageClientConnect
-	defer func() {
-		if err := recover(); err != nil  {
-			const size = 64 << 10
-			buf := make([]byte, size)
-			buf = buf[:runtime.Stack(buf, false)]
-			if self != nil {
-				self.rtmpCloseSessionHanler()
-			}
-			fmt.Println("rtmp: panic ClientSessionPrepare %v: %v\n%s", self.netconn.RemoteAddr(), err, string(buf))
-		}
-	}()
-	isBreak := true
-	for srcSession.isClosed != true{
-		for (proxyStage < stage ) && srcSession.isClosed != true && isBreak{
-			switch proxyStage {
-			case stageClientConnect:
-				var netConn net.Conn
-				if netConn, err = Dial(network,host); err != nil {
-					time.Sleep(1*time.Second)
-					continue
-				}
-				self = NewSesion(netConn)
-				self.network = network
-				self.netconn = netConn
-				self.URL = url1
-				self.pubSession = srcSession
-				proxyStage++
-			case stageHandshakeStart:
-				if err = self.handshakeClient(); err != nil {
-					proxyStage = stageClientConnect
-					continue
-				}
-				proxyStage++
-			case stageHandshakeDone:
-				if err = self.connectPublish(); err != nil {
-					if self.rtmpCheckErr(err) != true{
-						return err
-					}
-					proxyStage = stageClientConnect
-					continue
-				}
-			case stageSessionDone:
-				isBreak = false
-			}
-
-		}
-	}
-	return
 }
 
 func (self *Server) ServerHandle(session *Session) (err error) {

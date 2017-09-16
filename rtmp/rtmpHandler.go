@@ -78,6 +78,9 @@ func (self *Session) writeBasicConf() (err error) {
 	if err = self.writeSetChunkSize(self.writeMaxChunkSize); err != nil {
 		return
 	}
+	if self.isPull == true{
+		return
+	}
 	// > WindowAckSize
 	if err = self.writeWindowAckSize(5000000); err != nil {
 		return
