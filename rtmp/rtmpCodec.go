@@ -97,7 +97,6 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 					case cursorSession.PacketAck <- true:
 					default:
 					}
-					cursorSession.needUpPkt = false
 				}else{
 					cursorSession.needUpPkt = true
 				}
@@ -199,15 +198,20 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 		case *Session:
 			cursorSession := value1
 			if !cursorSession.isClosed {
-				//jumst put may be the ring is full ,when the ring is full ,drop the pkt
-				if cursorSession.CurQue.RingBufferPut(pkt) != 0 {
-					//fmt.Println("the cursorsession ring is full so drop the messg")
+				if cursorSession.needUpPkt == true {
+					//jumst put may be the ring is full ,when the ring is full ,drop the pkt
+					if cursorSession.CurQue.RingBufferPut(pkt) != 0 {
+						//fmt.Println("the cursorsession ring is full so drop the messg")
+					}
+					//just ack
+					select {
+					case cursorSession.PacketAck <- true:
+					default:
+					}
+				}else{
+					cursorSession.needUpPkt = true
 				}
-				//just ack
-				select{
-				case cursorSession.PacketAck <- true:
-				default:
-				}
+
 				e = e.Next()
 			} else {
 				next = e.Next()
