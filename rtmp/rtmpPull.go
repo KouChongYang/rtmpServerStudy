@@ -159,6 +159,7 @@ func (self *Session) connectPublish() (err error) {
 
 	pubSession := self.pubSession
 	pubSession.RLock()
+	self.updatedGop = true
 	self.aCodec = pubSession.aCodec
 	self.vCodecData = pubSession.vCodecData
 	self.aCodecData = pubSession.aCodecData

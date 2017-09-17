@@ -72,6 +72,14 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 	var pkt *av.Packet
 	pkt, _ = TagToPacket(tag, int32(timestamp), msgdata)
 	//this is a long time lock may be something err must
+	//every chunk check the register
+
+	session.Lock()
+	//session.updatedGop == true
+	session.rtmpUpdateGopCache(pkt)
+	session.ReadRegister()
+	//session.updatedGop == true
+	session.Unlock()
 
 	var next *list.Element
 	CursorList := session.CursorList.GetList()
@@ -81,12 +89,17 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 		case *Session:
 			cursorSession := value1
 			if !cursorSession.isClosed {
-				if cursorSession.CurQue.RingBufferPut(pkt) != 0 {
-					//fmt.Println("the cursorsession ring is full so drop the messg")
-				}
-				select{
-				case cursorSession.PacketAck <- true:
-				default:
+				if cursorSession.needUpPkt == true {
+					if cursorSession.CurQue.RingBufferPut(pkt) != 0 {
+						//fmt.Println("the cursorsession ring is full so drop the messg")
+					}
+					select {
+					case cursorSession.PacketAck <- true:
+					default:
+					}
+					cursorSession.needUpPkt = false
+				}else{
+					cursorSession.needUpPkt = true
 				}
 				e = e.Next()
 			} else {
@@ -97,7 +110,6 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 
 		}
 	}
-	session.rtmpUpdateGopCache(pkt)
 	return
 }
 
@@ -111,6 +123,9 @@ func (self *Session)ReadRegister(){
 		select {
 		case registerSession, ok := <-self.RegisterChannel:
 			if ok {
+				if registerSession.updatedGop == true{
+					registerSession.needUpPkt = true
+				}
 				CursorList.PushBack(registerSession)
 			} else {
 				//some log
@@ -170,6 +185,13 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 	if session.audioAfterLastVideoCnt > audioAfterLastVideoCnt {
 		pkt.GopIsKeyFrame = true
 	}
+	session.Lock()
+	//session.updatedGop == true
+	session.rtmpUpdateGopCache(pkt)
+	session.ReadRegister()
+	//session.updatedGop == true
+	session.Unlock()
+
 	var next *list.Element
 	CursorList := session.CursorList.GetList()
 	for e := CursorList.Front(); e != nil; {
@@ -194,8 +216,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 			}
 		}
 	}
-	session.rtmpUpdateGopCache(pkt)
-	//session.CursorList.Unlock()
+
 	return
 }
 
@@ -215,7 +236,6 @@ func (session *Session) rtmpUpdateGopCache(pkt *av.Packet) (err error) {
 		return
 	}
 
-	session.Lock()
 	des:= session.GopCache.RingBufferABSPut(pkt)
 	if des == nil{
 		session.GopCache.RingBufferCleanGop()
@@ -247,7 +267,6 @@ func (session *Session) rtmpUpdateGopCache(pkt *av.Packet) (err error) {
 		session.audioAfterLastVideoCnt = 0
 	}
 	//println("shrink", self.curgopcount, self.maxgopcount, self.buf.Head, self.buf.Tail, "count", self.buf.Count, "size", self.buf.Size)
-	session.Unlock()
 	return
 }
 

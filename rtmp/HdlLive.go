@@ -149,6 +149,7 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 
 		//copy gop,codec here all new play Competitive the publishing lock
 		pubSession.RLock()
+		session.updatedGop = true
 		session.aCodec = pubSession.aCodec
 		session.vCodecData = pubSession.vCodecData
 		session.aCodecData = pubSession.aCodecData

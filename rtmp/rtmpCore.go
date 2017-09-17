@@ -124,6 +124,8 @@ type Session struct {
 	network           string
 	Host              string
 	OnStatusStage     int
+	updatedGop        bool
+	needUpPkt         bool
 }
 
 const (
@@ -506,8 +508,7 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 			fmt.Println("rtmp: chunk data")
 			//fmt.Print(hex.Dump(cs.msgdata))
 		}
-		//every chunk check the register
-		self.ReadRegister()
+
 		if hands[cs.msgtypeid] != nil {
 			if err = hands[cs.msgtypeid](self, cs.timenow, cs.msgsid, cs.msgtypeid, cs.msgdata); err != nil {
 				return

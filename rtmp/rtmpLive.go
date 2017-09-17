@@ -183,6 +183,7 @@ func (self *Session) ServerSession(stage int) (err error) {
 					self.pubSession = pubSession
 					//copy gop,codec here all new play Competitive the publishing lock
 					pubSession.RLock()
+					self.updatedGop = true
 					self.aCodec = pubSession.aCodec
 					self.vCodecData = pubSession.vCodecData
 					self.aCodecData = pubSession.aCodecData
@@ -213,7 +214,8 @@ func (self *Session) ServerSession(stage int) (err error) {
 							fmt.Println(url1)
 							go rtmpClientRelayProxy("tcp", self.pushIp,self.Vhost,self.App,self.StreamId,url1,stageSessionDone)
 						}
-						time.Sleep(1000*time.Millisecond)
+						tmpTime:=time.Duration(playTimes*100)
+						time.Sleep(tmpTime*time.Millisecond)
 						playTimes++
 						if playTimes == 10 {
 							self.stage++
