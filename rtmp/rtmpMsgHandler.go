@@ -173,7 +173,7 @@ func (self *Session) handleCommandMsgAMF0(b []byte,RtmpCmdHandles RtmpCmdHandle)
 	var ok bool
 	var commandname string
 	if commandname, ok = name.(string); !ok {
-		err = fmt.Errorf("rtmp: CommandMsgAMF0 command is not string")
+		err = fmt.Errorf("%s","Rtmp.CommandMsgAMF0.Command.Is.Not.String")
 		return
 	}
 	n += size

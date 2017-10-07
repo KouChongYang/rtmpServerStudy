@@ -26,19 +26,25 @@ func rtmpClientRelayProxy(network,host,vhost,App,streamId,desUrl string,stage in
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			fmt.Println("rtmp: panic ClientSessionPrepare %v: %v\n%s", self.netconn.RemoteAddr(), err, string(buf))
+			fmt.Printf("rtmp: panic ClientSessionPrepare %v: %v\n%s", self.netconn.RemoteAddr(), err, string(buf))
 		}
 	}()
 	isBreak := true
+	connectErrTimes:=0
 	for isBreak {
 		for (proxyStage < stage ) && isBreak{
 			switch proxyStage {
 			case stageClientConnect:
 				var netConn net.Conn
 				if netConn, err = Dial(network,host); err != nil {
+					if connectErrTimes > 5{
+						return err
+					}
+					connectErrTimes++
 					time.Sleep(1*time.Second)
 					continue
 				}
+				connectErrTimes = 0
 				self = NewSesion(netConn)
 				self.network = network
 				self.netconn = netConn
@@ -49,16 +55,17 @@ func rtmpClientRelayProxy(network,host,vhost,App,streamId,desUrl string,stage in
 				proxyStage++
 			case stageHandshakeStart:
 				if err = self.handshakeClient(); err != nil {
-					proxyStage = stageClientConnect
-					time.Sleep(1*time.Second)
-					continue
+					fmt.Printf("handshakeErr:%s\n",err)
+					return err
 				}
 				proxyStage++
 			case stageHandshakeDone:
 				if err = self.connectPlay(); err != nil {
-					if self.rtmpCheckErr(err) != true{
-						return err
+					if err.Error() == "NetStream.Play.Bad" ||
+						err.Error() == "Stream.Already.Publishing"{
+						return
 					}
+					fmt.Println(err)
 					proxyStage = stageClientConnect
 					time.Sleep(1*time.Second)
 					continue
@@ -90,7 +97,6 @@ func (self *Session) connectPlay() (err error) {
 	if Debug {
 		fmt.Printf("rtmp: > createStream()\n")
 	}
-
 	//create stream
 	if err = self.writeCommandMsg(3, 0, "createStream", transid, nil); err != nil {
 		return
@@ -106,19 +112,18 @@ func (self *Session) connectPlay() (err error) {
 	self.rtmpCmdHandler["_result"] =CheckCreateStreamResult
 	//check create stream
 	CreatStreamOk:=false
-	for i:= 0;i<15;i++{
+	for i:= 0;i<5;i++{
 		if err = self.readChunk(RtmpMsgHandles); err != nil {
-			if err.Error() == "NetConnection.CreateStream.Success" {
-				CreatStreamOk = true
-				err = nil
-				break
-			}
 			return err
+		}
+		if self.resultCheckStage == StageCreateStreamResultChecked {
+			CreatStreamOk = true
+			break
 		}
 	}
 
 	if CreatStreamOk == false {
-		err = fmt.Errorf("NetConnection.Connect.err")
+		err = fmt.Errorf("NetConnection.Connect.Err")
 		return
 	}
 	self.OnStatusStage = PlayStage
@@ -131,22 +136,19 @@ func (self *Session) connectPlay() (err error) {
 		return
 	}
 	transid++
-
-
 	playOk :=false
-	for i:= 0;i<15;i++{
+	for i:= 0;i<5;i++{
 		if err = self.readChunk(RtmpMsgHandles); err != nil {
-			if err.Error() == "NetConnection.Onstatus.Success" {
-				playOk = true
-				err = nil
-				break
-			}
 			return err
+		}
+		if self.resultCheckStage == StageOnstatusChecked{
+			playOk = true
+			break
 		}
 	}
 
 	if playOk != true{
-		err = fmt.Errorf("NetConnection.Play.err")
+		err = fmt.Errorf("NetConnection.Play.Err")
 		return
 	}
 	self.StreamAnchor = self.StreamId + ":" + Gconfig.UserConf.PlayDomain[self.Vhost].UniqueName + ":" + self.App
@@ -155,11 +157,11 @@ func (self *Session) connectPlay() (err error) {
 	self.RegisterChannel = make(chan *Session, MAXREGISTERCHANNEL)
 	ok := RtmpSessionPush(self)
 	if !ok {
-		err = fmt.Errorf("Already publishing")
+		err = fmt.Errorf("Stream.Already.Publishing")
+		return
 	}
 	self.publishing = true
 	err = self.rtmpReadMsgCycle()
-
 	return err
 }
 
@@ -189,21 +191,20 @@ func (self *Session) writeConnect(path string) (err error) {
 	}
 
 	self.rtmpCmdHandler["_result"] =CheckConnectResult
-
 	connectOk:=false
-	for i:= 0;i<15;i++{
+
+	for i:= 0;i<5;i++{
 		if err = self.readChunk(RtmpMsgHandles); err != nil {
-			if err.Error() == "NetConnection.Connect.Success" {
-				connectOk = true
-				err = nil
-				break
-			}
 			return err
+		}
+		if self.resultCheckStage == StageConnectResultChecked{
+			connectOk = true
+			break
 		}
 	}
 
 	if connectOk == false {
-		err = fmt.Errorf("NetConnection.Connect.err")
+		err = fmt.Errorf("NetConnection.Connect.Err")
 		return
 	}
 	return

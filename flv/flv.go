@@ -31,7 +31,7 @@ func NewMetadataByStreams(streams []av.CodecData) (metadata amf.AMFMap, err erro
 				metadata["videocodecid"] = flvio.VIDEO_H264
 
 			default:
-				err = fmt.Errorf("flv: metadata: unsupported video codecType=%v", stream.Type())
+				err = fmt.Errorf("Flv.MetaData.Unsupported.Video.CodecType(%v)", stream.Type())
 				return
 			}
 			metadata["width"] = stream.Width()
@@ -48,7 +48,7 @@ func NewMetadataByStreams(streams []av.CodecData) (metadata amf.AMFMap, err erro
 				metadata["audiocodecid"] = flvio.SOUND_SPEEX
 
 			default:
-				err = fmt.Errorf("flv: metadata: unsupported audio codecType=%v", stream.Type())
+				err = fmt.Errorf("flv.MetaData.Unsupported.Audio.CodecType(%v)", stream.Type())
 				return
 			}
 			metadata["audiosamplerate"] = stream.SampleRate()
@@ -117,7 +117,7 @@ func CodecDataToTag(stream av.CodecData) (_tag *flvio.Tag, ok bool, err error) {
 		}
 		ok = true
 	default:
-		err = fmt.Errorf("flv: unspported codecType=%v", stream.Type())
+		err = fmt.Errorf("Flv.Unspported.CodecType(%v)", stream.Type())
 		return
 	}
 	return

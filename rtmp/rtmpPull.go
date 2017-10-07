@@ -28,19 +28,25 @@ func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage in
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			fmt.Println("rtmp: panic ClientSessionPrepare %v: %v\n%s", self.netconn.RemoteAddr(), err, string(buf))
+			fmt.Printf("rtmp: panic ClientSessionPrepare %v: %v\n%s", self.netconn.RemoteAddr(), err, string(buf))
 		}
 	}()
 	isBreak := true
+	connectErrTimes:=0
 	for srcSession.isClosed != true{
 		for (proxyStage < stage ) && srcSession.isClosed != true && isBreak{
 			switch proxyStage {
 			case stageClientConnect:
 				var netConn net.Conn
 				if netConn, err = Dial(network,host); err != nil {
+					if connectErrTimes > 3{
+						return err
+					}
+					connectErrTimes++
 					time.Sleep(1*time.Second)
 					continue
 				}
+				connectErrTimes = 0
 				self = NewSesion(netConn)
 				self.network = network
 				self.netconn = netConn
@@ -49,16 +55,18 @@ func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage in
 				proxyStage++
 			case stageHandshakeStart:
 				if err = self.handshakeClient(); err != nil {
-					proxyStage = stageClientConnect
-					time.Sleep(1*time.Second)
-					continue
+					fmt.Printf("handshakeerr:%s\n",err)
+					return err
 				}
 				proxyStage++
 			case stageHandshakeDone:
 				if err = self.connectPublish(); err != nil {
-					if self.rtmpCheckErr(err) != true{
+					if err.Error() == "NetStream.Publish.Bad"{
 						return err
+					}else{
+						fmt.Println(err)
 					}
+					self.rtmpCloseSessionHanler()
 					proxyStage = stageClientConnect
 					time.Sleep(1*time.Second)
 					continue
@@ -104,14 +112,13 @@ func (self *Session) connectPublish() (err error) {
 	self.rtmpCmdHandler["_result"] =CheckCreateStreamResult
 	//check create stream
 	CreatStreamOk:=false
-	for i:= 0;i<15;i++{
+	for i:= 0;i<5;i++{
 		if err = self.readChunk(RtmpMsgHandles); err != nil {
-			if err.Error() == "NetConnection.CreateStream.Success" {
-				CreatStreamOk = true
-				err = nil
-				break
-			}
 			return err
+		}
+		if self.resultCheckStage == StageCreateStreamResultChecked {
+			CreatStreamOk = true
+			break
 		}
 	}
 
@@ -131,21 +138,20 @@ func (self *Session) connectPublish() (err error) {
 	}
 
 	publishOk:=false
-	for i:= 0;i<15;i++{
+	for i:= 0;i<5;i++{
 		if err = self.readChunk(RtmpMsgHandles); err != nil {
-			if err.Error() == "NetConnection.Onstatus.Success" {
-				publishOk = true
-				err = nil
-				break
-			}
 			return err
 		}
+		if self.resultCheckStage == StageOnstatusChecked{
+			publishOk = true
+			break
+		}
 	}
-
 	if publishOk != true{
-		err = fmt.Errorf("NetConnection.Publish.err")
+		err = fmt.Errorf("NetStream.Publish.Bad")
 		return
 	}
+
 	if self.pubSession.isClosed != true {
 		select {
 		case self.pubSession.RegisterChannel <- self:

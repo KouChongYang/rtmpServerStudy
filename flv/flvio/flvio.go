@@ -175,7 +175,7 @@ func (self Tag) ChannelLayout() av.ChannelLayout {
 
 func (self *Tag) audioParseHeader(b []byte) (n int, err error) {
 	if len(b) < n+1 {
-		err = fmt.Errorf("audiodata: parse invalid")
+		err = fmt.Errorf("%s","Flvio.Audio.Data.Parse.Invalid")
 		return
 	}
 
@@ -189,7 +189,7 @@ func (self *Tag) audioParseHeader(b []byte) (n int, err error) {
 	switch self.SoundFormat {
 	case SOUND_AAC:
 		if len(b) < n+1 {
-			err = fmt.Errorf("audiodata: parse invalid")
+			err = fmt.Errorf("%s","Flvio.Audio.Data.Parse.Invalid")
 			return
 		}
 		self.AACPacketType = b[n]
@@ -219,7 +219,7 @@ func (self Tag) audioFillHeader(b []byte) (n int) {
 
 func (self *Tag) videoParseHeader(b []byte) (n int, err error) {
 	if len(b) < n+1 {
-		err = fmt.Errorf("videodata: parse invalid")
+		err = fmt.Errorf("%s","Flvio.Video.Data.Parse.Invalid")
 		return
 	}
 	flags := b[n]
@@ -229,7 +229,7 @@ func (self *Tag) videoParseHeader(b []byte) (n int, err error) {
 
 	if self.FrameType == FRAME_INTER || self.FrameType == FRAME_KEY {
 		if len(b) < n+4 {
-			err = fmt.Errorf("videodata: parse invalid")
+			err = fmt.Errorf("%s","Flvio.Video.Data.Parse.Invalid")
 			return
 		}
 		self.AVCPacketType = b[n]
@@ -297,7 +297,7 @@ func ParseTagHeader(b []byte) (tag Tag, ts int32, datalen int, err error) {
 		tag = Tag{Type: tagtype}
 
 	default:
-		err = fmt.Errorf("flvio: ReadTag tagtype=%d invalid", tagtype)
+		err = fmt.Errorf("Flvio.Read.Tag.TagType=%d.Invalid", tagtype)
 		return
 	}
 
@@ -409,7 +409,7 @@ func FillFileHeader(b []byte, flags uint8) (n int) {
 func ParseFileHeader(b []byte) (flags uint8, skip int, err error) {
 	flv := pio.U24BE(b[0:3])
 	if flv != 0x464c56 { // 'FLV'
-		err = fmt.Errorf("flvio: file header cc3 invalid")
+		err = fmt.Errorf("%s","Flvio.File.Header.FLV.Invalid")
 		return
 	}
 
@@ -417,7 +417,7 @@ func ParseFileHeader(b []byte) (flags uint8, skip int, err error) {
 
 	skip = int(pio.U32BE(b[5:9])) - 9 + 4
 	if skip < 0 {
-		err = fmt.Errorf("flvio: file header datasize invalid")
+		err = fmt.Errorf("%s","Flvio.File.Header.DataSize.Invalid")
 		return
 	}
 

@@ -169,7 +169,7 @@ func (self *Session) handshakeServer() (err error) {
 	}
 	//c0[0] is version
 	if C0[0] != 3 {
-		err = fmt.Errorf("rtmp: handshake version=%d invalid", C0[0])
+		err = fmt.Errorf("Rtmp.Handshake.Version=%d Invalid", C0[0])
 		return
 	}
 
@@ -192,7 +192,7 @@ func (self *Session) handshakeServer() (err error) {
 		var ok bool
 		var digest []byte
 		if ok, digest = hsParse1(C1, hsClientPartialKey, hsServerFullKey); !ok {
-			err = fmt.Errorf("rtmp: handshake server: C1 invalid")
+			err = fmt.Errorf("%s","Rtmp.Handshake.Server.C1.Invalid")
 			return
 		}
 

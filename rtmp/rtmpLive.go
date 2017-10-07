@@ -138,7 +138,7 @@ func (self *Session) RtmpSendAvPackets() (err error) {
 
 		if self.pubSession.isClosed == true && pkt == nil{
 			self.isClosed = true
-			err = fmt.Errorf("rtmp: pubSession is close and pkt is nill")
+			err = fmt.Errorf("%s","Rtmp.PubSession.Closed.And.pkts.Is.Nil")
 			return
 		}
 

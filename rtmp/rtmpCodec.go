@@ -33,10 +33,9 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 		var stream h264parser.CodecData
 		switch tag.AVCPacketType {
 		case flvio.AVC_SEQHDR:
-			fmt.Println("find avc seqhdr")
 
+			fmt.Println("find avc seqhdr")
 			if stream, err = h264parser.NewCodecDataFromAVCDecoderConfRecord(tag.Data); err != nil {
-				err = fmt.Errorf("flv: h264 seqhdr invalid")
 				return
 			}
 			session.Lock()
@@ -89,7 +88,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 		case *Session:
 			cursorSession := value1
 			if !cursorSession.isClosed {
-				if cursorSession.needUpPkt == true {
+				if cursorSession.needUpPkt == true  {
 					if cursorSession.CurQue.RingBufferPut(pkt) != 0 {
 						//fmt.Println("the cursorsession ring is full so drop the messg")
 					}
@@ -165,12 +164,10 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 		case flvio.AAC_SEQHDR:
 			fmt.Println("find acc seqhdr")
 			var stream aacparser.CodecData
-
 			if stream, err = aacparser.NewCodecDataFromMPEG4AudioConfigBytes(tag.Data); err != nil {
-				err = fmt.Errorf("flv: aac seqhdr invalid")
-				fmt.Println(err)
 				return
 			}
+
 			session.Lock()
 			session.aCodec = &stream
 			session.aCodecData = msgdata

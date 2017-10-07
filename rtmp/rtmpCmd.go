@@ -36,19 +36,19 @@ func (self *Session)RtmpcheckHost(host string,cmd string)(err error){
 		_,pubOk=Gconfig.UserConf.PublishDomain[host]
 		if (!PlayOk) && (!pubOk){
 			code ,level,desc = "NetStream.Connect.IllegalDomain","status","Illegal domain"
-			err = fmt.Errorf("NetStream.Connect.IllegalDomain")
+			err = fmt.Errorf("%s","NetStream.Connect.IllegalDomain")
 		}
 	case "publish":
 		_,pubOk:=Gconfig.UserConf.PublishDomain[host]
 		if (!pubOk){
 			code ,level,desc = "NetStream.Publish.IllegalDomain","status","Illegal publish domain"
-			err = fmt.Errorf("NetStream.Publish.IllegalDomain")
+			err = fmt.Errorf("%s","NetStream.Publish.IllegalDomain")
 		}
 	case "play":
 		_,pubOk:=Gconfig.UserConf.PlayDomain[host]
 		if (!pubOk){
 			code ,level,desc = "NetStream.Play.IllegalDomain","status","Illegal play domain"
-			err = fmt.Errorf("NetStream.Play.IllegalDomain")
+			err = fmt.Errorf("%s","NetStream.Play.IllegalDomain")
 		}
 	}
 	errBak := err
@@ -71,7 +71,7 @@ func (self *Session)RtmpChckeApp(host ,app string)(err error){
 	_,pubOk=Gconfig.UserConf.PublishDomain[host].App[app]
 	if (!PlayOk) && (!pubOk){
 		code ,level,desc = "NetStream.Connect.IllegalApplication","status","Illegal Application"
-		errbak := fmt.Errorf("NetStream.Connect.IllegalApplication")
+		errbak := fmt.Errorf("%s","NetStream.Connect.IllegalApplication")
 		if err = self.writeRtmpStatus(code, level, desc); err != nil {
 			return
 		}
@@ -111,19 +111,19 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 		commandparams = append(commandparams, obj)
 	}
 	if n < len(b) {
-		err = fmt.Errorf("rtmp: CommandMsgAMF0 left bytes=%d", len(b)-n)
+		err = fmt.Errorf("Rtmp.Connect.CommandMsgAMF0(left bytes=%d)", len(b)-n)
 		return
 	}
 
 	if commandobj == nil {
-		err = fmt.Errorf("rtmp: connect command params invalid")
+		err = fmt.Errorf("%s","Rtmp.Connect.Command.Params.Invalid")
 		return
 	}
 
 	var ok bool
 	var _app, _tcurl interface{}
 	if _app, ok = commandobj["app"]; !ok {
-		err = fmt.Errorf("rtmp: `connect` params missing `app`")
+		err = fmt.Errorf("%s","Rtmp.Connect.Params.Missing.App")
 		return
 	}
 
@@ -151,7 +151,7 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 			return
 		}
 		session.flushWrite()
-		err = fmt.Errorf("NetStream.Connect.IllegalDomain")
+		err = fmt.Errorf("%s","Rtmp.NetStream.Connect.IllegalDomain")
 		return
 	}else{
 		host =u.Host
@@ -219,7 +219,7 @@ func RtmpCloseStreamCmdHandler(sesion *Session, b []byte) (n int, err error) {
 }
 
 func RtmpDeleteStreamCmdHandler(sesion *Session, b []byte) (n int, err error) {
-	err = fmt.Errorf("rtmp: delateStream")
+	err = fmt.Errorf("%s","Rtmp.Delate.Stream")
 	return
 }
 
@@ -264,12 +264,12 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 		commandparams = append(commandparams, obj)
 	}
 	if n < len(b) {
-		err = fmt.Errorf("rtmp: CommandMsgAMF0 left bytes=%d", len(b)-n)
+		err = fmt.Errorf("Rtmp.Publish.CommandMsgAMF0.Left(bytes=%d)", len(b)-n)
 		return
 	}
 
 	if len(commandparams) < 1 {
-		err = fmt.Errorf("rtmp: publish params invalid")
+		err = fmt.Errorf("%s","Rtmp.Publish.CommandMsg.Params.Invalid")
 		return
 	}
 	publishpath, _ := commandparams[0].(string)
@@ -359,18 +359,15 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 		commandparams = append(commandparams, obj)
 	}
 	if n < len(b) {
-		err = fmt.Errorf("rtmp: CommandMsgAMF0 left bytes=%d", len(b)-n)
+		err = fmt.Errorf("Rtmp.Play.CommandMsgAMF0.Left(bytes=%d)", len(b)-n)
 		return
 	}
 
 	if len(commandparams) < 1 {
-		err = fmt.Errorf("rtmp: publish params invalid")
+		err = fmt.Errorf("%s","Rtmp.Play.CommandMsg.Params.Invalid")
 		return
 	}
-	if len(commandparams) < 1 {
-		err = fmt.Errorf("rtmp: command play params invalid")
-		return
-	}
+
 	playpath, _ := commandparams[0].(string)
 	fmt.Println(playpath)
 	var u *url.URL
@@ -428,42 +425,42 @@ func CheckOnStatus(session *Session,b[]byte)(n int ,err error){
 		commandparams = append(commandparams, obj)
 	}
 	if n < len(b) {
-		err = fmt.Errorf("rtmp: CommandMsgAMF0 left bytes=%d", len(b)-n)
+		err = fmt.Errorf("Rtmp.OnStatus.CommandMsgAMF0.Left(bytes=%d)", len(b)-n)
 		return
 	}
 
 
 	objs, _ := commandparams[0].(amf.AMFMap)
 	if objs == nil {
-		err = fmt.Errorf("params[0] not object")
+		err = fmt.Errorf("%s","Rtmp.OnStatus.Params[0].Not.Object")
 		return
 	}
 
 	_code, _:= objs["code"]
 	if _code == nil {
-		err = fmt.Errorf("code invalid")
+		err = fmt.Errorf("%s","Rtmp.OnStatus.Code.Invalid")
 		return
 	}
 
 	code, _ := _code.(string)
 	switch session.OnStatusStage {
 	case ConnectStage:
-		err = fmt.Errorf("code != NetConnection.Connect.Success")
+		err = fmt.Errorf("%s","NetStream.Connect.Bad")
 		return
 	case PublishStage:
 		if code != "NetStream.Publish.Start"{
-			err = fmt.Errorf("code != NetConnection.Connect.Success")
+			err = fmt.Errorf("%s","NetStream.Publish.Bad")
 			return
 		}
 	case PlayStage:
 		if code != "NetStream.Play.Start"{
-			err = fmt.Errorf("code != NetConnection.Connect.Success")
+			err = fmt.Errorf("%s","NetStream.Play.Bad")
 			return
 		}
 
 	}
 
-	err = fmt.Errorf("NetConnection.Onstatus.Success")
+	session.resultCheckStage = StageOnstatusChecked
 	return
 
 }
@@ -492,13 +489,14 @@ func CheckCreateStreamResult(session *Session,b []byte)(n int ,err error){
 	}
 
 	if n < len(b) {
-		err = fmt.Errorf("rtmp: CommandMsgAMF0 left bytes=%d", len(b)-n)
+		err = fmt.Errorf("Rtmp.CreateStreamResult.CommandMsgAMF0.Left(Bytes=%d)", len(b)-n)
 		return
 	}
 
 	_avmsgsid, _ := commandparams[0].(float64)
 	session.avmsgsid = uint32(_avmsgsid)
-	err = fmt.Errorf("NetConnection.CreateStream.Success")
+	session.resultCheckStage = StageCreateStreamResultChecked
+	//err = fmt.Errorf("NetConnection.CreateStream.Success")
 	return
 }
 
@@ -526,32 +524,33 @@ func CheckConnectResult(session *Session, b []byte) (n int, err error){
 		commandparams = append(commandparams, obj)
 	}
 	if n < len(b) {
-		err = fmt.Errorf("rtmp: CommandMsgAMF0 left bytes=%d", len(b)-n)
+		err = fmt.Errorf("Rtmp.Connect.CommandMsgAMF0.Left.Bytes=%d", len(b)-n)
 		return
 	}
 
 	if commandobj == nil {
-		err = fmt.Errorf("rtmp: connect result command params invalid")
+		err = fmt.Errorf("%s","Rtmp.Connect.Result.Command.Params.Invalid")
 		return
 	}
 	objs, _ := commandparams[0].(amf.AMFMap)
 	if objs == nil {
-		err = fmt.Errorf("params[0] not object")
+		err = fmt.Errorf("%s","Rtmp.Connect.Params[0].Not.Object")
 		return
 	}
 
 	_code, _:= objs["code"]
 	if _code == nil {
-		err = fmt.Errorf("code invalid")
+		err = fmt.Errorf("%s","Rtmp.Connect.Amf.Code.Invalid")
 		return
 	}
 
 	code, _ := _code.(string)
 	if code != "NetConnection.Connect.Success" {
-		err = fmt.Errorf("code != NetConnection.Connect.Success")
+		err = fmt.Errorf("%s","Rtmp.Connect.Code != NetConnection.Connect.Success")
 		return
 	}
-	err = fmt.Errorf("NetConnection.Connect.Success")
+	session.resultCheckStage = StageConnectResultChecked
+	//err = fmt.Errorf("%s","NetConnection.Connect.Success")
 	return
 }
 

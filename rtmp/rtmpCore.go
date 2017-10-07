@@ -104,6 +104,7 @@ type Session struct {
 	isRelay           bool
 	//状态机
 	stage             int
+	resultCheckStage  int
 	//client
 	netconn           net.Conn
 	readcsmap         map[uint32]*chunkStream
@@ -135,6 +136,13 @@ const (
 	stageCommandDone
 	stageSessionDone
 )
+
+const (
+	StageConnectResultChecked = iota + 1
+	StageCreateStreamResultChecked
+	StageOnstatusChecked
+)
+
 const (
 	preparePlayReading = iota + 1
 	preparePullWriting
@@ -355,7 +363,7 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 		//
 		//       Figure 9 Chunk Message Header – Type 0
 		if cs.msgdataleft != 0 {
-			err = fmt.Errorf("rtmp: chunk msgdataleft=%d invalid", cs.msgdataleft)
+			err = fmt.Errorf("Rtmp.ReadChunk.MsgdataLeft(%d invalid)", cs.msgdataleft)
 			return
 		}
 		h := b[:11]
@@ -392,7 +400,7 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 		//
 		//       Figure 10 Chunk Message Header – Type 1
 		if cs.msgdataleft != 0 {
-			err = fmt.Errorf("rtmp: chunk msgdataleft=%d invalid", cs.msgdataleft)
+			err = fmt.Errorf("Rtmp.ReadChunk.MsgdataLeft(%d invalid)", cs.msgdataleft)
 			return
 		}
 		h := b[:7]
@@ -427,7 +435,7 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 		//
 		//       Figure 11 Chunk Message Header – Type 2
 		if cs.msgdataleft != 0 {
-			err = fmt.Errorf("rtmp: chunk msgdataleft=%d invalid", cs.msgdataleft)
+			err = fmt.Errorf("Rtmp.ReadChunk.MsgdataLeft(%d invalid)", cs.msgdataleft)
 			return
 		}
 		h := b[:3]
@@ -480,7 +488,7 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 			cs.Start()
 		}
 	default:
-		err = fmt.Errorf("rtmp: invalid chunk msg header type=%d", fmtTpye)
+		err = fmt.Errorf("Rtmp.Invalid.ChunkMsg.Header(type=%d)", fmtTpye)
 		return
 	}
 
@@ -618,7 +626,7 @@ func (self *Session)CodecDataToTag(stream av.CodecData) (tag *flvio.Tag, ok bool
 		tag.Data = self.aCodecData
 		ok = true
 	default:
-		err = fmt.Errorf("flv: unspported codecType=%v", stream.Type())
+		err = fmt.Errorf("Rtmp.Unspported.CodecType.%v", stream.Type())
 		return
 	}
 	return
