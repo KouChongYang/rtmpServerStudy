@@ -119,6 +119,36 @@ func ParseADTSHeader(frame []byte) (config MPEG4AudioConfig, hdrlen int, framele
 
 const ADTSHeaderLength = 7
 
+
+/*
+Audio Data Transport Stream (ADTS) is a format, used by MPEG TS or Shoutcast to stream audio, usually AAC.
+
+Structure
+AAAAAAAA AAAABCCD EEFFFFGH HHIJKLMM MMMMMMMM MMMOOOOO OOOOOOPP (QQQQQQQQ QQQQQQQQ)
+
+Header consists of 7 or 9 bytes (without or with CRC).
+
+Letter	Length (bits)	Description
+A	12	syncword 0xFFF, all bits must be 1
+B	1	MPEG Version: 0 for MPEG-4, 1 for MPEG-2
+C	2	Layer: always 0
+D	1	protection absent, Warning, set to 1 if there is no CRC and 0 if there is CRC
+E	2	profile, the MPEG-4 Audio Object Type minus 1
+F	4	MPEG-4 Sampling Frequency Index (15 is forbidden)
+G	1	private bit, guaranteed never to be used by MPEG, set to 0 when encoding, ignore when decoding
+H	3	MPEG-4 Channel Configuration (in the case of 0, the channel configuration is sent via an inband PCE)
+I	1	originality, set to 0 when encoding, ignore when decoding
+J	1	home, set to 0 when encoding, ignore when decoding
+K	1	copyrighted id bit, the next bit of a centrally registered copyright identifier, set to 0 when encoding, ignore when decoding
+L	1	copyright id start, signals that this frame's copyright id bit is the first bit of the copyright id, set to 0 when encoding, ignore when decoding
+M	13	frame length, this value must include 7 or 9 bytes of header length: FrameLength = (ProtectionAbsent == 1 ? 7 : 9) + size(AACFrame)
+O	11	Buffer fullness
+P	2	Number of AAC frames (RDBs) in ADTS frame minus 1, for maximum compatibility always use 1 AAC frame per ADTS frame
+Q	16	CRC if protection absent is 0
+Usage in MPEG-TS
+ADTS packet must be a content of PES packet. Pack AAC data inside ADTS frame, than pack inside PES packet, then mux by TS packetizer.
+*/
+
 func FillADTSHeader(header []byte, config MPEG4AudioConfig, samples int, payloadLength int) {
 	payloadLength += 7
 	//AAAAAAAA AAAABCCD EEFFFFGH HHIJKLMM MMMMMMMM MMMOOOOO OOOOOOPP (QQQQQQQQ QQQQQQQQ)
@@ -128,7 +158,17 @@ func FillADTSHeader(header []byte, config MPEG4AudioConfig, samples int, payload
 	header[3] = 0x80
 	header[4] = 0x43
 	header[5] = 0xff
-	header[6] = 0xcd
+	//header[6] = 0xcd
+	/*
+	 p[0] = 0xff;
+    	 p[1] = 0xf1;
+         p[2] = (u_char) (((objtype - 1) << 6) | (srindex << 2) |
+                     ((chconf & 0x04) >> 2));
+    	p[3] = (u_char) (((chconf & 0x03) << 6) | ((size >> 11) & 0x03));
+    	p[4] = (u_char) (size >> 3);
+    	p[5] = (u_char) ((size << 5) | 0x1f);
+    	p[6] = 0xfc;
+	*/
 	//config.ObjectType = uint(frames[2]>>6)+1
 	//config.SampleRateIndex = uint(frames[2]>>2&0xf)
 	//config.ChannelConfig = uint(frames[2]<<2&0x4|frames[3]>>6&0x3)
@@ -137,8 +177,9 @@ func FillADTSHeader(header []byte, config MPEG4AudioConfig, samples int, payload
 	header[3] = header[3]&0xfc | byte(payloadLength>>11)&0x3
 	header[4] = byte(payloadLength >> 3)
 	header[5] = header[5]&0x1f | (byte(payloadLength)&0x7)<<5
-	header[6] = header[6]&0xfc | byte(samples/1024-1)
+	header[6] = header[6]|0xfc
 	return
+
 }
 
 func readObjectType(r *bits.Reader) (objectType uint, err error) {

@@ -319,7 +319,7 @@ type Packet struct {
 	PacketType      uint8
 	CompositionTime time.Duration // packet presentation time minus decode time for H264 B-Frame
 	Time            time.Duration // packet decode time
-
+	DataPos         int
 	Data []byte // packet data
 }
 

@@ -207,17 +207,13 @@ func (self *Session) ServerSession(stage int) (err error) {
 					self.isClosed = true
 					self.stage = stageSessionDone
 				} else {
-
 					if noSelf := self.RtmpCheckStreamIsSelf();noSelf != true {
-						if playTimes == 0 {
-							url1:= "rtmp://" + self.pushIp + "/" + self.App +"?" + "vhost=" + self.Vhost + "/" + self.StreamId +"?relay=1"
-							fmt.Println(url1)
-							go rtmpClientRelayProxy("tcp", self.pushIp,self.Vhost,self.App,self.StreamId,url1,stageSessionDone)
-						}
-						tmpTime:=time.Duration(playTimes*100)
-						time.Sleep(tmpTime*time.Millisecond)
+						url1:= "rtmp://" + self.pushIp + "/" + self.App +"?" + "vhost=" + self.Vhost + "/" + self.StreamId +"?relay=1"
+						fmt.Println(url1)
+						RtmpRelay("tcp", self.pushIp,self.Vhost,self.App,self.StreamId,url1,stageSessionDone)
+						time.Sleep(1*time.Second)
 						playTimes++
-						if playTimes == 10 {
+						if playTimes == 5 {
 							self.stage++
 						}
 					}else{

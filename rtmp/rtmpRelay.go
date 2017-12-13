@@ -19,6 +19,7 @@ func rtmpClientRelayProxy(network,host,vhost,App,streamId,desUrl string,stage in
 	url1 ,err = url.Parse(desUrl)
 	proxyStage := stageClientConnect
 	defer func() {
+		RtmpRelaySessionDel(desUrl)
 		if self != nil {
 			self.rtmpCloseSessionHanler()
 		}
@@ -208,4 +209,28 @@ func (self *Session) writeConnect(path string) (err error) {
 		return
 	}
 	return
+}
+
+//just one paly for relay
+func RtmpRelay(network,host,vhost,App,streamId,desUrl string,stage int) bool{
+	i:=hash(desUrl)%HashMapFactors
+	RelaySessionMap[i].RLock()
+	defer 	RelaySessionMap[i].RUnlock()
+	_, ok := RelaySessionMap[i].sessionIndex[desUrl]
+	if ok {
+		return true
+	}else{
+		RelaySessionMap[i].sessionIndex[desUrl] = true
+		go rtmpClientRelayProxy(network, host,vhost,App,streamId,desUrl,stage)
+		return false
+	}
+	return false
+}
+
+//delete relay session
+func RtmpRelaySessionDel(desUrl string ){
+	i:=hash(desUrl)%HashMapFactors
+	RelaySessionMap[i].RLock()
+	delete(RelaySessionMap[i].sessionIndex,desUrl)
+	RelaySessionMap[i].RUnlock()
 }

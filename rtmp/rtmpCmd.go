@@ -7,6 +7,7 @@ import (
 	"rtmpServerStudy/AvQue"
 	"net/url"
 
+	"time"
 )
 
 /*
@@ -88,6 +89,8 @@ func (self *Session)RtmpChckeApp(host ,app string)(err error){
 }
 
 func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
+	startTime:= time.Now()
+
 	var transid, obj interface{}
 	var size int
 	if transid, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
@@ -192,6 +195,8 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 	if err = session.flushWrite(); err != nil {
 		return
 	}
+	dis := time.Now().Sub(startTime).Seconds()
+	fmt.Printf("===========================================%d\n",dis)
 	return
 }
 

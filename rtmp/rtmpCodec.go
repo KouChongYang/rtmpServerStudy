@@ -24,6 +24,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 		fmt.Println("parse frame hare err ")
 		return
 	}
+	dataPos:=n
 	if tag.CodecID == flvio.VIDEO_H264 {
 		if !(tag.FrameType == flvio.FRAME_INTER || tag.FrameType == flvio.FRAME_KEY) {
 			fmt.Println("parse frame err fomat is err")
@@ -33,7 +34,6 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 		var stream h264parser.CodecData
 		switch tag.AVCPacketType {
 		case flvio.AVC_SEQHDR:
-
 			fmt.Println("find avc seqhdr")
 			if stream, err = h264parser.NewCodecDataFromAVCDecoderConfRecord(tag.Data); err != nil {
 				return
@@ -50,6 +50,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 				if len(nalu) > 0 {
 					naltype := nalu[0] & 0x1f
 					switch {
+
 					case naltype == 7:
 						sps = append(sps, nalu)
 					case naltype == 8:
@@ -70,6 +71,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 	}
 	var pkt *av.Packet
 	pkt, _ = TagToPacket(tag, int32(timestamp), msgdata)
+	pkt.DataPos = dataPos
 	//this is a long time lock may be something err must
 	//every chunk check the register
 
@@ -108,6 +110,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 
 		}
 	}
+
 	return
 }
 
@@ -155,8 +158,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 		fmt.Println("parse frame hare err ")
 		return
 	}
-
-
+	dataPos:=n
 	switch tag.SoundFormat {
 	case flvio.SOUND_AAC:
 		tag.Data = msgdata[n:]
@@ -176,6 +178,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 	}
 	var pkt *av.Packet
 	pkt, _ = TagToPacket(tag, int32(timestamp), msgdata)
+	pkt.DataPos = dataPos
 	//this is a long time lock may be something err must
 	//session.CursorList.Lock()
 	if session.audioAfterLastVideoCnt > audioAfterLastVideoCnt {

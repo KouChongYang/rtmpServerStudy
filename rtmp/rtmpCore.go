@@ -53,6 +53,14 @@ type sessionIndexStruct struct {
 
 var PublishingSessionMap [HashMapFactors]sessionIndexStruct
 
+type relaySessionIndex map[string]bool
+type relaySessionIndexStruct struct {
+	sessionIndex relaySessionIndex
+	sync.RWMutex
+}
+
+var RelaySessionMap [HashMapFactors]relaySessionIndexStruct
+
 type Server struct {
 	RtmpAddr      []string
 	HttpAddr      []string
@@ -166,6 +174,7 @@ type chunkStream struct {
 func init() {
 	for i := 0; i < HashMapFactors; i++ {
 		PublishingSessionMap[i].sessionIndex = make(sessionIndex)
+		RelaySessionMap[i].sessionIndex = make(relaySessionIndex)
 	}
 }
 
@@ -188,6 +197,7 @@ func RtmpSessionGet(path string)(session *Session){
 	return
 }
 
+//
 func RtmpSessionPush(session *Session) bool{
 	path:= session.StreamAnchor
 	i:=hash(path)%HashMapFactors
@@ -229,7 +239,6 @@ func NewSesion(netconn net.Conn) *Session {
 	//this maybe
 	//session.context , session.cancel = context.WithCancel(context.Background())
 	//
-
 	session.bufr = bufio.NewReaderSize(netconn, pio.RecommendBufioSize)
 	session.bufw = bufio.NewWriterSize(netconn, pio.RecommendBufioSize)
 	session.writebuf = make([]byte, 4096)
@@ -461,26 +470,27 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 
 	case 3:
 		if cs.hastimeext && EXTTIME==true {
+			timestamp := uint32(0)
+			if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
+				return
+			}
+			n += 4
+			timestamp = pio.U32BE(b)
+
 			switch cs.msghdrtype {
 			case 0:
-				if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
-					return
-				}
-				n += 4
-				timestamp = pio.U32BE(b)
 				cs.timenow = timestamp
 			case 1, 2:
-				if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
-					return
+				if cs.msgdataleft == 0 {
+					cs.timenow += timestamp
 				}
-				n += 4
-				timestamp = pio.U32BE(b)
-				cs.timenow += timestamp
 			}
 		}else{
 			switch cs.msghdrtype {
 			case 1, 2:
-				cs.timenow += cs.timedelta
+				if cs.msgdataleft == 0 {
+					cs.timenow += cs.timedelta
+				}
 			}
 
 		}
@@ -791,7 +801,11 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 		if Debug {
 			fmt.Println("rtmp: server: accepted")
 		}
-
+		tcpConn, ok := netconn.(*net.TCPConn)
+		if !ok {
+			//error handle
+		}
+		tcpConn.SetNoDelay(true)
 		session := NewSesion(netconn)
 		session.isServer = true
 		go func() {
@@ -804,6 +818,7 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 					fmt.Println("rtmp: panic serving %v: %v\n%s", session.netconn.RemoteAddr(), err, buf)
 				}
 			}()
+
 			err := self.ServerHandle(session)
 			if Debug {
 				fmt.Println("rtmp: server: client closed err:", err)
