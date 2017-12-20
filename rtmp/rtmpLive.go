@@ -10,6 +10,7 @@ import (
 	"rtmpServerStudy/av"
 	"rtmpServerStudy/flv"
 	"rtmpServerStudy/flv/flvio"
+	"rtmpServerStudy/timer"
 )
 
 func (self *Session)rtmpClosePublishingSession(){
@@ -130,10 +131,12 @@ func (self *Session) RtmpSendAvPackets() (err error) {
 		}
 
 		if pkt == nil && self.isClosed  != true {
+			t := timer.GlobalTimerPool.Get(time.Second * MAXREADTIMEOUT)
 			select {
 			case <-self.PacketAck:
-			case <-time.After(time.Second * MAXREADTIMEOUT):
+			case <-t.C:
 			}
+			timer.GlobalTimerPool.Put(t)
 		}
 
 		if self.pubSession.isClosed == true && pkt == nil{
@@ -175,11 +178,15 @@ func (self *Session) ServerSession(stage int) (err error) {
 				pubSession:= RtmpSessionGet(self.StreamAnchor)
 				if pubSession != nil {
 					//register play to the publish
+
+					t := timer.GlobalTimerPool.Get(time.Second * MAXREADTIMEOUT)
 					select {
 					case pubSession.RegisterChannel <- self:
-					case <-time.After(time.Second * MAXREADTIMEOUT):
+					case <-t.C:
 					//may be is err
 					}
+					timer.GlobalTimerPool.Put(t)
+
 					self.pubSession = pubSession
 					//copy gop,codec here all new play Competitive the publishing lock
 					pubSession.RLock()
