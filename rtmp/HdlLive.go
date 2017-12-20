@@ -12,6 +12,7 @@ import (
 	"rtmpServerStudy/flv/flvio"
 	"github.com/gorilla/mux"
 	"net/url"
+	"rtmpServerStudy/timer"
 )
 
 type writeFlusher struct {
@@ -76,6 +77,7 @@ func (self *Session) hdlSendGop(w * flv.Muxer, r *http.Request) (err error) {
 }
 
 func (self *Session) hdlSendAvPackets(w * flv.Muxer, r *http.Request) (err error) {
+
 	for {
 		pkt := self.CurQue.RingBufferGet()
 		select {
@@ -90,10 +92,12 @@ func (self *Session) hdlSendAvPackets(w * flv.Muxer, r *http.Request) (err error
 		}
 
 		if pkt == nil && self.isClosed  != true {
+			t := timer.GlobalTimerPool.Get(time.Second * MAXREADTIMEOUT)
 			select {
 			case <-self.PacketAck:
-			case <-time.After(time.Second * MAXREADTIMEOUT):
+			case <-t.C:
 			}
+			timer.GlobalTimerPool.Put(t)
 		}
 		if self.pubSession.isClosed == true{
 			self.isClosed = true

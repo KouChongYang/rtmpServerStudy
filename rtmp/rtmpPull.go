@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"runtime"
 	"net"
+	"rtmpServerStudy/timer"
 )
 
 const (
@@ -153,11 +154,14 @@ func (self *Session) connectPublish() (err error) {
 	}
 
 	if self.pubSession.isClosed != true {
+		t := timer.GlobalTimerPool.Get(time.Second * MAXREADTIMEOUT)
 		select {
 		case self.pubSession.RegisterChannel <- self:
-		case <-time.After(time.Second * MAXREADTIMEOUT):
+		case <-t.C:
 		//may be is err
 		}
+		timer.GlobalTimerPool.Put(t)
+
 	}else{
 		err = fmt.Errorf("EOF")
 		return
