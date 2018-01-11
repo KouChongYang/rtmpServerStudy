@@ -24,8 +24,8 @@ func RtmpUserSetBufLenHandler(session *Session, timestamp uint32, msgsid uint32,
 }
 
 func (self *Session) sendSetPingResponse(msgsid uint32, timestamp uint32) (err error) {
-	b := self.GetWriteBuf(chunkHeaderLength + 10)
-	n := self.fillChunk0Header(b, 2, 0, RtmpMsgUser, 0, 10)
+	b := self.GetWriteBuf(chunkHeaderLength + 6)
+	n := self.fillChunk0Header(b, 2, 0, RtmpMsgUser, 0, 6)
 	pio.PutU16BE(b[n:], RtmpUserPingResponse)
 	n += 2
 	pio.PutU32BE(b[n:], timestamp)
