@@ -24,6 +24,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 		fmt.Println("parse frame hare err ")
 		return
 	}
+	AvHeader:=false
 	dataPos:=n
 	if tag.CodecID == flvio.VIDEO_H264 {
 		if !(tag.FrameType == flvio.FRAME_INTER || tag.FrameType == flvio.FRAME_KEY) {
@@ -42,6 +43,8 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 			session.vCodec = &stream
 			session.vCodecData = msgdata
 			session.Unlock()
+			AvHeader = true
+
 		case flvio.AVC_NALU:
 			b := tag.Data
 			nalus, _ := h264parser.SplitNALUs(b)
@@ -82,6 +85,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 	//session.updatedGop == true
 	session.Unlock()
 
+
 	var next *list.Element
 	CursorList := session.CursorList.GetList()
 	pkt.GopIsKeyFrame = pkt.IsKeyFrame
@@ -111,6 +115,12 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 		}
 	}
 
+	if AvHeader == true {
+		return
+	}
+	if len(session.RecodeCachedPkts) >5{
+
+	}
 	return
 }
 
@@ -158,6 +168,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 		fmt.Println("parse frame hare err ")
 		return
 	}
+	AvHeader:=false
 	dataPos:=n
 	switch tag.SoundFormat {
 	case flvio.SOUND_AAC:
@@ -174,6 +185,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 			session.aCodec = &stream
 			session.aCodecData = msgdata
 			session.Unlock()
+			AvHeader = true
 		}
 	}
 	var pkt *av.Packet
@@ -219,6 +231,10 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 				e = next
 			}
 		}
+	}
+
+	if AvHeader == true {
+		return
 	}
 
 	return

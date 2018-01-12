@@ -139,11 +139,13 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 		session.CurQue = AvQue.RingBufferCreate(10)
 		session.context, session.cancel = pubSession.context, pubSession.cancel
 		//onpublish handler
+		t := timer.GlobalTimerPool.Get(time.Second * MAXREADTIMEOUT)
 		select {
 		case pubSession.RegisterChannel <- session:
-		case <-time.After(time.Second * MAXREADTIMEOUT):
+		case <-t.C:
 		//may be is err
 		}
+		timer.GlobalTimerPool.Put(t)
 
 		session.pubSession = pubSession
 		session.StreamAnchor = StreamAnchor

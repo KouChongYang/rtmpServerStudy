@@ -39,6 +39,11 @@ func (self *Session)rtmpClosePublishingSession(){
 			}
 		}
 	}
+	//close other thing
+	//recode
+	//hls
+	//flv
+	//other things
 	self.CursorList = nil
 	self.netconn.Close()
 }

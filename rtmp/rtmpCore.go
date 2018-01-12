@@ -76,6 +76,7 @@ type Session struct {
 	context                context.Context
 	CursorList             *AvQue.CursorList
 	GopCache               *AvQue.AvRingbuffer
+	RecodeCachedPkts       []av.Packet
 	pubSession 	       *Session
 	rtmpCmdHandler         RtmpCmdHandle
 	selfPush               bool
