@@ -1,50 +1,25 @@
 package rtmp
 
-//import "os"
+import "rtmpServerStudy/av"
 
-/*
-#define NGX_RTMP_RECORD_OFF                 0x01
-#define NGX_RTMP_RECORD_AUDIO               0x02
-#define NGX_RTMP_RECORD_VIDEO               0x04
-#define NGX_RTMP_RECORD_KEYFRAMES           0x08
-#define NGX_RTMP_RECORD_MANUAL              0x10*/
-
-//may be use
-const (
-	RtmpRecordOff = 0x01
-	RtmpRecordAudio = 0x02
-	RtmpRecordVideo = 0x04
-	RtmpRecordKeyFrames = 0x08
-	RtmpRecordManual = 0x10
-)
-
-
-//just make dirPath
-func (self *Session)RtmpRecordNodeInit()(err error){
-	//just create the flv path
-	/*if self.RecordMuxerCnf[0] == nil{
-		self.RecordCnf = new(RecordMuxerInfo)
-	}
-	self.RecordCnf.flvVodPath = BasePath+ "/flv/"
-	os.MkdirAll(self.RecordCnf.flvVodPath, 0777)*/
+//截图，只生成关键帧
+func flvRecordOnPublish(*Session){
+	//是否录制flv点播
+	//初始化相关目录
+	//初始化muxer
 	return
 }
 
-func (self *Session)rtmpRecordNodeClose()(err error){
+func flvRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 
+	//判断pkt 是否是idr帧
+	//打开文件
+	//写入文件
+	//关闭文件
 	return
 }
 
-func (self *Session)rtmpRecordNodeOpen()(err error){
-
-	return
-}
-
-func (self *Session)rtmpRecordWriteHeader()(err error){
-	return
-}
-
-func (self *Session)rtmpRecordWriteFrame()(err error){
-
-	return
+func flvRecordOnPublishDone(self *Session){
+	//是否开启
+	//释放空间
 }
