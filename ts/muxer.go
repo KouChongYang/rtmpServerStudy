@@ -200,14 +200,15 @@ func (self *Muxer) WriteHeader() (err error) {
 
 func (self *Muxer)WriteVedioPacket(pkt av.Packet,Cstream av.CodecData)(err error){
 
-	codec := self.vstream.CodecData.(h264parser.CodecData)
+	//codec := self.vstream.CodecData.(h264parser.CodecData)
+	codec := Cstream.(h264parser.CodecData)
 	nalus := self.nalus[:0]
 	if pkt.IsKeyFrame {
 		nalus = append(nalus, codec.SPS())
 		nalus = append(nalus, codec.PPS())
 	}
 
-	pktnalus, _ := h264parser.SplitNALUs(pkt.Data)
+	pktnalus, _ := h264parser.SplitNALUs(pkt.Data[pkt.DataPos:])
 	for _, pktnalu:= range pktnalus {
 		nalus = append(nalus, pktnalu)
 	}
@@ -241,15 +242,20 @@ func (self *Muxer)WriteVedioPacket(pkt av.Packet,Cstream av.CodecData)(err error
 	return
 }
 
-func (self *Muxer)WriteAudioPacket(pkts []av.Packet,Cstream av.CodecData)(err error){
+type AudioPacket struct{
+	Time time.Duration
+	Pkt *av.Packet
+}
+
+func (self *Muxer)WriteAudioPacket(pkts []*AudioPacket,Cstream av.CodecData)(err error){
 
 	for i,_:= range pkts {
 		codec := self.astream.CodecData.(aacparser.CodecData)
-		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC, len(self.adtshdr) + len(pkts[i].Data), pkts[i].Time, 0)
+		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC, len(self.adtshdr) + len(pkts[i].Pkt.Data[pkts[i].Pkt.DataPos:]), pkts[i].Time, 0)
 		self.datav[0] = self.peshdr[:n]
-		aacparser.FillADTSHeader(self.adtshdr, codec.Config, 1024, len(pkts[i].Data))
+		aacparser.FillADTSHeader(self.adtshdr, codec.Config, 1024, len(pkts[i].Pkt.Data[pkts[i].Pkt.DataPos:]))
 		self.datav[1] = self.adtshdr
-		self.datav[2] = pkts[i].Data
+		self.datav[2] = pkts[i].Pkt.Data[pkts[i].Pkt.DataPos:]
 		if err = self.astream.tsw.WritePackets(self.bufw, self.datav[:3], pkts[i].Time, true, false); err != nil {
 			return
 		}

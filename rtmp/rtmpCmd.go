@@ -321,6 +321,7 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 			//hls recode start
 		}
 	}
+	session.recordTime = time.Now()
 	//
 	if len(session.UserCnf.TurnHost) > 0{
 

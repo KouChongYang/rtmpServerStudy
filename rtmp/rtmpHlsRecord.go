@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 	"rtmpServerStudy/ts"
+	"rtmpServerStudy/AvQue"
 )
 
 //hls点播
@@ -67,17 +68,20 @@ func hlsRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 }
 
 //
+
+
 type  hlsLiveRecordInfo struct {
 	//
 	muxer            *ts.Muxer
 	lastAudioTs      time.Duration
 	lastVideoTs      time.Duration
 	lastTs           time.Duration
-	audioCachedPkts  []av.Packet
+	audioCachedPkts  [](*ts.AudioPacket)
 	tsBackFileName   string
 	m3u8BackFileName string
 	//是否该切片
 	force            bool
+	duration 	 float32
 }
 
 func hlsLiveRecordOpenFragment(self *Session,stream av.CodecData,pkt *av.Packet){
@@ -88,22 +92,68 @@ func hlsLiveRecordCloseFragment(self *Session,stream av.CodecData,pkt *av.Packet
 
 }
 
-func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet){
+func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flush_rate int){
+	self.hlsLiveRecordInfo.duration = pkt.Time - self.hlsLiveRecordInfo.lastTs
+	if self.hlsLiveRecordInfo.duration > 50000{
 
+	}else{
+		return
+	}
+	/*
+	b = ctx->aframe;
+	if (ctx->opened && b && b->last > b->pos &&
+		ctx->aframe_pts + (uint64_t) hacf->max_audio_delay * 90 / flush_rate
+	< ts)
+	{
+	ngx_rtmp_hls_flush_audio(s);
+	}*/
+	if len(self.hlsLiveRecordInfo.audioCachedPkts)>0 &&
+		(self.hlsLiveRecordInfo.audioCachedPkts[len(self.hlsLiveRecordInfo.audioCachedPkts)-1].Time * 90 + 300/flush_rate) <pkt.Time{
+		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts,self.aCodec)
+		self.hlsLiveRecordInfo.audioCachedPkts = make([](*ts.AudioPacket),0,10)
+	}
 	return
 }
 
-func hlsVedioRecord(){
-
+func hlsVedioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
+	//no body
+	if len(pkt.Data[pkt.DataPos:])<=0{
+		return
+	}
+	/*
+	b = ctx->aframe;
+	    boundary = frame.key && (codec_ctx->aac_header == NULL || !ctx->opened ||
+				     (b && b->last > b->pos));
+	*/
+	if pkt.IsKeyFrame {
+		hlsLiveUpdateFragment(self ,stream,pkt,1)
+	}
+	self.hlsLiveRecordInfo.muxer.WriteVedioPacket(pkt,stream)
 	return
 }
 
-func hlsAudioRecord(){
+func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
+
+	//no body
+	if len(pkt.Data[pkt.DataPos:])<=0{
+		return
+	}
+/*
+b = ctx->aframe;
+    boundary = frame.key && (codec_ctx->aac_header == NULL || !ctx->opened ||
+                             (b && b->last > b->pos));
+*/
+
+	if pkt.IsKeyFrame && (self.aCodec == nil){
+
+		return
+	}
 	return
 }
 
 func hlsLiveRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	if self.hlsLiveRecordInfo.muxer == nil {
+		self.hlsLiveRecordInfo.audioCachedPkts = make([]*av.Packet,0,1024)
 		self.hlsLiveRecordInfo.tsBackFileName = fmt.Sprintf("%s%d.tsbak",self.UserCnf.RecodeHlsPath,time.Now().UnixNano()/1000000)
 		fmt.Println(self.hlsLiveRecordInfo.tsBackFileName)
 		f1, err := FileCreate(self.hlsLiveRecordInfo.tsBackFileName)
@@ -124,9 +174,9 @@ func hlsLiveRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 
 	switch pkt.PacketType {
 	case RtmpMsgAudio:
-
+		hlsAudioRecord(self,stream,pkt)
 	case RtmpMsgVideo:
-
+		hlsVedioRecord(self,stream,pkt)
 	}
 
 	if pkt.IsKeyFrame && (pkt.Time - self.hlsLiveRecordInfo.lastTs) > time.Duration(5000){
