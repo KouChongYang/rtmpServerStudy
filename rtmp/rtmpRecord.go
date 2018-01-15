@@ -1,6 +1,11 @@
 package rtmp
 
-import "rtmpServerStudy/av"
+import (
+	"rtmpServerStudy/av"
+	//"net/url"
+	"io"
+	"os"
+)
 
 const(
 	BasePath="/data/rtmp/"
@@ -16,9 +21,9 @@ type RecordMuxerInfo struct {
 	WriterMuxer av.Muxer
 }
 
-var RecordOnPublish []RecordOnPublish
-var RecordOnPublishDone []RecordOnPublisDone
-var Record []Record
+var RecordOnPublishs []RecordOnPublish
+var RecordOnPublishDones []RecordOnPublisDone
+var Records []Record
 
 //publish 初始化目录等相关工作
 type RecordOnPublish func(*Session)
@@ -30,38 +35,45 @@ type RecordOnPublisDone func(*Session)
 type Record func(*Session,av.CodecData,*av.Packet)
 
 func RecordPublishHandler(self *Session){
-	for i,_:= range RecordOnPublish {
-		RecordOnPublish[i](self)
+	for i,_:= range RecordOnPublishs {
+		RecordOnPublishs[i](self)
 	}
 }
 
 func RecordPublishDoneHandler(self *Session){
-	for i,_:= range RecordOnPublishDone {
-		RecordOnPublishDone[i](self)
+	for i,_:= range RecordOnPublishDones {
+		RecordOnPublishDones[i](self)
 	}
 }
 
+
+
 func RecordHandler(self *Session,stream av.CodecData,pkt *av.Packet){
-	for i,_:= range Record {
-		Record[i](self,stream,pkt)
+	for i,_:= range Records {
+		Records[i](self,stream,pkt)
 	}
+}
+
+func FileCreate(uri string) (w io.WriteCloser, err error) {
+	w, err = os.Create(uri)
+	return
 }
 
 func init(){
 	//
-	RecordOnPublish = append(RecordOnPublish,hlsRecordOnPublish)
-	RecordOnPublish = append(RecordOnPublish,hlsLiveRecordOnPublish)
-	RecordOnPublish = append(RecordOnPublish,flvRecordOnPublish)
+	RecordOnPublishs = append(RecordOnPublishs,hlsRecordOnPublish)
+	RecordOnPublishs = append(RecordOnPublishs,hlsLiveRecordOnPublish)
+	RecordOnPublishs = append(RecordOnPublishs,flvRecordOnPublish)
 
 	//
-	Record = append(Record,hlsRecord)
-	Record = append(Record,hlsLiveRecord)
-	Record = append(Record,flvRecord)
+	Records = append(Records,hlsRecord)
+	Records = append(Records,hlsLiveRecord)
+	Records = append(Records,flvRecord)
 
 	//
-	RecordOnPublishDone = append(RecordOnPublishDone,hlsLiveRecordOnPublishDone)
-	RecordOnPublishDone = append(RecordOnPublishDone,hlsRecordOnPublishDone)
-	RecordOnPublishDone = append(RecordOnPublishDone,flvRecordOnPublishDone)
+	RecordOnPublishDones = append(RecordOnPublishDones,hlsLiveRecordOnPublishDone)
+	RecordOnPublishDones = append(RecordOnPublishDones,hlsRecordOnPublishDone)
+	RecordOnPublishDones = append(RecordOnPublishDones,flvRecordOnPublishDone)
 }
 
 

@@ -1,10 +1,11 @@
 package tsio
 
 import (
-"io"
-"time"
-"fmt"
-"github.com/nareix/bits/pio"
+	"io"
+	"time"
+	"fmt"
+	"github.com/nareix/bits/pio"
+	"bufio"
 )
 
 const (
@@ -633,7 +634,7 @@ func NewTSWriter(pid uint16) *TSWriter {
 }
 
 //write frame to ts file
-func (self *TSWriter) WritePackets(w io.Writer, datav [][]byte, pcr time.Duration, sync bool, paddata bool) (err error) {
+func (self *TSWriter) WritePackets(w *bufio.Writer, datav [][]byte, pcr time.Duration, sync bool, paddata bool) (err error) {
 	datavlen := pio.VecLen(datav)
 	writev := make([][]byte, len(datav))
 	writepos := 0

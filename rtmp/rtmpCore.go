@@ -81,7 +81,7 @@ type Session struct {
 	rtmpCmdHandler         RtmpCmdHandle
 	selfPush               bool
 	relayPush              bool
-	UserCnf                *config.App
+	UserCnf                config.App
 	Vhost                  string
 	RecordMuxerCnf         []*RecordMuxerInfo//hls,flv,other
 	maxgopcount            int
@@ -94,9 +94,12 @@ type Session struct {
 	RegisterChannel   chan *Session
 	PacketAck         chan bool
 	curgopcount       int
+
 	App               string
 	StreamId          string
 	StreamAnchor      string
+	uniqueName 	  string
+
 	cancel            context.CancelFunc
 	URL               *url.URL
 	TcUrl             string
@@ -136,6 +139,12 @@ type Session struct {
 	OnStatusStage     int
 	updatedGop        bool
 	needUpPkt         bool
+
+	//record 时间 创建目录用
+	recordTime        time.Time
+	//hls 直播录制ts状态信息
+	hlsLiveRecordInfo  hlsLiveRecordInfo
+
 }
 
 const (
