@@ -119,7 +119,7 @@ func (self *Muxer) WriteTrailer() (err error) {
 			}
 		}
 	}
-
+	self.bufw.Flush()
 	return
 }
 
@@ -250,7 +250,7 @@ type AudioPacket struct{
 func (self *Muxer)WriteAudioPacket(pkts []*AudioPacket,Cstream av.CodecData)(err error){
 
 	for i,_:= range pkts {
-		codec := self.astream.CodecData.(aacparser.CodecData)
+		codec := Cstream.(aacparser.CodecData)
 		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC, len(self.adtshdr) + len(pkts[i].Pkt.Data[pkts[i].Pkt.DataPos:]), pkts[i].Time, 0)
 		self.datav[0] = self.peshdr[:n]
 		aacparser.FillADTSHeader(self.adtshdr, codec.Config, 1024, len(pkts[i].Pkt.Data[pkts[i].Pkt.DataPos:]))

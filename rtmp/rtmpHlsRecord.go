@@ -7,6 +7,10 @@ import (
 	"time"
 	"rtmpServerStudy/ts"
 	"rtmpServerStudy/AvQue"
+	"golang.org/x/crypto/openpgp/packet"
+	"rtmpServerStudy/flv/flvio"
+	"rtmpServerStudy/aacParse"
+	"strings"
 )
 
 //hls点播
@@ -82,36 +86,75 @@ type  hlsLiveRecordInfo struct {
 	//是否该切片
 	force            bool
 	duration 	 float32
+	aframeNum      	int64
+
+	audioPts 	time.Duration
+	audioBaseTime   time.Duration
 }
 
+//打开新的文件
 func hlsLiveRecordOpenFragment(self *Session,stream av.CodecData,pkt *av.Packet){
 
-}
-
-func hlsLiveRecordCloseFragment(self *Session,stream av.CodecData,pkt *av.Packet){
-
-}
-
-func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flush_rate int){
-	self.hlsLiveRecordInfo.duration = pkt.Time - self.hlsLiveRecordInfo.lastTs
-	if self.hlsLiveRecordInfo.duration > 50000{
-
-	}else{
-		return
+	self.hlsLiveRecordInfo.tsBackFileName = fmt.Sprintf("%s%d.tsbak",self.UserCnf.RecodeHlsPath,time.Now().UnixNano()/1000000)
+	fmt.Println(self.hlsLiveRecordInfo.tsBackFileName)
+	f1, err := FileCreate(self.hlsLiveRecordInfo.tsBackFileName)
+	if err != nil {
+		fmt.Printf("create ts file %s err the err is %s\n",self.hlsLiveRecordInfo.tsBackFileName,err.Error())
 	}
-	/*
-	b = ctx->aframe;
-	if (ctx->opened && b && b->last > b->pos &&
-		ctx->aframe_pts + (uint64_t) hacf->max_audio_delay * 90 / flush_rate
-	< ts)
-	{
-	ngx_rtmp_hls_flush_audio(s);
-	}*/
-	if len(self.hlsLiveRecordInfo.audioCachedPkts)>0 &&
-		(self.hlsLiveRecordInfo.audioCachedPkts[len(self.hlsLiveRecordInfo.audioCachedPkts)-1].Time * 90 + 300/flush_rate) <pkt.Time{
+
+	//设置写的文件描述
+	self.hlsLiveRecordInfo.muxer.SetWriter(f1)
+	self.hlsLiveRecordInfo.muxer.WriteHeader()
+
+	//self.hlsLiveRecordInfo.lasetTs = pkt.Time
+	if pkt.PacketType == RtmpMsgAudio {
+		self.hlsLiveRecordInfo.lastAudioTs = pkt.Time
+	} else {
+		self.hlsLiveRecordInfo.lastVideoTs = pkt.Time
+	}
+	self.hlsLiveRecordInfo.lastTs =  pkt.Time
+
+	//open ts 首先写入音频
+	if len(self.hlsLiveRecordInfo.audioCachedPkts) >0 {
+		//写入audio
 		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts,self.aCodec)
 		self.hlsLiveRecordInfo.audioCachedPkts = make([](*ts.AudioPacket),0,10)
 	}
+}
+
+func hlsLiveRecordCloseFragment(self *Session,stream av.CodecData,pkt *av.Packet){
+	self.hlsLiveRecordInfo.muxer.WriteTrailer()
+	dstkey := strings.Replace(self.hlsLiveRecordInfo.tsBackFileName, ".tsbak", ".ts", 1)
+	os.Rename(self.hlsLiveRecordInfo.tsBackFileName, dstkey)
+	//self.hlsLiveRecordInfo.tsBackFileName = fmt.Sprintf("%s%d.tsbak",self.UserCnf.RecodeHlsPath,time.Now().UnixNano()/1000000)
+}
+
+func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flush_rate int){
+
+	cutting := 0
+
+	//大于5s 切片
+	self.hlsLiveRecordInfo.duration = flvio.TimeToTs(pkt.Time - self.hlsLiveRecordInfo.lastTs)/(90.0)
+	if self.hlsLiveRecordInfo.duration > 5.0 {
+		cutting = 1
+	}else{
+		return
+	}
+
+	//需要切割
+	if cutting == 1 {
+		hlsLiveRecordCloseFragment(self,stream,pkt)
+		hlsLiveRecordOpenFragment(self,stream,pkt)
+	}
+
+	//see see nginx
+	if len(self.hlsLiveRecordInfo.audioCachedPkts) >0 &&
+		(self.hlsLiveRecordInfo.audioPts + 300 * 90 / flush_rate) < flvio.TimeToTs(pkt.Time) {
+		//写入audio
+		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts,self.aCodec)
+		self.hlsLiveRecordInfo.audioCachedPkts = make([](*ts.AudioPacket),0,10)
+	}
+
 	return
 }
 
@@ -120,14 +163,11 @@ func hlsVedioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	if len(pkt.Data[pkt.DataPos:])<=0{
 		return
 	}
-	/*
-	b = ctx->aframe;
-	    boundary = frame.key && (codec_ctx->aac_header == NULL || !ctx->opened ||
-				     (b && b->last > b->pos));
-	*/
+	//关键帧判断是否需求切割
 	if pkt.IsKeyFrame {
 		hlsLiveUpdateFragment(self ,stream,pkt,1)
 	}
+	//将vedio 写入文件
 	self.hlsLiveRecordInfo.muxer.WriteVedioPacket(pkt,stream)
 	return
 }
@@ -135,19 +175,56 @@ func hlsVedioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 
 	//no body
-	if len(pkt.Data[pkt.DataPos:])<=0{
+	if len(pkt.Data[pkt.DataPos:])<=0 {
 		return
 	}
-/*
-b = ctx->aframe;
-    boundary = frame.key && (codec_ctx->aac_header == NULL || !ctx->opened ||
-                             (b && b->last > b->pos));
-*/
 
-	if pkt.IsKeyFrame && (self.aCodec == nil){
+	//判断cacheNum
+	cacheNum := len(self.hlsLiveRecordInfo.audioCachedPkts)
 
+	pts := flvio.TimeToTs(pkt.Time) * 90
+
+	//判读是否切片，如果需要就切片
+	hlsLiveUpdateFragment(self ,stream,pkt,2)
+
+	//缓存太多音频，估计音频有问题
+	if cacheNum >= 1024 {
+		fmt.Printf("hls vod: too many audio frame the num:%d", cacheNum)
 		return
 	}
+
+	//
+	var audioPkt ts.AudioPacket
+	audioPkt.Pkt = pkt
+
+	//缓存音频
+	self.hlsLiveRecordInfo.audioCachedPkts = append(self.hlsLiveRecordInfo.audioCachedPkts,&audioPkt)
+	if len(self.hlsLiveRecordInfo.audioCachedPkts)>0{
+		self.hlsLiveRecordInfo.aframeNum++
+		return
+	}
+
+	//更新pts 只有缓存第一个音频时才需要更新pts（其他缓存的音频参考该pts）
+	audioPkt.Time = pts
+	self.hlsLiveRecordInfo.audioPts = pts
+
+	codec := stream.(aacparser.CodecData)
+	est_pts := self.hlsLiveRecordInfo.audioBaseTime + self.hlsLiveRecordInfo.aframeNum * 90000 * 1024 /
+		codec.SampleRate()
+
+	//
+	dpts := (est_pts - pts)
+
+	//pts
+	if (dpts <= 2 * 90) && (dpts >= (2 * -90)){
+		self.hlsLiveRecordInfo.aframeNum++
+		self.hlsLiveRecordInfo.audioPts = est_pts
+		return
+	}
+
+	self.hlsLiveRecordInfo.audioBaseTime = pts
+	self.hlsLiveRecordInfo.aframeNum  = 1
+
 	return
 }
 
