@@ -232,10 +232,10 @@ func (self *Muxer)WriteVedioPacket(pkt av.Packet,Cstream av.CodecData)(err error
 		datav = append(datav, nal)
 	}
 
-	n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdH264, -1, pkt.Time+pkt.CompositionTime, pkt.Time)
+	n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdH264, -1, tsio.TimeToTs(pkt.Time+pkt.CompositionTime), tsio.TimeToTs(pkt.Time))
 	datav[0] = self.peshdr[:n]
 
-	if err = self.vstream.tsw.WritePackets(self.bufw, datav, pkt.Time, pkt.IsKeyFrame, false); err != nil {
+	if err = self.vstream.tsw.WritePackets(self.bufw, datav, (pkt.Time), pkt.IsKeyFrame, false); err != nil {
 		return
 	}
 
@@ -247,18 +247,27 @@ type AudioPacket struct{
 	Pkt *av.Packet
 }
 
-func (self *Muxer)WriteAudioPacket(pkts []*AudioPacket,Cstream av.CodecData)(err error){
+//const NGX_RTMP_HLS_DELAY = 63000
+func (self *Muxer)WriteAudioPacket(pkts []*AudioPacket,Cstream av.CodecData,pts time.Duration)(err error){
+	datav:=make([][]byte,0,(len(pkts)+1)*2+1)
 
+	audioLen:=0
+	j:=1
 	for i,_:= range pkts {
 		codec := Cstream.(aacparser.CodecData)
-		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC, len(self.adtshdr) + len(pkts[i].Pkt.Data[pkts[i].Pkt.DataPos:]), pkts[i].Time, 0)
-		self.datav[0] = self.peshdr[:n]
 		aacparser.FillADTSHeader(self.adtshdr, codec.Config, 1024, len(pkts[i].Pkt.Data[pkts[i].Pkt.DataPos:]))
-		self.datav[1] = self.adtshdr
-		self.datav[2] = pkts[i].Pkt.Data[pkts[i].Pkt.DataPos:]
-		if err = self.astream.tsw.WritePackets(self.bufw, self.datav[:3], pkts[i].Time, true, false); err != nil {
-			return
-		}
+		datav[j] = self.adtshdr
+		j++
+		datav[j] = pkts[i].Pkt.Data[pkts[i].Pkt.DataPos:]
+		j++
+		audioLen+=len(self.adtshdr) + len(pkts[i].Pkt.Data[pkts[i].Pkt.DataPos:])
+	}
+
+	n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC,audioLen ,pts, 0)
+	datav[0] = self.peshdr[:n]
+
+	if err = self.astream.tsw.WritePackets(self.bufw, self.datav[:j],0, true, false); err != nil {
+		return
 	}
 	return
 }

@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 	"rtmpServerStudy/ts"
-	"rtmpServerStudy/AvQue"
-	"golang.org/x/crypto/openpgp/packet"
 	"rtmpServerStudy/flv/flvio"
 	"rtmpServerStudy/aacParse"
 	"strings"
@@ -102,8 +100,9 @@ func hlsLiveRecordOpenFragment(self *Session,stream av.CodecData,pkt *av.Packet)
 		fmt.Printf("create ts file %s err the err is %s\n",self.hlsLiveRecordInfo.tsBackFileName,err.Error())
 	}
 
-	//设置写的文件描述
+	//重置文件
 	self.hlsLiveRecordInfo.muxer.SetWriter(f1)
+	//写pat pmt ts header
 	self.hlsLiveRecordInfo.muxer.WriteHeader()
 
 	//self.hlsLiveRecordInfo.lasetTs = pkt.Time
@@ -151,7 +150,7 @@ func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flus
 	if len(self.hlsLiveRecordInfo.audioCachedPkts) >0 &&
 		(self.hlsLiveRecordInfo.audioPts + 300 * 90 / flush_rate) < flvio.TimeToTs(pkt.Time) {
 		//写入audio
-		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts,self.aCodec)
+		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts,self.aCodec,self.hlsLiveRecordInfo.audioPts)
 		self.hlsLiveRecordInfo.audioCachedPkts = make([](*ts.AudioPacket),0,10)
 	}
 
@@ -173,12 +172,10 @@ func hlsVedioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 }
 
 func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
-
 	//no body
 	if len(pkt.Data[pkt.DataPos:])<=0 {
 		return
 	}
-
 	//判断cacheNum
 	cacheNum := len(self.hlsLiveRecordInfo.audioCachedPkts)
 
@@ -209,6 +206,9 @@ func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	self.hlsLiveRecordInfo.audioPts = pts
 
 	codec := stream.(aacparser.CodecData)
+	if codec.SampleFormat() <=0{
+		return
+	}
 	est_pts := self.hlsLiveRecordInfo.audioBaseTime + self.hlsLiveRecordInfo.aframeNum * 90000 * 1024 /
 		codec.SampleRate()
 

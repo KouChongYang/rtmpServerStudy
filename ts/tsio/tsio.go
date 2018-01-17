@@ -604,11 +604,11 @@ func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts time.Duration
 	if flags&PTS != 0 {
 		if flags&DTS != 0 {
 			//first 4 bits are 0011 and first 4 bits for DTS are 0001
-			pio.PutU40BE(h[9:14], TimeToTs(pts)|3<<36)
-			pio.PutU40BE(h[14:19], TimeToTs(dts)|1<<36)
+			pio.PutU40BE(h[9:14], (pts)|3<<36)
+			pio.PutU40BE(h[14:19], (dts)|1<<36)
 		} else {
 			////If only PTS is present, this is done by catenating 0010b
-			pio.PutU40BE(h[9:14], TimeToTs(pts)|2<<36)
+			pio.PutU40BE(h[9:14], (pts)|2<<36)
 		}
 	}
 
