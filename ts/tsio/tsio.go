@@ -559,7 +559,7 @@ most significant 3 bits from PTS, 1, following next 15 bits, 1, rest 15 bits and
  If both PTS and DTS are present, first 4 bits are 0011 and first 4 bits for DTS are 0001. Other appended bytes have similar but different encoding.
 */
 
-func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts time.Duration) (n int) {
+func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts uint64) (n int) {
 	h[0] = 0
 	h[1] = 0
 	h[2] = 1
@@ -634,7 +634,7 @@ func NewTSWriter(pid uint16) *TSWriter {
 }
 
 //write frame to ts file
-func (self *TSWriter) WritePackets(w *bufio.Writer, datav [][]byte, pcr time.Duration, sync bool, paddata bool) (err error) {
+func (self *TSWriter) WritePackets(w *bufio.Writer, datav [][]byte, pcr uint64, sync bool, paddata bool) (err error) {
 	datavlen := pio.VecLen(datav)
 	writev := make([][]byte, len(datav))
 	writepos := 0
@@ -655,7 +655,7 @@ func (self *TSWriter) WritePackets(w *bufio.Writer, datav [][]byte, pcr time.Dur
 				hdrlen += 6
 				//set pcr flag 0x10
 				self.tshdr[5] = 0x10|self.tshdr[5] // PCR flag (Discontinuity indicator 0x80)
-				pio.PutU48BE(self.tshdr[6:12], TimeToPCR(pcr))
+				pio.PutU48BE(self.tshdr[6:12], (pcr))
 			}
 			if sync {
 				self.tshdr[5] = 0x40|self.tshdr[5] // Random Access indicator

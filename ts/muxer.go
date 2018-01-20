@@ -7,7 +7,7 @@ import (
 	"rtmpServerStudy/h264Parse"
 	"rtmpServerStudy/ts/tsio"
 	"io"
-	"time"
+//	"time"
 	//"encoding/hex"
 	"bufio"
 	"github.com/nareix/bits/pio"
@@ -198,7 +198,7 @@ func (self *Muxer) WriteHeader() (err error) {
 	return
 }
 
-func (self *Muxer)WriteVedioPacket(pkt av.Packet,Cstream av.CodecData)(err error){
+func (self *Muxer)WriteVedioPacket(pkt *av.Packet,Cstream av.CodecData)(err error){
 
 	//codec := self.vstream.CodecData.(h264parser.CodecData)
 	codec := Cstream.(h264parser.CodecData)
@@ -235,20 +235,21 @@ func (self *Muxer)WriteVedioPacket(pkt av.Packet,Cstream av.CodecData)(err error
 	n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdH264, -1, tsio.TimeToTs(pkt.Time+pkt.CompositionTime), tsio.TimeToTs(pkt.Time))
 	datav[0] = self.peshdr[:n]
 
-	if err = self.vstream.tsw.WritePackets(self.bufw, datav, (pkt.Time), pkt.IsKeyFrame, false); err != nil {
+	var pcr uint64
+	if pkt.IsKeyFrame{
+		pcr = tsio.TimeToPCR(pkt.Time)
+	}else{
+		pcr = uint64(0)
+	}
+	if err = self.vstream.tsw.WritePackets(self.bufw, datav, pcr, pkt.IsKeyFrame, false); err != nil {
 		return
 	}
 
 	return
 }
 
-type AudioPacket struct{
-	Time time.Duration
-	Pkt *av.Packet
-}
-
 //const NGX_RTMP_HLS_DELAY = 63000
-func (self *Muxer)WriteAudioPacket(pkts []*AudioPacket,Cstream av.CodecData,pts time.Duration)(err error){
+func (self *Muxer)WriteAudioPacket(pkts []*av.Packet,Cstream av.CodecData,pts uint64)(err error){
 	datav:=make([][]byte,0,(len(pkts)+1)*2+1)
 
 	audioLen:=0
@@ -272,7 +273,7 @@ func (self *Muxer)WriteAudioPacket(pkts []*AudioPacket,Cstream av.CodecData,pts 
 	return
 }
 
-func (self *Muxer) WritePacket(pkt av.Packet,Cstream av.CodecData) (err error) {
+/*func (self *Muxer) WritePacket(pkt av.Packet,Cstream av.CodecData) (err error) {
 
 	pkt.Time += time.Second
 	switch Cstream.Type() {
@@ -330,4 +331,4 @@ func (self *Muxer) WritePacket(pkt av.Packet,Cstream av.CodecData) (err error) {
 		}
 	}
 	return
-}
+}*/

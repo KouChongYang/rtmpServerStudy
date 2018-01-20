@@ -118,9 +118,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 	if AvHeader == true {
 		return
 	}
-	if len(session.RecodeCachedPkts) >5{
-
-	}
+	RecordHandler(session,session.vCodec,pkt)
 	return
 }
 
@@ -236,7 +234,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 	if AvHeader == true {
 		return
 	}
-
+	RecordHandler(session,session.vCodec,pkt)
 	return
 }
 

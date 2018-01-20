@@ -334,6 +334,8 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 		go rtmpClientPullProxy(session,"tcp", session.pushIp,url1,stageSessionDone)
 		//rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage, flags int)
 	}
+
+	RecordPublishHandler(session)
 	session.stage = stageCommandDone
 	return
 }

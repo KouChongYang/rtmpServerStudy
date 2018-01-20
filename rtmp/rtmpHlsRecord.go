@@ -9,6 +9,7 @@ import (
 	"rtmpServerStudy/flv/flvio"
 	"rtmpServerStudy/aacParse"
 	"strings"
+//	"rtmpServerStudy/ts/tsio"
 )
 
 //hls点播
@@ -78,16 +79,16 @@ type  hlsLiveRecordInfo struct {
 	lastAudioTs      time.Duration
 	lastVideoTs      time.Duration
 	lastTs           time.Duration
-	audioCachedPkts  [](*ts.AudioPacket)
+	audioCachedPkts  [](*av.Packet)
 	tsBackFileName   string
 	m3u8BackFileName string
 	//是否该切片
 	force            bool
 	duration 	 float32
-	aframeNum      	int64
+	aframeNum      	uint64
 
-	audioPts 	time.Duration
-	audioBaseTime   time.Duration
+	audioPts 	uint64
+	audioBaseTime   uint64
 }
 
 //打开新的文件
@@ -116,8 +117,8 @@ func hlsLiveRecordOpenFragment(self *Session,stream av.CodecData,pkt *av.Packet)
 	//open ts 首先写入音频
 	if len(self.hlsLiveRecordInfo.audioCachedPkts) >0 {
 		//写入audio
-		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts,self.aCodec)
-		self.hlsLiveRecordInfo.audioCachedPkts = make([](*ts.AudioPacket),0,10)
+		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts,self.aCodec,self.hlsLiveRecordInfo.audioPts)
+		self.hlsLiveRecordInfo.audioCachedPkts = make([](*av.Packet),0,10)
 	}
 }
 
@@ -128,12 +129,12 @@ func hlsLiveRecordCloseFragment(self *Session,stream av.CodecData,pkt *av.Packet
 	//self.hlsLiveRecordInfo.tsBackFileName = fmt.Sprintf("%s%d.tsbak",self.UserCnf.RecodeHlsPath,time.Now().UnixNano()/1000000)
 }
 
-func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flush_rate int){
+func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flush_rate uint64){
 
 	cutting := 0
 
 	//大于5s 切片
-	self.hlsLiveRecordInfo.duration = flvio.TimeToTs(pkt.Time - self.hlsLiveRecordInfo.lastTs)/(90.0)
+	self.hlsLiveRecordInfo.duration = float32(flvio.TimeToTs(pkt.Time - self.hlsLiveRecordInfo.lastTs))/(90.0)
 	if self.hlsLiveRecordInfo.duration > 5.0 {
 		cutting = 1
 	}else{
@@ -148,10 +149,10 @@ func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flus
 
 	//see see nginx
 	if len(self.hlsLiveRecordInfo.audioCachedPkts) >0 &&
-		(self.hlsLiveRecordInfo.audioPts + 300 * 90 / flush_rate) < flvio.TimeToTs(pkt.Time) {
+		(self.hlsLiveRecordInfo.audioPts + 300 * 90 / flush_rate) < uint64(flvio.TimeToTs(pkt.Time)) {
 		//写入audio
 		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts,self.aCodec,self.hlsLiveRecordInfo.audioPts)
-		self.hlsLiveRecordInfo.audioCachedPkts = make([](*ts.AudioPacket),0,10)
+		self.hlsLiveRecordInfo.audioCachedPkts = make([](*av.Packet),0,10)
 	}
 
 	return
@@ -179,7 +180,7 @@ func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	//判断cacheNum
 	cacheNum := len(self.hlsLiveRecordInfo.audioCachedPkts)
 
-	pts := flvio.TimeToTs(pkt.Time) * 90
+	pts := uint64(flvio.TimeToTs(pkt.Time) * 90)
 
 	//判读是否切片，如果需要就切片
 	hlsLiveUpdateFragment(self ,stream,pkt,2)
@@ -191,29 +192,26 @@ func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	}
 
 	//
-	var audioPkt ts.AudioPacket
-	audioPkt.Pkt = pkt
-
 	//缓存音频
-	self.hlsLiveRecordInfo.audioCachedPkts = append(self.hlsLiveRecordInfo.audioCachedPkts,&audioPkt)
+	self.hlsLiveRecordInfo.audioCachedPkts = append(self.hlsLiveRecordInfo.audioCachedPkts,pkt)
 	if len(self.hlsLiveRecordInfo.audioCachedPkts)>0{
 		self.hlsLiveRecordInfo.aframeNum++
 		return
 	}
 
 	//更新pts 只有缓存第一个音频时才需要更新pts（其他缓存的音频参考该pts）
-	audioPkt.Time = pts
-	self.hlsLiveRecordInfo.audioPts = pts
+	self.hlsLiveRecordInfo.audioPts = uint64(pts)
 
 	codec := stream.(aacparser.CodecData)
 	if codec.SampleFormat() <=0{
 		return
 	}
+
 	est_pts := self.hlsLiveRecordInfo.audioBaseTime + self.hlsLiveRecordInfo.aframeNum * 90000 * 1024 /
-		codec.SampleRate()
+		uint64(codec.SampleRate())
 
 	//
-	dpts := (est_pts - pts)
+	dpts := int64(est_pts - pts)
 
 	//pts
 	if (dpts <= 2 * 90) && (dpts >= (2 * -90)){
@@ -229,6 +227,7 @@ func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 }
 
 func hlsLiveRecord(self *Session,stream av.CodecData,pkt *av.Packet){
+	//init
 	if self.hlsLiveRecordInfo.muxer == nil {
 		self.hlsLiveRecordInfo.audioCachedPkts = make([]*av.Packet,0,1024)
 		self.hlsLiveRecordInfo.tsBackFileName = fmt.Sprintf("%s%d.tsbak",self.UserCnf.RecodeHlsPath,time.Now().UnixNano()/1000000)
@@ -249,14 +248,12 @@ func hlsLiveRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 		self.hlsLiveRecordInfo.lastTs =  pkt.Time
 	}
 
+
 	switch pkt.PacketType {
 	case RtmpMsgAudio:
 		hlsAudioRecord(self,stream,pkt)
 	case RtmpMsgVideo:
 		hlsVedioRecord(self,stream,pkt)
 	}
-
-	if pkt.IsKeyFrame && (pkt.Time - self.hlsLiveRecordInfo.lastTs) > time.Duration(5000){
-		return
-	}
+	return
 }
