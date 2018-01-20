@@ -7,7 +7,7 @@ import (
 	"time"
 	"rtmpServerStudy/ts"
 	"rtmpServerStudy/flv/flvio"
-	"rtmpServerStudy/aacParse"
+//	"rtmpServerStudy/aacParse"
 	"strings"
 //	"rtmpServerStudy/ts/tsio"
 )
@@ -115,11 +115,11 @@ func hlsLiveRecordOpenFragment(self *Session,stream av.CodecData,pkt *av.Packet)
 	self.hlsLiveRecordInfo.lastTs =  pkt.Time
 
 	//open ts 首先写入音频
-	if len(self.hlsLiveRecordInfo.audioCachedPkts) >0 {
+	/*if len(self.hlsLiveRecordInfo.audioCachedPkts) >0 {
 		//写入audio
 		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts,self.aCodec,self.hlsLiveRecordInfo.audioPts)
 		self.hlsLiveRecordInfo.audioCachedPkts = make([](*av.Packet),0,10)
-	}
+	}*/
 }
 
 func hlsLiveRecordCloseFragment(self *Session,stream av.CodecData,pkt *av.Packet){
@@ -148,12 +148,12 @@ func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flus
 	}
 
 	//see see nginx
-	if len(self.hlsLiveRecordInfo.audioCachedPkts) >0 &&
+	/*if len(self.hlsLiveRecordInfo.audioCachedPkts) >0 &&
 		(self.hlsLiveRecordInfo.audioPts + 300 * 90 / flush_rate) < uint64(flvio.TimeToTs(pkt.Time)) {
 		//写入audio
 		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts,self.aCodec,self.hlsLiveRecordInfo.audioPts)
 		self.hlsLiveRecordInfo.audioCachedPkts = make([](*av.Packet),0,10)
-	}
+	}*/
 
 	return
 }
@@ -168,11 +168,25 @@ func hlsVedioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 		hlsLiveUpdateFragment(self ,stream,pkt,1)
 	}
 	//将vedio 写入文件
-	self.hlsLiveRecordInfo.muxer.WriteVedioPacket(pkt,stream)
+	self.hlsLiveRecordInfo.muxer.WritePacket(pkt,stream)
 	return
 }
 
 func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
+	//no body
+	if len(pkt.Data[pkt.DataPos:])<=0{
+		return
+	}
+	//关键帧判断是否需求切割
+	if pkt.IsKeyFrame {
+		hlsLiveUpdateFragment(self ,stream,pkt,1)
+	}
+	//将vedio 写入文件
+	self.hlsLiveRecordInfo.muxer.WritePacket(pkt,stream)
+	return
+}
+
+/*func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	//no body
 	if len(pkt.Data[pkt.DataPos:])<=0 {
 		return
@@ -224,7 +238,7 @@ func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	self.hlsLiveRecordInfo.aframeNum  = 1
 
 	return
-}
+}*/
 
 func hlsLiveRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	//init

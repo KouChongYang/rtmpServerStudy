@@ -11,6 +11,7 @@ import (
 	//"encoding/hex"
 	"bufio"
 	"github.com/nareix/bits/pio"
+	"time"
 )
 
 //now just support aac h264 for ts
@@ -198,7 +199,7 @@ func (self *Muxer) WriteHeader() (err error) {
 	return
 }
 
-func (self *Muxer)WriteVedioPacket(pkt *av.Packet,Cstream av.CodecData)(err error){
+/*func (self *Muxer)WriteVedioPacket(pkt *av.Packet,Cstream av.CodecData)(err error){
 
 	//codec := self.vstream.CodecData.(h264parser.CodecData)
 	codec := Cstream.(*h264parser.CodecData)
@@ -246,10 +247,10 @@ func (self *Muxer)WriteVedioPacket(pkt *av.Packet,Cstream av.CodecData)(err erro
 	}
 
 	return
-}
+}*/
 
 //const NGX_RTMP_HLS_DELAY = 63000
-func (self *Muxer)WriteAudioPacket(pkts []*av.Packet,Cstream av.CodecData,pts uint64)(err error){
+/*func (self *Muxer)WriteAudioPacket(pkts []*av.Packet,Cstream av.CodecData,pts uint64)(err error){
 	datav:=make([][]byte,(len(pkts)+1)*2+1)
 
 	audioLen:=0
@@ -271,9 +272,9 @@ func (self *Muxer)WriteAudioPacket(pkts []*av.Packet,Cstream av.CodecData,pts ui
 		return
 	}
 	return
-}
+}*/
 
-/*func (self *Muxer) WritePacket(pkt av.Packet,Cstream av.CodecData) (err error) {
+func (self *Muxer) WritePacket(pkt *av.Packet,Cstream av.CodecData) (err error) {
 
 	pkt.Time += time.Second
 	switch Cstream.Type() {
@@ -331,4 +332,4 @@ func (self *Muxer)WriteAudioPacket(pkts []*av.Packet,Cstream av.CodecData,pts ui
 		}
 	}
 	return
-}*/
+}
