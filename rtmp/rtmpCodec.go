@@ -234,7 +234,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 	if AvHeader == true {
 		return
 	}
-	RecordHandler(session,session.vCodec,pkt)
+	RecordHandler(session,session.aCodec,pkt)
 	return
 }
 
