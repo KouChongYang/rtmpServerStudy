@@ -256,12 +256,12 @@ func (self *Muxer)WriteAudioPacket(pkts []*av.Packet,Cstream av.CodecData,pts ui
 	j:=1
 	for i,_:= range pkts {
 		codec := Cstream.(aacparser.CodecData)
-		aacparser.FillADTSHeader(self.adtshdr, codec.Config, 1024, len(pkts[i].Pkt.Data[pkts[i].Pkt.DataPos:]))
+		aacparser.FillADTSHeader(self.adtshdr, codec.Config, 1024, len(pkts[i].Data[pkts[i].DataPos:]))
 		datav[j] = self.adtshdr
 		j++
-		datav[j] = pkts[i].Pkt.Data[pkts[i].Pkt.DataPos:]
+		datav[j] = pkts[i].Data[pkts[i].DataPos:]
 		j++
-		audioLen+=len(self.adtshdr) + len(pkts[i].Pkt.Data[pkts[i].Pkt.DataPos:])
+		audioLen+=len(self.adtshdr) + len(pkts[i].Data[pkts[i].DataPos:])
 	}
 
 	n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC,audioLen ,pts, 0)
