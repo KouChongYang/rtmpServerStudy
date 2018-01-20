@@ -281,11 +281,11 @@ func (self *Muxer) WritePacket(pkt *av.Packet,Cstream av.CodecData) (err error) 
 	case av.AAC:
 
 		codec := Cstream.(*aacparser.CodecData)
-		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC, len(self.adtshdr)+len(pkt.Data[pkt.DataPos:0]), pkt.Time, 0)
+		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC, len(self.adtshdr)+len(pkt.Data[pkt.DataPos:]), pkt.Time, 0)
 		self.datav[0] = self.peshdr[:n]
-		aacparser.FillADTSHeader(self.adtshdr, codec.Config, 1024, len(pkt.Data[pkt.DataPos:0]))
+		aacparser.FillADTSHeader(self.adtshdr, codec.Config, 1024, len(pkt.Data[pkt.DataPos:]))
 		self.datav[1] = self.adtshdr
-		self.datav[2] = pkt.Data
+		self.datav[2] = pkt.Data[pkt.DataPos:]
 
 		if err = self.astream.tsw.WritePackets(self.bufw, self.datav[:3], 0, true, false); err != nil {
 			return
