@@ -250,7 +250,7 @@ func (self *Muxer)WriteVedioPacket(pkt *av.Packet,Cstream av.CodecData)(err erro
 
 //const NGX_RTMP_HLS_DELAY = 63000
 func (self *Muxer)WriteAudioPacket(pkts []*av.Packet,Cstream av.CodecData,pts uint64)(err error){
-	datav:=make([][]byte,0,(len(pkts)+1)*2+1)
+	datav:=make([][]byte,(len(pkts)+1)*2+1)
 
 	audioLen:=0
 	j:=1
@@ -267,7 +267,7 @@ func (self *Muxer)WriteAudioPacket(pkts []*av.Packet,Cstream av.CodecData,pts ui
 	n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC,audioLen ,pts, 0)
 	datav[0] = self.peshdr[:n]
 
-	if err = self.astream.tsw.WritePackets(self.bufw, self.datav[:j],0, true, false); err != nil {
+	if err = self.astream.tsw.WritePackets(self.bufw, datav[:j],0, true, false); err != nil {
 		return
 	}
 	return
