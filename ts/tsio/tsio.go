@@ -656,7 +656,7 @@ func (self *TSWriter) WritePackets(w *bufio.Writer, datav [][]byte, pcr time.Dur
 				hdrlen += 6
 				//set pcr flag 0x10
 				self.tshdr[5] = 0x10|self.tshdr[5] // PCR flag (Discontinuity indicator 0x80)
-				pio.PutU48BE(self.tshdr[6:12], tsio.TimeToPCR(pcr))
+				pio.PutU48BE(self.tshdr[6:12], (pcr))
 			}
 			if sync {
 				self.tshdr[5] = 0x40|self.tshdr[5] // Random Access indicator

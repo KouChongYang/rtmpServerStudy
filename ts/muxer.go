@@ -280,19 +280,19 @@ func (self *Muxer) WritePacket(pkt *av.Packet,Cstream av.CodecData) (err error) 
 	switch Cstream.Type() {
 	case av.AAC:
 
-		codec := self.astream.CodecData.(*aacparser.CodecData)
+		codec := Cstream.(*aacparser.CodecData)
 		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC, len(self.adtshdr)+len(pkt.Data), pkt.Time, 0)
 		self.datav[0] = self.peshdr[:n]
 		aacparser.FillADTSHeader(self.adtshdr, codec.Config, 1024, len(pkt.Data))
 		self.datav[1] = self.adtshdr
 		self.datav[2] = pkt.Data
 
-		if err = self.astream.tsw.WritePackets(self.bufw, self.datav[:3], pkt.Time, true, false); err != nil {
+		if err = self.astream.tsw.WritePackets(self.bufw, self.datav[:3], 0, true, false); err != nil {
 			return
 		}
 
 	case av.H264:
-		codec := self.vstream.CodecData.(*h264parser.CodecData)
+		codec := Cstream.(*h264parser.CodecData)
 
 		nalus := self.nalus[:0]
 		if pkt.IsKeyFrame {
@@ -326,8 +326,13 @@ func (self *Muxer) WritePacket(pkt *av.Packet,Cstream av.CodecData) (err error) 
 
 		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdH264, -1, pkt.Time+pkt.CompositionTime, pkt.Time)
 		datav[0] = self.peshdr[:n]
-
-		if err = self.vstream.tsw.WritePackets(self.bufw, datav, pkt.Time, pkt.IsKeyFrame, false); err != nil {
+		var pcr uint64
+		if pkt.IsKeyFrame{
+			pcr = tsio.TimeToPCR(pkt.Time)
+		}else{
+			pcr = uint64(0)
+		}
+		if err = self.vstream.tsw.WritePackets(self.bufw, datav, pcr, pkt.IsKeyFrame, false); err != nil {
 			return
 		}
 	}
