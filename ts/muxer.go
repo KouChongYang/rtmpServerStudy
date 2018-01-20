@@ -281,9 +281,9 @@ func (self *Muxer) WritePacket(pkt *av.Packet,Cstream av.CodecData) (err error) 
 	case av.AAC:
 
 		codec := Cstream.(*aacparser.CodecData)
-		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC, len(self.adtshdr)+len(pkt.Data), pkt.Time, 0)
+		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC, len(self.adtshdr)+len(pkt.Data[pkt.DataPos:0]), pkt.Time, 0)
 		self.datav[0] = self.peshdr[:n]
-		aacparser.FillADTSHeader(self.adtshdr, codec.Config, 1024, len(pkt.Data))
+		aacparser.FillADTSHeader(self.adtshdr, codec.Config, 1024, len(pkt.Data[pkt.DataPos:0]))
 		self.datav[1] = self.adtshdr
 		self.datav[2] = pkt.Data
 
@@ -300,7 +300,7 @@ func (self *Muxer) WritePacket(pkt *av.Packet,Cstream av.CodecData) (err error) 
 			nalus = append(nalus, codec.PPS())
 		}
 
-		pktnalus, _ := h264parser.SplitNALUs(pkt.Data)
+		pktnalus, _ := h264parser.SplitNALUs(pkt.Data[pkt.DataPos:])
 		for _, pktnalu:= range pktnalus {
 			nalus = append(nalus, pktnalu)
 		}
