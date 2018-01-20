@@ -201,7 +201,7 @@ func (self *Muxer) WriteHeader() (err error) {
 func (self *Muxer)WriteVedioPacket(pkt *av.Packet,Cstream av.CodecData)(err error){
 
 	//codec := self.vstream.CodecData.(h264parser.CodecData)
-	codec := Cstream.(h264parser.CodecData)
+	codec := Cstream.(*h264parser.CodecData)
 	nalus := self.nalus[:0]
 	if pkt.IsKeyFrame {
 		nalus = append(nalus, codec.SPS())
@@ -255,7 +255,7 @@ func (self *Muxer)WriteAudioPacket(pkts []*av.Packet,Cstream av.CodecData,pts ui
 	audioLen:=0
 	j:=1
 	for i,_:= range pkts {
-		codec := Cstream.(aacparser.CodecData)
+		codec := Cstream.(*aacparser.CodecData)
 		aacparser.FillADTSHeader(self.adtshdr, codec.Config, 1024, len(pkts[i].Data[pkts[i].DataPos:]))
 		datav[j] = self.adtshdr
 		j++

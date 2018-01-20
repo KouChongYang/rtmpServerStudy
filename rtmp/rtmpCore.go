@@ -825,7 +825,7 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 					buf := make([]byte, size)
 					buf = buf[:runtime.Stack(buf, false)]
 					session.rtmpCloseSessionHanler()
-					fmt.Println("rtmp: panic serving %v: %v\n%s", session.netconn.RemoteAddr(), err, buf)
+					fmt.Println("rtmp: panic serving %v: %v\n%s", session.netconn.RemoteAddr(), err, string(buf))
 				}
 			}()
 

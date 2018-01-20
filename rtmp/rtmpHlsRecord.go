@@ -134,7 +134,7 @@ func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flus
 	cutting := 0
 
 	//大于5s 切片
-	self.hlsLiveRecordInfo.duration = float32(flvio.TimeToTs(pkt.Time - self.hlsLiveRecordInfo.lastTs))/(90.0)
+	self.hlsLiveRecordInfo.duration = float32(flvio.TimeToTs(pkt.Time - self.hlsLiveRecordInfo.lastTs))/(1000.0)
 	if self.hlsLiveRecordInfo.duration > 5.0 {
 		cutting = 1
 	}else{
