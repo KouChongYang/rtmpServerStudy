@@ -144,7 +144,6 @@ type Session struct {
 	recordTime        time.Time
 	//hls 直播录制ts状态信息
 	hlsLiveRecordInfo  hlsLiveRecordInfo
-
 }
 
 const (

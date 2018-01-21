@@ -11,6 +11,7 @@ import (
 	"strings"
 //	"rtmpServerStudy/ts/tsio"
 //	"rtmpServerStudy/aacParse"
+	"io/ioutil"
 )
 
 //hls点播
@@ -47,7 +48,6 @@ func hlsLiveRecordOnPublish(self *Session){
 		fmt.Printf("%s\n",err.Error())
 		return
 	}
-
 	return
 }
 
@@ -82,6 +82,7 @@ type  hlsLiveRecordInfo struct {
 	lastTs           time.Duration
 	audioCachedPkts  [](*av.Packet)
 	tsBackFileName   string
+	tsName 		 string
 	m3u8BackFileName string
 	//是否该切片
 	force            bool
@@ -90,12 +91,16 @@ type  hlsLiveRecordInfo struct {
 
 	audioPts 	time.Duration
 	audioBaseTime   time.Duration
+	m3u8Box *m3u8Box
+	seqNum uint64
 }
 
 //打开新的文件
 func hlsLiveRecordOpenFragment(self *Session,stream av.CodecData,pkt *av.Packet){
 
-	self.hlsLiveRecordInfo.tsBackFileName = fmt.Sprintf("%s%d.tsbak",self.UserCnf.RecodeHlsPath,time.Now().UnixNano()/1000000)
+	nowTime:=time.Now().UnixNano()/1000000
+	self.hlsLiveRecordInfo.tsBackFileName = fmt.Sprintf("%s%d.tsbak",self.UserCnf.RecodeHlsPath,nowTime)
+	self.hlsLiveRecordInfo.tsName = fmt.Sprintf("%d.ts",nowTime)
 	fmt.Println(self.hlsLiveRecordInfo.tsBackFileName)
 	f1, err := FileCreate(self.hlsLiveRecordInfo.tsBackFileName)
 	if err != nil {
@@ -114,19 +119,27 @@ func hlsLiveRecordOpenFragment(self *Session,stream av.CodecData,pkt *av.Packet)
 		self.hlsLiveRecordInfo.lastVideoTs = pkt.Time
 	}
 	self.hlsLiveRecordInfo.lastTs =  pkt.Time
-
-	//open ts 首先写入音频
-	/*if len(self.hlsLiveRecordInfo.audioCachedPkts) >0 {
-		//写入audio
-		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts,self.aCodec,self.hlsLiveRecordInfo.audioPts)
-		self.hlsLiveRecordInfo.audioCachedPkts = make([](*av.Packet),0,10)
-	}*/
+	self.hlsLiveRecordInfo.seqNum++
 }
 
 func hlsLiveRecordCloseFragment(self *Session,stream av.CodecData,pkt *av.Packet){
 	self.hlsLiveRecordInfo.muxer.WriteTrailer()
 	dstkey := strings.Replace(self.hlsLiveRecordInfo.tsBackFileName, ".tsbak", ".ts", 1)
 	os.Rename(self.hlsLiveRecordInfo.tsBackFileName, dstkey)
+	tsitem := NewTSItem(self.hlsLiveRecordInfo.tsName,self.hlsLiveRecordInfo.duration,self.hlsLiveRecordInfo.seqNum)
+	//写m3u8
+	self.hlsLiveRecordInfo.m3u8Box.SetItem(tsitem)
+	b,err:=self.hlsLiveRecordInfo.m3u8Box.GenM3U8PlayList()
+	if err != nil{
+		fmt.Println(err)
+		return
+	}
+
+	err = ioutil.WriteFile(self.hlsLiveRecordInfo.m3u8BackFileName, b, 0666)
+	if err != nil{
+		fmt.Println(err)
+	}
+
 	//self.hlsLiveRecordInfo.tsBackFileName = fmt.Sprintf("%s%d.tsbak",self.UserCnf.RecodeHlsPath,time.Now().UnixNano()/1000000)
 }
 
@@ -201,9 +214,6 @@ func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 		self.hlsLiveRecordInfo.audioPts = pts
 		return
 	}
-	if cacheNum == 0{
-		self.hlsLiveRecordInfo.audioPts = pts
-	}
 	//
 	//缓存音频
 	self.hlsLiveRecordInfo.audioCachedPkts = append(self.hlsLiveRecordInfo.audioCachedPkts,pkt)
@@ -248,7 +258,9 @@ func hlsLiveRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	//init
 	if self.hlsLiveRecordInfo.muxer == nil {
 		self.hlsLiveRecordInfo.audioCachedPkts = make([]*av.Packet,0,1024)
-		self.hlsLiveRecordInfo.tsBackFileName = fmt.Sprintf("%s%d.tsbak",self.UserCnf.RecodeHlsPath,time.Now().UnixNano()/1000000)
+		nowTime:=time.Now().UnixNano()/1000000
+		self.hlsLiveRecordInfo.tsBackFileName = fmt.Sprintf("%s%d.tsbak",self.UserCnf.RecodeHlsPath,nowTime)
+		self.hlsLiveRecordInfo.tsName = fmt.Sprintf("%d.ts",nowTime)
 		fmt.Println(self.hlsLiveRecordInfo.tsBackFileName)
 		f1, err := FileCreate(self.hlsLiveRecordInfo.tsBackFileName)
 		if err != nil {
@@ -264,6 +276,8 @@ func hlsLiveRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 			self.hlsLiveRecordInfo.lastVideoTs = pkt.Time
 		}
 		self.hlsLiveRecordInfo.lastTs =  pkt.Time
+		self.hlsLiveRecordInfo.m3u8BackFileName = fmt.Sprintf("%sindex.m3u8",self.UserCnf.RecodeHlsPath)
+		self.hlsLiveRecordInfo.m3u8Box = NewM3u8Box(self.StreamId)
 	}
 
 
