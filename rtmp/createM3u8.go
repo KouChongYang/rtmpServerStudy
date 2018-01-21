@@ -68,7 +68,7 @@ func (self *m3u8Box) GenM3U8PlayList() ([]byte, error) {
 	w := bytes.NewBuffer(nil)
 	fmt.Fprintf(w,
 		"#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-ALLOW-CACHE:NO\n#EXT-X-TARGETDURATION:%d\n#EXT-X-MEDIA-SEQUENCE:%d\n\n",
-		int32(maxDuration), seq)
+		int32(maxDuration)+1, seq)
 	w.Write(m3u8body.Bytes())
 	return w.Bytes(), nil
 }
