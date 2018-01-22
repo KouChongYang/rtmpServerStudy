@@ -80,10 +80,14 @@ func (self *Session)RtmpChckeApp(host ,app string)(err error){
 		self.flushWrite()
 	}else{
 		if PlayOk{
-			self.UserCnf = *(Gconfig.UserConf.PlayDomain[host].App[app])
+			if Gconfig.UserConf.PlayDomain[host].App[app] != nil {
+				self.UserCnf = *(Gconfig.UserConf.PlayDomain[host].App[app])
+			}
 			self.uniqueName = Gconfig.UserConf.PlayDomain[host].UniqueName
 		}else{
-			self.UserCnf = *(Gconfig.UserConf.PublishDomain[host].App[app])
+			if Gconfig.UserConf.PublishDomain[host].App[app] != nil {
+				self.UserCnf = *(Gconfig.UserConf.PublishDomain[host].App[app])
+			}
 			self.uniqueName = Gconfig.UserConf.PublishDomain[host].UniqueName
 		}
 	}

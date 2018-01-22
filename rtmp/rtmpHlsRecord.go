@@ -42,7 +42,7 @@ func hlsLiveRecordOnPublish(self *Session){
 	}
 
 	// /data/hls/test/app/
-	self.UserCnf.RecodeHlsPath = fmt.Sprintf("%s%s/%s/",self.UserCnf.RecodeHlsPath,self.uniqueName,self.App)
+	self.UserCnf.RecodeHlsPath = fmt.Sprintf("%s%s/%s/%s/",self.UserCnf.RecodeHlsPath,self.uniqueName,self.App,self.StreamId)
 	err:=os.MkdirAll(self.UserCnf.RecodeHlsPath,0666)
 	if err != nil{
 		fmt.Printf("%s\n",err.Error())
