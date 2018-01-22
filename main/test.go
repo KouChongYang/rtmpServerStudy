@@ -44,6 +44,7 @@ func main() {
 	go func() {
 		fmt.Println(http.ListenAndServe(":6060", nil))
 	}()
+
 	confFile := fmt.Sprintf("%s%s", GDefaultPath, GConfFile)
 	if err,srv:=rtmp.NewServer(confFile);err != nil {
 		return

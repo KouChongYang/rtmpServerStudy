@@ -99,6 +99,7 @@ type  hlsLiveRecordInfo struct {
 func hlsLiveRecordOpenFragment(self *Session,stream av.CodecData,pkt *av.Packet){
 
 	nowTime:=time.Now().UnixNano()/1000000
+	err:=os.MkdirAll(self.UserCnf.RecodeHlsPath,0666)
 	self.hlsLiveRecordInfo.tsBackFileName = fmt.Sprintf("%s%d.tsbak",self.UserCnf.RecodeHlsPath,nowTime)
 	self.hlsLiveRecordInfo.tsName = fmt.Sprintf("%d.ts",nowTime)
 	fmt.Println(self.hlsLiveRecordInfo.tsBackFileName)
