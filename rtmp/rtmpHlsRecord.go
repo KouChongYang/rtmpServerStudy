@@ -278,7 +278,7 @@ func hlsLiveRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 		self.hlsLiveRecordInfo.lastTs =  pkt.Time
 		self.hlsLiveRecordInfo.m3u8BackFileName = fmt.Sprintf("%sindex.m3u8",self.UserCnf.RecodeHlsPath)
 		self.hlsLiveRecordInfo.m3u8Box = NewM3u8Box(self.StreamId)
-		self.hlsLiveRecordInfo.seqNum = nowTime
+		self.hlsLiveRecordInfo.seqNum = uint64(nowTime)
 
 	}
 
