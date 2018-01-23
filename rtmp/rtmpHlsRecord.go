@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"github.com/gorilla/mux"
+	"rtmpServerStudy/aacParse"
 )
 
 //hls点播
@@ -92,8 +93,8 @@ type  hlsLiveRecordInfo struct {
 	duration 	 float32
 	aframeNum      	uint64
 
-	audioPts 	time.Duration
-	audioBaseTime   time.Duration
+	audioPts 	uint64
+	audioBaseTime   uint64
 	m3u8Box *m3u8Box
 	seqNum uint64
 }
@@ -124,6 +125,10 @@ func hlsLiveRecordOpenFragment(self *Session,stream av.CodecData,pkt *av.Packet)
 	}
 	self.hlsLiveRecordInfo.lastTs =  pkt.Time
 	self.hlsLiveRecordInfo.seqNum++
+
+	//flush audio
+	self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts, self.aCodec, self.hlsLiveRecordInfo.audioPts)
+	self.hlsLiveRecordInfo.audioCachedPkts = make([](*av.Packet), 0, 10)
 }
 
 func hlsLiveRecordCloseFragment(self *Session,stream av.CodecData,pkt *av.Packet){
@@ -144,6 +149,7 @@ func hlsLiveRecordCloseFragment(self *Session,stream av.CodecData,pkt *av.Packet
 		fmt.Println(err)
 	}
 
+
 	//self.hlsLiveRecordInfo.tsBackFileName = fmt.Sprintf("%s%d.tsbak",self.UserCnf.RecodeHlsPath,time.Now().UnixNano()/1000000)
 }
 
@@ -155,10 +161,7 @@ func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flus
 	self.hlsLiveRecordInfo.duration = float32(flvio.TimeToTs(pkt.Time - self.hlsLiveRecordInfo.lastTs))/(1000.0)
 	if self.hlsLiveRecordInfo.duration > 5.0 {
 		cutting = 1
-	}else{
-		return
 	}
-
 	//需要切割
 	if cutting == 1 {
 		hlsLiveRecordCloseFragment(self,stream,pkt)
@@ -166,6 +169,11 @@ func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flus
 	}
 
 	//see see nginx
+	if len(self.hlsLiveRecordInfo.audioCachedPkts) >0 &&
+		((self.hlsLiveRecordInfo.audioPts  + 300 * 90 / flush_rate)< uint64(flvio.TimeToTs(pkt.Time)*90)){
+		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts, self.aCodec, self.hlsLiveRecordInfo.audioPts)
+		self.hlsLiveRecordInfo.audioCachedPkts = make([](*av.Packet), 0, 10)
+	}
 	return
 }
 
@@ -202,43 +210,24 @@ func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	if len(pkt.Data[pkt.DataPos:])<=0 {
 		return
 	}
-	//判断cacheNum
-	cacheNum := len(self.hlsLiveRecordInfo.audioCachedPkts)
 
-	pts := (pkt.Time)
+	pts := uint64(flvio.TimeToTs(pkt.Time)*90)
 
 	//判读是否切片，如果需要就切片
 	hlsLiveUpdateFragment(self ,stream,pkt,2)
-
-	//缓存太多音频，估计音频有问题
-	if cacheNum >= 1024 {
-		fmt.Printf("hls vod: too many audio frame the num:%d", cacheNum)
-		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts,self.aCodec,self.hlsLiveRecordInfo.audioPts)
-		self.hlsLiveRecordInfo.audioCachedPkts = make([](*av.Packet),0,10)
-		self.hlsLiveRecordInfo.audioPts = pts
-		return
-	}
-	//
 	//缓存音频
 	self.hlsLiveRecordInfo.audioCachedPkts = append(self.hlsLiveRecordInfo.audioCachedPkts,pkt)
-	if pts - self.hlsLiveRecordInfo.audioPts > 720{
-		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts,self.aCodec,self.hlsLiveRecordInfo.audioPts)
-		self.hlsLiveRecordInfo.audioCachedPkts = make([](*av.Packet),0,10)
-		self.hlsLiveRecordInfo.audioPts = pts
-	}
-	/*if len(self.hlsLiveRecordInfo.audioCachedPkts)>0{
+	if len(self.hlsLiveRecordInfo.audioCachedPkts)>1{
 		self.hlsLiveRecordInfo.aframeNum++
 		return
 	}
 
 	//更新pts 只有缓存第一个音频时才需要更新pts（其他缓存的音频参考该pts）
 	self.hlsLiveRecordInfo.audioPts = uint64(pts)
-
 	codec := stream.(aacparser.CodecData)
 	if codec.SampleFormat() <=0{
 		return
 	}
-
 	est_pts := self.hlsLiveRecordInfo.audioBaseTime + self.hlsLiveRecordInfo.aframeNum * 90000 * 1024 /
 		uint64(codec.SampleRate())
 
@@ -253,7 +242,7 @@ func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	}
 
 	self.hlsLiveRecordInfo.audioBaseTime = pts
-	self.hlsLiveRecordInfo.aframeNum  = 1*/
+	self.hlsLiveRecordInfo.aframeNum  = 1
 
 	return
 }
