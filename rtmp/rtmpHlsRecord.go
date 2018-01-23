@@ -12,6 +12,9 @@ import (
 //	"rtmpServerStudy/ts/tsio"
 //	"rtmpServerStudy/aacParse"
 	"io/ioutil"
+	"net/http"
+	"net/url"
+	"github.com/gorilla/mux"
 )
 
 //hls点播
@@ -202,7 +205,7 @@ func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	//判断cacheNum
 	cacheNum := len(self.hlsLiveRecordInfo.audioCachedPkts)
 
-	pts := pkt.Time
+	pts := (pkt.Time)
 
 	//判读是否切片，如果需要就切片
 	hlsLiveUpdateFragment(self ,stream,pkt,2)
@@ -291,4 +294,48 @@ func hlsLiveRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 		hlsVedioRecord(self,stream,pkt)
 	}
 	return
+}
+
+func m3u8Handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.URL.Path)
+	//itmes:=strings.Split(r.URL.Path, ".flv")
+	host := r.Host
+	m, _ := url.ParseQuery(r.URL.RawQuery)
+	if len(m["vhost"]) > 0 {
+		host = m["vhost"][0]
+	}
+	if _, PlayOk := Gconfig.UserConf.PlayDomain[host]; PlayOk == false {
+		w.WriteHeader(404)
+	}
+
+	//hashPath:=itmes[0]
+	//fmt.Println(hashPath)
+	name := mux.Vars(r)["name"]
+	app := mux.Vars(r)["app"]
+	fmt.Println(name, app)
+	StreamAnchor := name + ":" + Gconfig.UserConf.PlayDomain[host].UniqueName + ":" + app
+	pubSession := RtmpSessionGet(StreamAnchor)
+	fmt.Println(pubSession)
+}
+
+func tsHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.URL.Path)
+	//itmes:=strings.Split(r.URL.Path, ".flv")
+	host := r.Host
+	m, _ := url.ParseQuery(r.URL.RawQuery)
+	if len(m["vhost"]) > 0 {
+		host = m["vhost"][0]
+	}
+	if _, PlayOk := Gconfig.UserConf.PlayDomain[host]; PlayOk == false {
+		w.WriteHeader(404)
+	}
+
+	//hashPath:=itmes[0]
+	//fmt.Println(hashPath)
+	name := mux.Vars(r)["name"]
+	app := mux.Vars(r)["app"]
+	fmt.Println(name, app)
+	StreamAnchor := name + ":" + Gconfig.UserConf.PlayDomain[host].UniqueName + ":" + app
+	pubSession := RtmpSessionGet(StreamAnchor)
+	fmt.Println(pubSession)
 }

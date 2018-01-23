@@ -29,6 +29,8 @@ func (self *Server) httpServerStart(addr string)(err error) {
 	// Routes consist of a path and a handler function.
 	r.HandleFunc("/test", handler1)
 	r.HandleFunc("/{app}/{name:[A-Za-z0-9-_+]+}.flv",HDLHandler)
+	r.HandleFunc("/{app}/{name:[A-Za-z0-9-_+]+}.m3u8",m3u8Handler)
+	r.HandleFunc("/{app}/{name:[A-Za-z0-9-_+]+}.ts",tsHandler)
 	r.HandleFunc("/debug/pprof/", pprof.Index)
 	r.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	r.HandleFunc("/debug/pprof/profile", pprof.Profile)
