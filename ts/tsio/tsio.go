@@ -698,7 +698,7 @@ func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts time.Duration
 			////If only PTS is present, this is done by catenating 0010b
 			//writeTs(h[9:14], 0 , 1, tsio.TimeToTs(dts))
 			pts1 := uint64(pts*PTS_HZ/time.Second)
-			writeTs(h[9:14], 0 , flags>>6, tsio.TimeToTs(pts1))
+			writeTs(h[9:14], 0 , flags>>6, (pts1))
 			//pio.PutU40BE(h[9:14], tsio.TimeToTs(pts)|2<<36)
 		}
 	}
@@ -724,6 +724,22 @@ func NewTSWriter(pid uint16) *TSWriter {
 	return w
 }
 
+func  writePcr(b []byte, i byte, pcr int64) error {
+	b[i] = byte(pcr >> 25)
+	i++
+	b[i] = byte((pcr >> 17) & 0xff)
+	i++
+	b[i] = byte((pcr >> 9) & 0xff)
+	i++
+	b[i] = byte((pcr >> 1) & 0xff)
+	i++
+	b[i] = byte(((pcr & 0x1) << 7) | 0x7e)
+	i++
+	b[i] = 0x00
+
+	return nil
+}
+
 //write frame to ts file
 func (self *TSWriter) WritePackets(w *bufio.Writer, datav [][]byte, pcr uint64, sync bool, paddata bool) (err error) {
 	datavlen := pio.VecLen(datav)
@@ -746,7 +762,9 @@ func (self *TSWriter) WritePackets(w *bufio.Writer, datav [][]byte, pcr uint64, 
 				hdrlen += 6
 				//set pcr flag 0x10
 				self.tshdr[5] = 0x10|self.tshdr[5] // PCR flag (Discontinuity indicator 0x80)
-				pio.PutU48BE(self.tshdr[6:12], (pcr))
+				//pio.PutU48BE(self.tshdr[6:12], (pcr))
+				pcr1 := uint64(pcr*PTS_HZ/time.Second)
+				writePcr(self.tshdr[6:12],0,pcr1)
 			}
 			if sync {
 				self.tshdr[5] = 0x40|self.tshdr[5] // Random Access indicator

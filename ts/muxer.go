@@ -307,13 +307,13 @@ func (self *Muxer) WritePacket(pkt *av.Packet,Cstream av.CodecData) (err error) 
 
 		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdH264, -1, dts+pkt.CompositionTime, dts)
 		datav[0] = self.peshdr[:n]
-		var pcr uint64
+		/*var pcr uint64
 		if pkt.IsKeyFrame{
 			pcr = tsio.TimeToPCR(dts)
 		}else{
 			pcr = uint64(0)
-		}
-		if err = self.vstream.tsw.WritePackets(self.bufw, datav, pcr, pkt.IsKeyFrame, false); err != nil {
+		}*/
+		if err = self.vstream.tsw.WritePackets(self.bufw, datav, dts, pkt.IsKeyFrame, false); err != nil {
 			return
 		}
 	}
