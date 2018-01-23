@@ -687,15 +687,18 @@ func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts time.Duration
 	//
 	if flags&PTS != 0 {
 		if flags&DTS != 0 {
+			pts1 := uint64(pts*PTS_HZ/time.Second)
+			dts1 := uint64(dts*PTS_HZ/time.Second)
 			//first 4 bits are 0011 and first 4 bits for DTS are 0001
-			writeTs(h[9:14], 0 , flags>>6, tsio.TimeToTs(pts))
-			writeTs(h[14:19], 0 , 1, tsio.TimeToTs(dts))
+			writeTs(h[9:14], 0 , flags>>6, (pts1))
+			writeTs(h[14:19], 0 , 1, (dts1))
 			//pio.PutU40BE(h[9:14], tsio.TimeToTs(pts)|3<<36)
 			//pio.PutU40BE(h[14:19], tsio.TimeToTs(dts)|1<<36)
 		} else {
 			////If only PTS is present, this is done by catenating 0010b
 			//writeTs(h[9:14], 0 , 1, tsio.TimeToTs(dts))
-			writeTs(h[9:14], 0 , flags>>6, tsio.TimeToTs(pts))
+			pts1 := uint64(pts*PTS_HZ/time.Second)
+			writeTs(h[9:14], 0 , flags>>6, tsio.TimeToTs(pts1))
 			//pio.PutU40BE(h[9:14], tsio.TimeToTs(pts)|2<<36)
 		}
 	}
