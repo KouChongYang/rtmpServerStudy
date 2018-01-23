@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"github.com/nareix/bits/pio"
 	"bufio"
-	"github.com/nareix/joy4/format/ts/tsio"
+	//"github.com/nareix/joy4/format/ts/tsio"
 )
+
 
 const (
 	StreamIdH264 = 0xe0
@@ -741,7 +742,7 @@ func  writePcr(b []byte, i byte, pcr int64) error {
 }
 
 //write frame to ts file
-func (self *TSWriter) WritePackets(w *bufio.Writer, datav [][]byte, pcr uint64, sync bool, paddata bool) (err error) {
+func (self *TSWriter) WritePackets(w *bufio.Writer, datav [][]byte, pcr time.Duration, sync bool, paddata bool) (err error) {
 	datavlen := pio.VecLen(datav)
 	writev := make([][]byte, len(datav))
 	writepos := 0
