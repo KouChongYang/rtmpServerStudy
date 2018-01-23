@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/nareix/bits/pio"
 	"bufio"
-	
+
 )
 
 
@@ -725,7 +725,7 @@ func NewTSWriter(pid uint16) *TSWriter {
 	return w
 }
 
-func  writePcr(b []byte, i byte, pcr int64) error {
+func  writePcr(b []byte, i byte, pcr uint64) error {
 	b[i] = byte(pcr >> 25)
 	i++
 	b[i] = byte((pcr >> 17) & 0xff)
