@@ -39,6 +39,9 @@ func (self *Server) httpServerStart(addr string)(err error) {
 	r.Handle("/debug/pprof/heap", pprof.Handler("heap"))
 	r.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
 	r.Handle("/debug/pprof/block", pprof.Handler("block"))
+	r.HandleFunc("/debug/pprof/", pprof.Index)
+	r.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
 	var ln net.Listener
 	if ln,err=self.socketListen(addr);err != nil{
 		return  err
