@@ -469,8 +469,9 @@ func PCRToTime(pcr uint64) (tm time.Duration) {
 
 func TimeToTs(tm time.Duration) (v uint64) {
 	ts := uint64(tm*PTS_HZ/time.Second)
+	return ts
 	// 0010	PTS 32..30 1	PTS 29..15 1 PTS 14..00 1
-	v = ((ts>>30)&0x7)<<33 | ((ts>>15)&0x7fff)<<17 | (ts&0x7fff)<<1 | 0x100010001
+	//v = ((ts>>30)&0x7)<<33 | ((ts>>15)&0x7fff)<<17 | (ts&0x7fff)<<1 | 0x100010001
 	return
 }
 
@@ -691,16 +692,16 @@ func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts uint64) (n in
 			//pts1 := uint64(pts*PTS_HZ/time.Second)
 			//dts1 := uint64(dts*PTS_HZ/time.Second)
 			//first 4 bits are 0011 and first 4 bits for DTS are 0001
-			//writeTs(h[9:14], 0 , flags>>6, (pts1))
-			//writeTs(h[14:19], 0 , 1, (dts1))
-			pio.PutU40BE(h[9:14], (pts)|3<<36)
-			pio.PutU40BE(h[14:19],(dts)|1<<36)
+			writeTs(h[9:14], 0 , flags>>6, (pts))
+			writeTs(h[14:19], 0 , 1, (dts))
+			//pio.PutU40BE(h[9:14], (pts)|3<<36)
+			//pio.PutU40BE(h[14:19],(dts)|1<<36)
 		} else {
 			////If only PTS is present, this is done by catenating 0010b
 			//writeTs(h[9:14], 0 , 1, tsio.TimeToTs(dts))
 			//pts1 := uint64(pts*PTS_HZ/time.Second)
-			//writeTs(h[9:14], 0 , flags>>6, (pts))
-			pio.PutU40BE(h[9:14], (pts)|2<<36)
+			writeTs(h[9:14], 0 , flags>>6, (pts))
+			//pio.PutU40BE(h[9:14], (pts)|2<<36)
 		}
 	}
 

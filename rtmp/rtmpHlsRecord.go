@@ -170,7 +170,7 @@ func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flus
 
 	//see see nginx
 	if len(self.hlsLiveRecordInfo.audioCachedPkts) >0 &&
-		((self.hlsLiveRecordInfo.audioPts  + 300 * 90 / flush_rate)< uint64(flvio.TimeToTs(pkt.Time)*90)){
+		((self.hlsLiveRecordInfo.audioPts  + 30 * 90 / flush_rate)< uint64(flvio.TimeToTs(pkt.Time)*90)){
 		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts, self.aCodec, self.hlsLiveRecordInfo.audioPts)
 		self.hlsLiveRecordInfo.audioCachedPkts = make([](*av.Packet), 0, 10)
 	}
