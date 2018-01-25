@@ -259,7 +259,7 @@ func (self *Muxer) WritePacket(pkt *av.Packet,Cstream av.CodecData) (err error) 
 		datav[0] = self.peshdr[:n]
 		var pcr uint64
 		if pkt.IsKeyFrame{
-			pcr = tsio.TimeToPCR(pkt.Time)
+			pcr =tsio.TimeToTs(pkt.Time)
 		}else{
 			pcr = uint64(0)
 		}
