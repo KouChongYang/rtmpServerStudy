@@ -644,7 +644,7 @@ func FillAPESHeader(h []byte, streamid uint8, datalen int, pts, dts uint64) (n i
 	return
 }
 
-func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts time.Duration) (n int) {
+func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts uint64) (n int) {
 	h[0] = 0
 	h[1] = 0
 	h[2] = 1
@@ -688,19 +688,19 @@ func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts time.Duration
 	//
 	if flags&PTS != 0 {
 		if flags&DTS != 0 {
-			pts1 := uint64(pts*PTS_HZ/time.Second)
-			dts1 := uint64(dts*PTS_HZ/time.Second)
+			//pts1 := uint64(pts*PTS_HZ/time.Second)
+			//dts1 := uint64(dts*PTS_HZ/time.Second)
 			//first 4 bits are 0011 and first 4 bits for DTS are 0001
-			writeTs(h[9:14], 0 , flags>>6, (pts1))
-			writeTs(h[14:19], 0 , 1, (dts1))
-			//pio.PutU40BE(h[9:14], tsio.TimeToTs(pts)|3<<36)
-			//pio.PutU40BE(h[14:19], tsio.TimeToTs(dts)|1<<36)
+			//writeTs(h[9:14], 0 , flags>>6, (pts1))
+			//writeTs(h[14:19], 0 , 1, (dts1))
+			pio.PutU40BE(h[9:14], (pts)|3<<36)
+			pio.PutU40BE(h[14:19],(dts)|1<<36)
 		} else {
 			////If only PTS is present, this is done by catenating 0010b
 			//writeTs(h[9:14], 0 , 1, tsio.TimeToTs(dts))
-			pts1 := uint64(pts*PTS_HZ/time.Second)
-			writeTs(h[9:14], 0 , flags>>6, (pts1))
-			//pio.PutU40BE(h[9:14], tsio.TimeToTs(pts)|2<<36)
+			//pts1 := uint64(pts*PTS_HZ/time.Second)
+			//writeTs(h[9:14], 0 , flags>>6, (pts))
+			pio.PutU40BE(h[9:14], (pts)|2<<36)
 		}
 	}
 
@@ -742,7 +742,7 @@ func  writePcr(b []byte, i byte, pcr uint64) error {
 }
 
 //write frame to ts file
-func (self *TSWriter) WritePackets(w *bufio.Writer, datav [][]byte, pcr time.Duration, sync bool, paddata bool) (err error) {
+func (self *TSWriter) WritePackets(w *bufio.Writer, datav [][]byte, pcr uint64, sync bool, paddata bool) (err error) {
 	datavlen := pio.VecLen(datav)
 	writev := make([][]byte, len(datav))
 	writepos := 0
@@ -763,9 +763,9 @@ func (self *TSWriter) WritePackets(w *bufio.Writer, datav [][]byte, pcr time.Dur
 				hdrlen += 6
 				//set pcr flag 0x10
 				self.tshdr[5] = 0x10|self.tshdr[5] // PCR flag (Discontinuity indicator 0x80)
-				//pio.PutU48BE(self.tshdr[6:12], (pcr))
-				pcr1 := uint64(pcr*PTS_HZ/time.Second)
-				writePcr(self.tshdr[6:12],0,pcr1)
+				pio.PutU48BE(self.tshdr[6:12], (pcr))
+				/*pcr1 := uint64(pcr*PTS_HZ/time.Second)
+				writePcr(self.tshdr[6:12],0,pcr1)*/
 			}
 			if sync {
 				self.tshdr[5] = 0x40|self.tshdr[5] // Random Access indicator

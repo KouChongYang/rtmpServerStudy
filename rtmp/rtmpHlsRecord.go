@@ -115,7 +115,7 @@ func hlsLiveRecordOpenFragment(self *Session,stream av.CodecData,pkt *av.Packet)
 	//重置文件
 	self.hlsLiveRecordInfo.muxer.SetWriter(f1)
 	//写pat pmt ts header
-	self.hlsLiveRecordInfo.muxer.WriteHeader()
+	self.hlsLiveRecordInfo.muxer.WritePATPMT()
 
 	//self.hlsLiveRecordInfo.lasetTs = pkt.Time
 	if pkt.PacketType == RtmpMsgAudio {
