@@ -202,7 +202,6 @@ func (self *Muxer) WriteHeader() (err error) {
 func (self *Muxer)WriteAudioPacket(pkts []*av.Packet,Cstream av.CodecData,pts uint64)(err error){
 
 	datav:=make([][]byte,(len(pkts)+1)*2+1)
-	pts1:=pts
 	audioLen:=0
 	j:=1
 
@@ -215,6 +214,7 @@ func (self *Muxer)WriteAudioPacket(pkts []*av.Packet,Cstream av.CodecData,pts ui
 		j++
 		audioLen+=len(self.adtshdr) + len(pkts[i].Data[pkts[i].DataPos:])
 	}
+	pts1:=audioTsToTs(pts)
 	// pes heaer
 	n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC,audioLen ,pts1, 0)
 	datav[0] = self.peshdr[:n]
