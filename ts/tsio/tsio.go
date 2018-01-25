@@ -470,9 +470,6 @@ func PCRToTime(pcr uint64) (tm time.Duration) {
 func TimeToTs(tm time.Duration) (v uint64) {
 	ts := uint64(tm*PTS_HZ/time.Second)
 	return ts
-	// 0010	PTS 32..30 1	PTS 29..15 1 PTS 14..00 1
-	//v = ((ts>>30)&0x7)<<33 | ((ts>>15)&0x7fff)<<17 | (ts&0x7fff)<<1 | 0x100010001
-	return
 }
 
 func TsToTime(v uint64) (tm time.Duration) {
@@ -562,11 +559,15 @@ most significant 3 bits from PTS, 1, following next 15 bits, 1, rest 15 bits and
  If both PTS and DTS are present, first 4 bits are 0011 and first 4 bits for DTS are 0001. Other appended bytes have similar but different encoding.
 */
 
-func writeTs(src []byte, i int, fb uint, ts uint64) {
+//see see nginx
+func writeTs(src []byte,fb uint, ts uint64) {
+
 	val := uint32(0)
 	if ts > 0x1ffffffff {
 		ts -= 0x1ffffffff
 	}
+
+	i:=0
 	val = uint32(fb<<4) | ((uint32(ts>>30) & 0x07) << 1) | 1
 	src[i] = byte(val)
 	i++
@@ -581,68 +582,6 @@ func writeTs(src []byte, i int, fb uint, ts uint64) {
 	src[i] = byte(val >> 8)
 	i++
 	src[i] = byte(val)
-}
-
-
-func FillAPESHeader(h []byte, streamid uint8, datalen int, pts, dts uint64) (n int) {
-	h[0] = 0
-	h[1] = 0
-	h[2] = 1
-	h[3] = streamid
-
-	const PTS = 1 << 7
-	const DTS = 1 << 6
-
-	var flags uint
-	if pts != 0 {
-		flags |= PTS
-		if dts != 0 {
-			flags |= DTS
-		}
-	}
-
-	if flags&PTS != 0 {
-		n += 5
-	}
-	if flags&DTS != 0 {
-		n += 5
-	}
-
-	// packet_length(16) if zero then variable length
-	// Specifies the number of bytes remaining in the packet after this field. Can be zero.
-	// If the PES packet length is set to zero, the PES packet can be of any length.
-	// A value of zero for the PES packet length can be used only when the PES packet payload is a **video** elementary stream.
-	var pktlen uint16
-	if datalen >= 0 {
-		pktlen = uint16(datalen + n + 3)
-	}
-	pio.PutU16BE(h[4:6], pktlen)
-
-	h[6] = 2<<6|1 // resverd(6,2)=2,original_or_copy(0,1)=1
-	h[7] = byte(flags)
-	h[8] = uint8(n)
-
-	// pts(40)?
-	// dts(40)?
-	//If only PTS is present, this is done by catenating 0010b
-	//
-	if flags&PTS != 0 {
-		if flags&DTS != 0 {
-			//first 4 bits are 0011 and first 4 bits for DTS are 0001
-			//writeTs(src []byte, i int, fb int, ts int64)
-			writeTs(h[9:14], 0 , flags>>6, pts)
-			writeTs(h[14:19], 0 , 1, dts)
-			//pio.PutU40BE(h[9:14], (pts)|3<<36)
-			//pio.PutU40BE(h[14:19], (dts)|1<<36)
-		} else {
-			////If only PTS is present, this is done by catenating 0010b
-			//pio.PutU40BE(h[9:14], (pts)|2<<36)
-			writeTs(h[9:14], 0 , flags>>6, pts)
-		}
-	}
-
-	n += 9
-	return
 }
 
 func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts uint64) (n int) {
@@ -689,19 +628,13 @@ func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts uint64) (n in
 	//
 	if flags&PTS != 0 {
 		if flags&DTS != 0 {
-			//pts1 := uint64(pts*PTS_HZ/time.Second)
-			//dts1 := uint64(dts*PTS_HZ/time.Second)
 			//first 4 bits are 0011 and first 4 bits for DTS are 0001
-			writeTs(h[9:14], 0 , flags>>6, (pts))
-			writeTs(h[14:19], 0 , 1, (dts))
-			//pio.PutU40BE(h[9:14], (pts)|3<<36)
-			//pio.PutU40BE(h[14:19],(dts)|1<<36)
+			writeTs(h[9:14],flags>>6, (pts))
+			writeTs(h[14:19],1, (dts))
+
 		} else {
 			////If only PTS is present, this is done by catenating 0010b
-			//writeTs(h[9:14], 0 , 1, tsio.TimeToTs(dts))
-			//pts1 := uint64(pts*PTS_HZ/time.Second)
-			writeTs(h[9:14], 0 , flags>>6, (pts))
-			//pio.PutU40BE(h[9:14], (pts)|2<<36)
+			writeTs(h[9:14],flags>>6, (pts))
 		}
 	}
 
