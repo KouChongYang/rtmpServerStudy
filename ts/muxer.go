@@ -214,7 +214,7 @@ func (self *Muxer)WriteAudioPacket(pkts []*av.Packet,Cstream av.CodecData,pts ui
 		j++
 		audioLen+=len(self.adtshdr) + len(pkts[i].Data[pkts[i].DataPos:])
 	}
-	pts1:=tsio.AudioTsToTs(pts)
+	pts1:=(pts)
 	// pes heaer
 	n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC,audioLen ,pts1, 0)
 	datav[0] = self.peshdr[:n]
