@@ -153,17 +153,17 @@ func hlsLiveRecordCloseFragment(self *Session,stream av.CodecData,pkt *av.Packet
 	//self.hlsLiveRecordInfo.tsBackFileName = fmt.Sprintf("%s%d.tsbak",self.UserCnf.RecodeHlsPath,time.Now().UnixNano()/1000000)
 }
 
-func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flush_rate uint64){
+func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flush_rate uint64,boundary int){
 
 	cutting := 0
 
 	//大于5s 切片
 	self.hlsLiveRecordInfo.duration = float32(flvio.TimeToTs(pkt.Time - self.hlsLiveRecordInfo.lastTs))/(1000.0)
-	if self.hlsLiveRecordInfo.duration > 5.0 {
+	if self.hlsLiveRecordInfo.duration > 5.0   && boundary == 1{
 		cutting = 1
 	}
 	//需要切割
-	if cutting == 1 {
+	if cutting == 1  {
 		hlsLiveRecordCloseFragment(self,stream,pkt)
 		hlsLiveRecordOpenFragment(self,stream,pkt)
 	}
@@ -184,7 +184,7 @@ func hlsVedioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	}
 	//关键帧判断是否需求切割
 	if pkt.IsKeyFrame {
-		hlsLiveUpdateFragment(self ,stream,pkt,1)
+		hlsLiveUpdateFragment(self ,stream,pkt,1,1)
 	}
 	//将vedio 写入文件
 	self.hlsLiveRecordInfo.muxer.WritePacket(pkt,stream)
@@ -214,7 +214,13 @@ func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	pts := uint64(flvio.TimeToTs(pkt.Time)*90)
 
 	//判读是否切片，如果需要就切片
-	hlsLiveUpdateFragment(self ,stream,pkt,2)
+	boundary:=0
+	if self.vCodec != nil {
+		boundary = 0
+	}else{
+		boundary = 1
+	}
+	hlsLiveUpdateFragment(self, stream, pkt, 2,boundary)
 	//缓存音频
 	self.hlsLiveRecordInfo.audioCachedPkts = append(self.hlsLiveRecordInfo.audioCachedPkts,pkt)
 	if len(self.hlsLiveRecordInfo.audioCachedPkts)>1{
