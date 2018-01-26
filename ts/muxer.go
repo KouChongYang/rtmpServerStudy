@@ -245,14 +245,23 @@ func (self *Muxer) WritePacket(pkt *av.Packet,Cstream av.CodecData) (err error) 
 		}
 
 		datav := self.datav[:1]
-		for i, nalu := range nalus {
+		audSent := 0
+		for i,nal:= range nalus {
 			if i == 0 {
+				naltype := nal[0] & 0x1f
+				if naltype == h264parser.AVC_NAL_AUD{
+					continue
+				}
+			}
+			if audSent == 0{
 				datav = append(datav, h264parser.AUDBytes)
-			} else {
+				audSent = 1
+			}else {
 				datav = append(datav, h264parser.StartCodeBytes)
 			}
-			datav = append(datav, nalu)
+			datav = append(datav, nal)
 		}
+
 		pts:=tsio.TimeToTs(pkt.Time+pkt.CompositionTime)
 		dts:=tsio.TimeToTs(pkt.Time)
 		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdH264, -1, pts, dts)
