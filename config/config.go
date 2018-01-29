@@ -12,6 +12,7 @@ type App struct {
 	ExtTimeSend int `yaml:"ExtTimeSend"`
 	RecodeFlv int `yaml:"RecodeFlv"`
 	RecodeHls int `yaml:"RecodeHls"`
+	HlsFragment   string `yaml:"HlsFragment"`
 	RecodeFlvPath string `yaml:"RecodeFlvPath"`
 	RecodeHlsPath string `yaml:"RecodeHlsPath"`
 	RecodePicture int `yaml:"RecodePicture"`

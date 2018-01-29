@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"github.com/gorilla/mux"
 	"rtmpServerStudy/aacParse"
+	"strconv"
 )
 
 //hls点播
@@ -145,18 +146,28 @@ func hlsLiveRecordCloseFragment(self *Session,stream av.CodecData,pkt *av.Packet
 	if err != nil{
 		fmt.Println(err)
 	}
-
-
-	//self.hlsLiveRecordInfo.tsBackFileName = fmt.Sprintf("%s%d.tsbak",self.UserCnf.RecodeHlsPath,time.Now().UnixNano()/1000000)
 }
 
 func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flush_rate uint64,boundary int){
 
 	cutting := 0
 
+	HlsFragment:=0.0
 	//大于5s 切片
+	if len(self.UserCnf.HlsFragment)>0{
+
+		time_len := len(self.UserCnf.HlsFragment)
+		if self.UserCnf.HlsFragment[time_len-1] == 's' {
+			time_len--
+			HlsFragment, _ = strconv.ParseFloat(self.UserCnf.HlsFragment[:time_len],32)
+		} else {
+			HlsFragment = 5.0
+		}
+
+	}
+
 	self.hlsLiveRecordInfo.duration = float32(flvio.TimeToTs(pkt.Time - self.hlsLiveRecordInfo.lastTs))/(1000.0)
-	if self.hlsLiveRecordInfo.duration > 5.0   && boundary == 1{
+	if self.hlsLiveRecordInfo.duration > float32(HlsFragment)   && boundary == 1{
 		cutting = 1
 	}
 	//需要切割
@@ -213,10 +224,12 @@ func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	//判读是否切片，如果需要就切片
 	boundary:=0
 	if self.vCodec != nil {
+		//只有没有视频，才会因音频为基准进行切片
 		boundary = 0
 	}else{
 		boundary = 1
 	}
+
 	hlsLiveUpdateFragment(self, stream, pkt, 2,boundary)
 	//缓存音频
 	self.hlsLiveRecordInfo.audioCachedPkts = append(self.hlsLiveRecordInfo.audioCachedPkts,pkt)
@@ -231,6 +244,7 @@ func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	if codec.SampleFormat() <=0{
 		return
 	}
+
 	est_pts := self.hlsLiveRecordInfo.audioBaseTime + self.hlsLiveRecordInfo.aframeNum * 90000 * 1024 /
 		uint64(codec.SampleRate())
 
