@@ -155,7 +155,6 @@ func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flus
 	HlsFragment:=0.0
 	//大于5s 切片
 	if len(self.UserCnf.HlsFragment)>0{
-
 		time_len := len(self.UserCnf.HlsFragment)
 		if self.UserCnf.HlsFragment[time_len-1] == 's' {
 			time_len--
@@ -163,7 +162,8 @@ func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flus
 		} else {
 			HlsFragment = 5.0
 		}
-
+	}else{
+		HlsFragment = 5.0
 	}
 
 	self.hlsLiveRecordInfo.duration = float32(flvio.TimeToTs(pkt.Time - self.hlsLiveRecordInfo.lastTs))/(1000.0)
