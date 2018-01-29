@@ -14,6 +14,7 @@ UserConf:
           ExtTimeSend: 1
           RecodeFlv: 1
           RecodeHls: 1
+          hlsFragment: "5s"
           RecodeFlvPath: "/dev/shm/data/flv"
           RecodeHlsPath: "/data/hls"
           RecodePicture: 1
@@ -21,6 +22,7 @@ UserConf:
         test:
           GopCacheNum: 1
           RecodeHls: 1
+          hlsFragment: "5s"
           RecodeFlvPath: "/dev/shm/data/flv"
           RecodeHlsPath: "/data/hls"
           RecodePicture: 1
@@ -28,6 +30,7 @@ UserConf:
           GopCacheNum: 1
           RecodeFlv: 1
           RecodeHls: 1
+          hlsFragment: "5s"
           RecodeFlvPath: "/data/flv"
           RecodeHlsPath: "/data/hls"
           RecodePicture: 1
