@@ -61,12 +61,11 @@ func FileCreate(uri string) (w io.WriteCloser, err error) {
 
 func init(){
 	//
-	RecordOnPublishs = append(RecordOnPublishs,hlsRecordOnPublish)
+
 	RecordOnPublishs = append(RecordOnPublishs,hlsLiveRecordOnPublish)
 	RecordOnPublishs = append(RecordOnPublishs,flvRecordOnPublish)
 
 	//
-	Records = append(Records,hlsRecord)
 	Records = append(Records,hlsLiveRecord)
 	Records = append(Records,flvRecord)
 
