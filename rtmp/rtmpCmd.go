@@ -568,6 +568,45 @@ func CheckConnectResult(session *Session, b []byte) (n int, err error){
 	return
 }
 
+func setDtaFrameHandler(session *Session, b []byte) (n int, err error) {
+
+	if _, err = session.handleCommandMsgAMF0(b,session.rtmpCmdHandler); err != nil {
+		return
+	}
+
+	return
+}
+
+func onMetaDataHandler(session *Session, b []byte) (n int, err error) {
+
+	var err error
+	var datamsgvals []interface{}
+	//var metadata amf.AMFMap
+	var size int
+	n = 0
+	var  obj interface{}
+	if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		fmt.Println(err)
+		return
+	}
+	n+=size
+	fmt.Println(obj,len(b))
+	for n < len(b) {
+		var  obj interface{}
+		if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+			//fmt.Println(err)
+			//return
+		}else{
+			datamsgvals = append(datamsgvals, obj)
+		}
+		n += size
+	}
+	//fmt.Println("=====================fdsa========")
+	fmt.Println(datamsgvals)
+	//return
+
+	return
+}
 
 func newRtmpCmdHandler() (RtmpCmdHandles RtmpCmdHandle){
 	RtmpCmdHandles = make(RtmpCmdHandle)
@@ -578,6 +617,9 @@ func newRtmpCmdHandler() (RtmpCmdHandles RtmpCmdHandle){
 	RtmpCmdHandles["publish"] = RtmpPublishCmdHandler
 	RtmpCmdHandles["play"] = RtmpPlayCmdHandler
 	RtmpCmdHandles["onStatus"] =CheckOnStatus
+	RtmpCmdHandles["@setDataFrame"] =setDtaFrameHandler
+	RtmpCmdHandles["onMetaData"] =onMetaDataHandler
+
 	return
 }
 

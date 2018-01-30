@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/nareix/bits/pio"
 	"rtmpServerStudy/amf"
+	"encoding/hex"
 )
 
 // recv peer set chunk  size
@@ -162,7 +163,6 @@ func RtmpMsgVideoHandler(session *Session, timestamp uint32,
 	return
 }
 
-
 func (self *Session) handleCommandMsgAMF0(b []byte,RtmpCmdHandles RtmpCmdHandle) (n int, err error) {
 	var name interface{}
 	var size int
@@ -201,6 +201,7 @@ func RtmpMsgAmfHandler(session *Session, timestamp uint32,
 	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
 	/* AMF command names come with string type, but shared object names
 	 * come without type */
+	fmt.Println("========================================:",hex.Dump(msgdata))
 	if _, err = session.handleCommandMsgAMF0(msgdata,session.rtmpCmdHandler); err != nil {
 		return
 	}

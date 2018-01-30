@@ -177,6 +177,9 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 		tag.Data = msgdata[n:]
 		switch tag.AACPacketType {
 		case flvio.AAC_SEQHDR:
+			if len(tag.Data)==0{
+				return
+			}
 			fmt.Println("find acc seqhdr")
 			var stream aacparser.CodecData
 			if stream, err = aacparser.NewCodecDataFromMPEG4AudioConfigBytes(tag.Data); err != nil {
