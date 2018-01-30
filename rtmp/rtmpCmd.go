@@ -580,31 +580,25 @@ func setDtaFrameHandler(session *Session, b []byte) (n int, err error) {
 func onMetaDataHandler(session *Session, b []byte) (n int, err error) {
 
 	var err error
-	var datamsgvals []interface{}
-	//var metadata amf.AMFMap
+	var datamsgvals []amf.AMFMap
 	var size int
 	n = 0
-	var  obj interface{}
-	if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
-		fmt.Println(err)
-		return
-	}
-	n+=size
-	fmt.Println(obj,len(b))
+
 	for n < len(b) {
 		var  obj interface{}
 		if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
-			//fmt.Println(err)
-			//return
+			//some log
 		}else{
-			datamsgvals = append(datamsgvals, obj)
+			switch value1 := obj.(type) {
+			case amf.AMFMap:
+				datamsgvals = append(datamsgvals, value1)
+			}
 		}
 		n += size
 	}
-	//fmt.Println("=====================fdsa========")
+
 	fmt.Println(datamsgvals)
 	//return
-
 	return
 }
 
