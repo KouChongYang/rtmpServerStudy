@@ -149,13 +149,14 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 	if len(m["vhost"])>0{
 		host = m["vhost"][0]
 	}
-	if _,PlayOk:=Gconfig.UserConf.PlayDomain[host];PlayOk == false{
-		w.WriteHeader(404)
-	}
 
 	h := strings.Split(host, ":")
 	if  len(h)>0{
 		host = h[0]
+	}
+
+	if _,PlayOk:=Gconfig.UserConf.PlayDomain[host];PlayOk == false{
+		w.WriteHeader(404)
 	}
 
 	//hashPath:=itmes[0]
@@ -196,6 +197,7 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 		session.vCodec = pubSession.vCodec
 		//copy all gop just ptr copy
 		session.metaversion = pubSession.metaversion
+		session.metaData = pubSession.metaData
 		session.GopCache = pubSession.GopCache.GopCopy()
 		pubSession.RUnlock()
 		/*Cache-Control: no-cache
