@@ -132,7 +132,7 @@ type Session struct {
 	gotmsg            bool
 	gotcommand        bool
 	metaversion       int
-	datamsgvals 	  []amf.AMFMap
+	metaDatas         []amf.AMFMap
 	eventtype         uint16
 	ackSize           uint32
 	pushIp            string
@@ -145,7 +145,7 @@ type Session struct {
 	//record 时间 创建目录用
 	recordTime        time.Time
 	//hls 直播录制ts状态信息
-	hlsLiveRecordInfo  hlsLiveRecordInfo
+	hlsLiveRecordInfo hlsLiveRecordInfo
 }
 
 const (
@@ -877,6 +877,5 @@ func createURL(tcurl, app, play string) (u *url.URL) {
 			u.Scheme = tu.Scheme
 		}
 	}
-	fmt.Println()
 	return
 }

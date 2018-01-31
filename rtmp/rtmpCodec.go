@@ -7,7 +7,6 @@ import (
 	"rtmpServerStudy/av"
 	"rtmpServerStudy/flv/flvio"
 	"rtmpServerStudy/h264Parse"
-	"time"
 )
 
 func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
@@ -119,10 +118,11 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 	if AvHeader == true {
 		return
 	}
-	startTime:=time.Now()
+
+	//startTime:=time.Now()
 	RecordHandler(session,session.vCodec,pkt)
-	dis := time.Now().Sub(startTime).Nanoseconds()/1000
-	fmt.Println(dis)
+	//dis := time.Now().Sub(startTime).Nanoseconds()/1000
+	//fmt.Println(dis)
 	return
 }
 

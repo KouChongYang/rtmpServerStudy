@@ -588,7 +588,7 @@ func onMetaDataHandler(session *Session, b []byte) (n int, err error) {
 		}else{
 			switch value1 := obj.(type) {
 			case amf.AMFMap:
-				session.datamsgvals = append(session.datamsgvals, value1)
+				session.metaDatas = append(session.metaDatas, value1)
 			}
 		}
 		n += size
