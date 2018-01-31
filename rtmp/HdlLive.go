@@ -196,8 +196,9 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 		session.aCodecData = pubSession.aCodecData
 		session.vCodec = pubSession.vCodec
 		//copy all gop just ptr copy
-		session.metaversion = pubSession.metaversion
+		//session.metaversion = pubSession.metaversion
 		session.metaData = pubSession.metaData
+
 		session.GopCache = pubSession.GopCache.GopCopy()
 		pubSession.RUnlock()
 		/*Cache-Control: no-cache
