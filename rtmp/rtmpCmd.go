@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"time"
+	"strings"
 )
 
 /*
@@ -168,6 +169,11 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 		if len(m["vhost"])>0{
 			host = m["vhost"][0]
 		}
+		h := strings.Split(host, ":")
+		if  len(h)>0{
+			host = h[0]
+		}
+
 		if err = session.RtmpcheckHost(host,"connect");err != nil {
 			return
 		}
@@ -580,7 +586,9 @@ func setDtaFrameHandler(session *Session, b []byte) (n int, err error) {
 func onMetaDataHandler(session *Session, b []byte) (n int, err error) {
 	var size int
 	n = 0
+	session.metaData = amf.AMFMap{}
 	var metaDatas []amf.AMFMap
+
 	for n < len(b) {
 		var  obj interface{}
 		if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {

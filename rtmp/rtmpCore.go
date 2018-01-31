@@ -241,6 +241,7 @@ func NewSesion(netconn net.Conn) *Session {
 	session.rtmpCmdHandler = newRtmpCmdHandler()
 	session.lock = &sync.RWMutex{}
 	session.stage = stageHandshakeStart
+	session.metaData = amf.AMFMap{}
 	//just for regist cursor session
 	//session.RegisterChannel = make(chan *Session, MAXREGISTERCHANNEL)
 	//true register ok ,false register false

@@ -15,6 +15,7 @@ import (
 	"rtmpServerStudy/timer"
 	//"rtmpServerStudy/amf"
 	//"github.com/aws/aws-sdk-go/aws/client/metadata"
+	"strings"
 )
 
 type writeFlusher struct {
@@ -150,6 +151,11 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 	}
 	if _,PlayOk:=Gconfig.UserConf.PlayDomain[host];PlayOk == false{
 		w.WriteHeader(404)
+	}
+
+	h := strings.Split(host, ":")
+	if  len(h)>0{
+		host = h[0]
 	}
 
 	//hashPath:=itmes[0]
