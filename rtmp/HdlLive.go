@@ -13,6 +13,8 @@ import (
 	"github.com/gorilla/mux"
 	"net/url"
 	"rtmpServerStudy/timer"
+	//"rtmpServerStudy/amf"
+	//"github.com/aws/aws-sdk-go/aws/client/metadata"
 )
 
 type writeFlusher struct {
@@ -39,7 +41,8 @@ func (self *Session) hdlSendHead(w * flv.Muxer, r *http.Request) (err error) {
 	if self.vCodec != nil {
 		streams = append(streams, *self.vCodec)
 	}
-	w.WriteHeader(streams)
+
+	w.WriteHeader(streams,self.metaData)
 	return
 }
 
@@ -79,7 +82,32 @@ func (self *Session) hdlSendGop(w * flv.Muxer, r *http.Request) (err error) {
 func (self *Session) hdlSendAvPackets(w * flv.Muxer, r *http.Request) (err error) {
 
 	for {
+		var tag *flvio.Tag
+		var ok bool
+
+		metaversion:=self.pubSession.metaversion
+		if self.metaversion != metaversion {
+
+			self.pubSession.RLock()
+			metaData := self.pubSession.metaData
+			self.pubSession.RUnlock()
+
+			if tag, ok = flv.MetadeToTag("onMetaData", metaData); err != nil {
+				self.metaversion = metaversion
+				continue
+			}
+
+			if ok {
+				if err = flvio.WriteTag(w.GetMuxerWrite(), tag, 0, w.B); err != nil {
+					return
+				}
+			}
+
+			self.metaversion = metaversion
+		}
+
 		pkt := self.CurQue.RingBufferGet()
+
 		select {
 		case <-self.context.Done():
 		// here publish may over so play is over
@@ -161,6 +189,7 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 		session.aCodecData = pubSession.aCodecData
 		session.vCodec = pubSession.vCodec
 		//copy all gop just ptr copy
+		session.metaversion = pubSession.metaversion
 		session.GopCache = pubSession.GopCache.GopCopy()
 		pubSession.RUnlock()
 		/*Cache-Control: no-cache
@@ -195,6 +224,7 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 			flusher.Flush()
 			return
 		}
+
 		flusher.Flush()
 	}else{
 		//hdl relay or rtmp relay must add

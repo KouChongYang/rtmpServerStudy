@@ -580,7 +580,7 @@ func setDtaFrameHandler(session *Session, b []byte) (n int, err error) {
 func onMetaDataHandler(session *Session, b []byte) (n int, err error) {
 	var size int
 	n = 0
-
+	var metaDatas []amf.AMFMap
 	for n < len(b) {
 		var  obj interface{}
 		if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
@@ -588,13 +588,20 @@ func onMetaDataHandler(session *Session, b []byte) (n int, err error) {
 		}else{
 			switch value1 := obj.(type) {
 			case amf.AMFMap:
-				session.metaDatas = append(session.metaDatas, value1)
+				metaDatas = append(metaDatas, value1)
 			}
 		}
 		n += size
 	}
+	if len(metaDatas) >0{
+		for i:=range metaDatas{
+			for k,_:=range metaDatas[i]{
+				session.metaData[k] = (metaDatas[i])[k]
+			}
+		}
+	}
+	session.metaData["create"] = "kouyang"
 	session.metaversion++
-
 	return
 }
 

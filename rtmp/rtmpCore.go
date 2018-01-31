@@ -132,7 +132,7 @@ type Session struct {
 	gotmsg            bool
 	gotcommand        bool
 	metaversion       int
-	metaDatas         []amf.AMFMap
+	metaData         amf.AMFMap
 	eventtype         uint16
 	ackSize           uint32
 	pushIp            string

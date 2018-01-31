@@ -6,9 +6,9 @@ import (
 	"time"
 	//"rtmpServerStudy/AvQue"
 	//"context"
-	"rtmpServerStudy/amf"
+	//"rtmpServerStudy/amf"
 	"rtmpServerStudy/av"
-	"rtmpServerStudy/flv"
+	//"rtmpServerStudy/flv"
 	"rtmpServerStudy/flv/flvio"
 	"rtmpServerStudy/timer"
 )
@@ -60,31 +60,7 @@ func (self *Session) rtmpCloseSessionHanler() {
 
 func (self *Session)rtmpSendMeta()(err error){
 
-	var metadata amf.AMFMap
-	var streams []av.CodecData
-
-	if self.aCodec == nil && self.vCodec == nil {
-		return
-	}
-	if self.aCodec != nil {
-		streams = append(streams, self.aCodec)
-	}
-	if self.vCodec != nil {
-		streams = append(streams, self.vCodec)
-	}
-
-	if metadata, err = flv.NewMetadataByStreams(streams); err != nil {
-		return
-	}
-	if len(self.metaDatas) >0{
-		for i:=range self.metaDatas{
-			for k,_:=range self.metaDatas[i]{
-				metadata[k] = (self.metaDatas[i])[k]
-			}
-		}
-	}
-	metadata["create"] = "kouyang"
-	if err = self.writeDataMsg(5, self.avmsgsid, "onMetaData", metadata); err != nil {
+	if err = self.writeDataMsg(5, self.avmsgsid, "onMetaData", self.metaData); err != nil {
 		return
 	}
 	self.metaversion = self.pubSession.metaversion
@@ -234,7 +210,7 @@ func (self *Session) ServerSession(stage int) (err error) {
 					self.vCodecData = pubSession.vCodecData
 					self.aCodecData = pubSession.aCodecData
 					self.vCodec = pubSession.vCodec
-					self.metaDatas = pubSession.metaDatas
+					self.metaData = pubSession.metaData
 					//copy all gop just ptr copy
 					self.GopCache = pubSession.GopCache.GopCopy()
 					pubSession.RUnlock()
