@@ -594,8 +594,7 @@ func onMetaDataHandler(session *Session, b []byte) (n int, err error) {
 		n += size
 	}
 	session.metaversion++
-	//fmt.Println(datamsgvals)
-	//return
+
 	return
 }
 
