@@ -11,7 +11,6 @@ import (
 	"rtmpServerStudy/flv"
 	"rtmpServerStudy/flv/flvio"
 	"rtmpServerStudy/timer"
-	"github.com/derekparker/delve/dwarf/reader"
 )
 
 func (self *Session)rtmpClosePublishingSession(){
