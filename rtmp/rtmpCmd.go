@@ -578,9 +578,6 @@ func setDtaFrameHandler(session *Session, b []byte) (n int, err error) {
 }
 
 func onMetaDataHandler(session *Session, b []byte) (n int, err error) {
-
-	var err error
-	var datamsgvals []amf.AMFMap
 	var size int
 	n = 0
 
@@ -591,13 +588,13 @@ func onMetaDataHandler(session *Session, b []byte) (n int, err error) {
 		}else{
 			switch value1 := obj.(type) {
 			case amf.AMFMap:
-				datamsgvals = append(datamsgvals, value1)
+				session.datamsgvals = append(session.datamsgvals, value1)
 			}
 		}
 		n += size
 	}
-
-	fmt.Println(datamsgvals)
+	session.metaversion++
+	//fmt.Println(datamsgvals)
 	//return
 	return
 }
@@ -613,7 +610,6 @@ func newRtmpCmdHandler() (RtmpCmdHandles RtmpCmdHandle){
 	RtmpCmdHandles["onStatus"] =CheckOnStatus
 	RtmpCmdHandles["@setDataFrame"] =setDtaFrameHandler
 	RtmpCmdHandles["onMetaData"] =onMetaDataHandler
-
 	return
 }
 

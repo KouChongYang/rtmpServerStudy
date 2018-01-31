@@ -25,6 +25,7 @@ import (
 	"runtime"
 	"os"
 	"rtmpServerStudy/config"
+	"rtmpServerStudy/amf"
 )
 
 /* RTMP message types */
@@ -131,6 +132,7 @@ type Session struct {
 	gotmsg            bool
 	gotcommand        bool
 	metaversion       int
+	datamsgvals 	  []amf.AMFMap
 	eventtype         uint16
 	ackSize           uint32
 	pushIp            string
