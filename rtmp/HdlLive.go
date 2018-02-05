@@ -164,78 +164,96 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 	name := mux.Vars(r)["name"]
 	app := mux.Vars(r)["app"]
 	fmt.Println(name,app)
-	StreamAnchor := name + ":" + Gconfig.UserConf.PlayDomain[host].UniqueName + ":" + app
-	pubSession:= RtmpSessionGet(StreamAnchor)
-	if pubSession != nil {
-		session:=new(Session)
-		session.CursorList = AvQue.NewPublist()
-		session.lock = &sync.RWMutex{}
-		session.PacketAck = make(chan bool, 1)
-		session.CurQue = AvQue.RingBufferCreate(10)
-		session.context, session.cancel = pubSession.context, pubSession.cancel
-		//onpublish handler
-		t := timer.GlobalTimerPool.Get(time.Second * MAXREADTIMEOUT)
-		select {
-		case pubSession.RegisterChannel <- session:
-		case <-t.C:
-		//may be is err
-		}
-		timer.GlobalTimerPool.Put(t)
+	stage := 0
+	//重试10次
+	session := new(Session)
+	session.CursorList = AvQue.NewPublist()
+	session.lock = &sync.RWMutex{}
+	session.PacketAck = make(chan bool, 1)
+	session.StreamAnchor = name + ":" + Gconfig.UserConf.PlayDomain[host].UniqueName + ":" + app
+	session.StreamId = name
+	session.App = app
+	session.Vhost = host
 
-		session.pubSession = pubSession
-		session.StreamAnchor = StreamAnchor
-		session.StreamId = name
-		session.App = app
-		session.Vhost = host
+	for stage <= 15 {
+		pubSession := RtmpSessionGet(session.StreamAnchor)
+		if pubSession != nil {
+			session.context, session.cancel = pubSession.context, pubSession.cancel
+			session.CurQue = AvQue.RingBufferCreate(10)
+			//onpublish handler
+			t := timer.GlobalTimerPool.Get(time.Second * MAXREADTIMEOUT)
+			select {
+			case pubSession.RegisterChannel <- session:
+			case <-t.C:
+			//may be is err
+			}
+			timer.GlobalTimerPool.Put(t)
 
-		//copy gop,codec here all new play Competitive the publishing lock
-		pubSession.RLock()
-		session.updatedGop = true
-		session.aCodec = pubSession.aCodec
-		session.vCodecData = pubSession.vCodecData
-		session.aCodecData = pubSession.aCodecData
-		session.vCodec = pubSession.vCodec
-		//copy all gop just ptr copy
-		//session.metaversion = pubSession.metaversion
-		session.metaData = pubSession.metaData
+			session.pubSession = pubSession
 
-		session.GopCache = pubSession.GopCache.GopCopy()
-		pubSession.RUnlock()
-		/*Cache-Control: no-cache
-		Content-Type: video/x-flv
-		Connection: close
-		Expires: -1
-		Pragma: no-cache*/
-		w.Header().Set("Content-Type", "video/x-flv")
-		w.Header().Set("Transfer-Encoding", "chunked")
-		w.Header().Set("Pragma","no-cache")
-		w.Header().Set("Cache-Control","no-cache")
-		w.WriteHeader(200)
 
-		flusher := w.(http.Flusher)
-		flusher.Flush()
+			//copy gop,codec here all new play Competitive the publishing lock
+			pubSession.RLock()
+			session.updatedGop = true
+			session.aCodec = pubSession.aCodec
+			session.vCodecData = pubSession.vCodecData
+			session.aCodecData = pubSession.aCodecData
+			session.vCodec = pubSession.vCodec
+			//copy all gop just ptr copy
+			//session.metaversion = pubSession.metaversion
+			session.metaData = pubSession.metaData
 
-		muxer := flv.NewMuxerWriteFlusher(writeFlusher{httpflusher: flusher, Writer: w})
-		//send audio,video head and meta
-		if err := session.hdlSendHead(muxer,r); err != nil {
-			session.isClosed = true
+			session.GopCache = pubSession.GopCache.GopCopy()
+			pubSession.RUnlock()
+			/*Cache-Control: no-cache
+			Content-Type: video/x-flv
+			Connection: close
+			Expires: -1
+			Pragma: no-cache*/
+
+			w.Header().Set("Content-Type", "video/x-flv")
+			w.Header().Set("Transfer-Encoding", "chunked")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Cache-Control", "no-cache")
+			w.WriteHeader(200)
+
+			flusher := w.(http.Flusher)
 			flusher.Flush()
-			return
-		}
-		//send gop for first screen
-		if err := session.hdlSendGop(muxer,r); err != nil {
-			session.isClosed = true
-			flusher.Flush()
-			return
-		}
-		if err := session.hdlSendAvPackets(muxer,r); err != nil {
-			session.isClosed = true
-			flusher.Flush()
-			return
-		}
 
-		flusher.Flush()
-	}else{
-		//hdl relay or rtmp relay must add
+			muxer := flv.NewMuxerWriteFlusher(writeFlusher{httpflusher: flusher, Writer: w})
+			//send audio,video head and meta
+			if err := session.hdlSendHead(muxer, r); err != nil {
+				session.isClosed = true
+				flusher.Flush()
+				return
+			}
+			session.metaversion = session.pubSession.metaversion
+			//send gop for first screen
+			if err := session.hdlSendGop(muxer, r); err != nil {
+				session.isClosed = true
+				flusher.Flush()
+				return
+			}
+			if err := session.hdlSendAvPackets(muxer, r); err != nil {
+				session.isClosed = true
+				flusher.Flush()
+				return
+			}
+			flusher.Flush()
+
+		} else {
+			//hdl relay or rtmp relay must add
+			//
+			if noSelf := session.RtmpCheckStreamIsSelf(); noSelf != true {
+
+				//http://127.0.0.1/app/123.flv?vhost=test.live.com&relay=1
+				url1 := "http://" + session.pushIp + "/" + session.App +
+					"?" + "vhost=" + session.Vhost + "/" + session.StreamId + "?relay=1"
+				fmt.Println(url1)
+				RtmpRelay("tcp", session.pushIp, session.Vhost, session.App, session.StreamId, url1, stageSessionDone)
+				time.Sleep(1 * time.Second)
+				stage++
+			}
+		}
 	}
 }

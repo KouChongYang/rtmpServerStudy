@@ -215,15 +215,14 @@ func (self *Session) writeConnect(path string) (err error) {
 func RtmpRelay(network,host,vhost,App,streamId,desUrl string,stage int) bool{
 	i:=hash(desUrl)%HashMapFactors
 	RelaySessionMap[i].RLock()
-	defer 	RelaySessionMap[i].RUnlock()
-	_, ok := RelaySessionMap[i].sessionIndex[desUrl]
-	if ok {
-		return true
-	}else{
+	if _, ok := RelaySessionMap[i].sessionIndex[desUrl]; ok != true{
 		RelaySessionMap[i].sessionIndex[desUrl] = true
+		RelaySessionMap[i].RUnlock()
 		go rtmpClientRelayProxy(network, host,vhost,App,streamId,desUrl,stage)
 		return false
 	}
+	RelaySessionMap[i].RUnlock()
+
 	return false
 }
 

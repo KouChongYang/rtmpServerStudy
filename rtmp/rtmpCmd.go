@@ -173,7 +173,6 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 		if  len(h)>0{
 			host = h[0]
 		}
-
 		if err = session.RtmpcheckHost(host,"connect");err != nil {
 			return
 		}
