@@ -32,8 +32,9 @@ func rtmpClientRelayProxy(network,host,vhost,App,streamId,desUrl string,stage in
 	}()
 	isBreak := true
 	connectErrTimes:=0
+	stageHandshakeDoneTimes:=0
 	for isBreak {
-		for (proxyStage < stage ) && isBreak{
+		for (proxyStage <= stage ) && isBreak{
 			switch proxyStage {
 			case stageClientConnect:
 				var netConn net.Conn
@@ -66,13 +67,21 @@ func rtmpClientRelayProxy(network,host,vhost,App,streamId,desUrl string,stage in
 						err.Error() == "Stream.Already.Publishing"{
 						return
 					}
-					fmt.Println(err)
-					proxyStage = stageClientConnect
+					if self != nil {
+						self.rtmpCloseSessionHanler()
+					}
+					stageHandshakeDoneTimes++
+					if stageHandshakeDoneTimes > 5{
+						proxyStage = stageSessionDone
+					}else {
+						proxyStage = stageClientConnect
+					}
 					time.Sleep(1*time.Second)
 					continue
 				}
 			case stageSessionDone:
 				isBreak = false
+				return
 			}
 
 		}

@@ -174,6 +174,7 @@ func (self *Session) connectPublish() (err error) {
 	self.vCodecData = pubSession.vCodecData
 	self.aCodecData = pubSession.aCodecData
 	self.vCodec = pubSession.vCodec
+	self.metaData = pubSession.metaData
 	//copy all gop just ptr copy
 	self.GopCache = pubSession.GopCache.GopCopy()
 	pubSession.RUnlock()

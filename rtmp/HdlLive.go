@@ -247,8 +247,9 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 			if noSelf := session.RtmpCheckStreamIsSelf(); noSelf != true {
 
 				//http://127.0.0.1/app/123.flv?vhost=test.live.com&relay=1
-				url1 := "http://" + session.pushIp + "/" + session.App +
-					"?" + "vhost=" + session.Vhost + "/" + session.StreamId + "?relay=1"
+				/*url1 := "http://" + session.pushIp + "/" + session.App +
+					"?" + "vhost=" + session.Vhost + "/" + session.StreamId + "?relay=1"*/
+				url1:= "rtmp://" + session.pushIp + "/" + session.App +"?" + "vhost=" + session.Vhost + "/" + session.StreamId +"?relay=1"
 				fmt.Println(url1)
 				RtmpRelay("tcp", session.pushIp, session.Vhost, session.App, session.StreamId, url1, stageSessionDone)
 				time.Sleep(1 * time.Second)
