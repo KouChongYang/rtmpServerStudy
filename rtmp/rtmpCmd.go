@@ -336,8 +336,8 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 
 	}
 
-	notSelf:= false
-	if notSelf = session.RtmpCheckStreamIsSelf();notSelf != true{
+	isSelf := false
+	if isSelf = session.RtmpCheckStreamIsSelf(); isSelf != true{
 		//push stream to the true server
 		//rtmp://127.0.0.1/live?vhost=test.uplive.com/123
 		url1:= "rtmp://" + session.pushIp + "/" + session.App +"?" + "vhost=" + session.Vhost + "/" + session.StreamId +"?hashpull=1"
@@ -346,7 +346,7 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 	}
 
 	//just hash self record
-	if notSelf == true {
+	if isSelf == true {
 		RecordPublishHandler(session)
 	}
 
