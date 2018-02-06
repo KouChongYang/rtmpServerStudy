@@ -40,11 +40,6 @@ func ParseCommandLine() {
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	ParseCommandLine()
-
-	go func() {
-		fmt.Println(http.ListenAndServe(":6060", nil))
-	}()
-
 	confFile := fmt.Sprintf("%s%s", GDefaultPath, GConfFile)
 	if err,srv:=rtmp.NewServer(confFile);err != nil {
 		return

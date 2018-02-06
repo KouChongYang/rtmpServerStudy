@@ -35,6 +35,7 @@ type RecordOnPublisDone func(*Session)
 type Record func(*Session,av.CodecData,*av.Packet)
 
 func RecordPublishHandler(self *Session){
+
 	for i,_:= range RecordOnPublishs {
 		RecordOnPublishs[i](self)
 	}
