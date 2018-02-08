@@ -67,7 +67,7 @@ func (self *Session) hdlSendGop(w * flv.Muxer, r *http.Request) (err error) {
 	}
 	for pkt := self.GopCache.RingBufferGet(); pkt != nil; {
 		tag,ts := PacketToTag(pkt)
-		if err = flvio.WriteTag(w.GetMuxerWrite(), tag, ts,w.B); err != nil {
+		if _,err = flvio.WriteTag(w.GetMuxerWrite(), tag, ts,w.B); err != nil {
 			return
 		}
 		if err != nil {
@@ -99,7 +99,7 @@ func (self *Session) hdlSendAvPackets(w * flv.Muxer, r *http.Request) (err error
 			}
 
 			if ok {
-				if err = flvio.WriteTag(w.GetMuxerWrite(), tag, 0, w.B); err != nil {
+				if _,err = flvio.WriteTag(w.GetMuxerWrite(), tag, 0, w.B); err != nil {
 					return
 				}
 			}
@@ -133,7 +133,7 @@ func (self *Session) hdlSendAvPackets(w * flv.Muxer, r *http.Request) (err error
 		}
 		if pkt != nil {
 			tag,ts := PacketToTag(pkt)
-			if err = flvio.WriteTag(w.GetMuxerWrite(),tag, ts,w.B); err != nil {
+			if _,err = flvio.WriteTag(w.GetMuxerWrite(),tag, ts,w.B); err != nil {
 				return
 			}
 		}

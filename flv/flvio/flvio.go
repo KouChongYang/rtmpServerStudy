@@ -358,9 +358,9 @@ func FillTagTrailer(b []byte, datalen int) (n int) {
 	return
 }
 
-func WriteTag(w io.Writer, tag *Tag, ts int32, b []byte) (err error) {
+func WriteTag(w io.Writer, tag *Tag, ts int32, b []byte) (n int,err error) {
 	data := tag.Data
-	n := 0
+	n = 0
 	if tag.NoHead {
 		n = tag.FillHeader(b[TagHeaderLength:])
 	}

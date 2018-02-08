@@ -197,6 +197,7 @@ func NewMuxerWriteFlusher(w writeFlusher) *Muxer {
 	Muxer.bufw = w
 	return Muxer
 }
+
 func (m *Muxer)GetMuxerWrite() writeFlusher{
 	return m.bufw
 }
@@ -236,7 +237,7 @@ func (self *Muxer)WriteMeta(metadata amf.AMFMap) (err error) {
 	if tag, ok = MetadeToTag("onMetaData", metadata); err != nil {
 	}
 	if ok {
-		if err = flvio.WriteTag(self.bufw, tag, 0, self.B); err != nil {
+		if _,err = flvio.WriteTag(self.bufw, tag, 0, self.B); err != nil {
 			return
 		}
 	}
@@ -259,7 +260,7 @@ func (self *Muxer) WriteHeader(streams []av.CodecData,metadata amf.AMFMap) (err 
 	}
 
 	if ok {
-		if err = flvio.WriteTag(self.bufw, tag, 0, self.B); err != nil {
+		if _,err = flvio.WriteTag(self.bufw, tag, 0, self.B); err != nil {
 			return
 		}
 	}
@@ -272,7 +273,7 @@ func (self *Muxer) WriteHeader(streams []av.CodecData,metadata amf.AMFMap) (err 
 		}
 		tag.NoHead = true
 		if ok {
-			if err = flvio.WriteTag(self.bufw, tag, 0, self.B); err != nil {
+			if _,err = flvio.WriteTag(self.bufw, tag, 0, self.B); err != nil {
 				return
 			}
 		}
@@ -280,3 +281,76 @@ func (self *Muxer) WriteHeader(streams []av.CodecData,metadata amf.AMFMap) (err 
 	self.streams = streams
 	return
 }
+
+type HdsMuxer struct {
+	w          io.WriteSeeker
+	bufw       *bufio.Writer
+	wpos       int64
+	B       []byte
+	streams []av.CodecData
+}
+
+func HdsNewMuxer(w io.WriteSeeker) *Muxer {
+	return &HdsMuxer{
+		w: w,
+		bufw: bufio.NewWriterSize(w, pio.RecommendBufioSize),
+		B: make([]byte, 256),
+	}
+}
+
+func (self *HdsMuxer)WriteMeta(metadata amf.AMFMap) (err error) {
+	var tag *flvio.Tag
+	var ok bool
+
+	if tag, ok = MetadeToTag("onMetaData", metadata); err != nil {
+	}
+
+	if ok {
+		if _,err = flvio.WriteTag(self.bufw, tag, 0, self.B); err != nil {
+			return
+		}
+	}
+	return
+}
+const MDAT = uint32(0x6d646174)
+func (self *HdsMuxer) WriteHeader(streams []av.CodecData,metadata amf.AMFMap) (err error) {
+	var flags uint8
+	flags |= flvio.FILE_HAS_VIDEO
+	flags |= flvio.FILE_HAS_AUDIO
+
+
+	taghdr := make([]byte, 8)
+	pio.PutU32BE(taghdr[4:], uint32(MDAT))
+	if _, err = self.w.Write(taghdr); err != nil {
+		return
+	}
+	self.wpos += 8
+
+	var tag *flvio.Tag
+	var ok bool
+	if tag, ok = MetadeToTag("onMetaData", metadata); err != nil {
+	}
+
+	if ok {
+		if _,err = flvio.WriteTag(self.bufw, tag, 0, self.B); err != nil {
+			return
+		}
+	}
+
+	for _, stream := range streams {
+		var tag *flvio.Tag
+		var ok bool
+		if tag, ok, err = CodecDataToTag(stream); err != nil {
+			return
+		}
+		tag.NoHead = true
+		if ok {
+			if _,err = flvio.WriteTag(self.bufw, tag, 0, self.B); err != nil {
+				return
+			}
+		}
+	}
+	self.streams = streams
+	return
+}
+
