@@ -48,7 +48,7 @@ func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage in
 					continue
 				}
 				connectErrTimes = 0
-				self = NewSesion(netConn)
+				self = NewSsesion(netConn)
 				self.network = network
 				self.netconn = netConn
 				self.URL = url1

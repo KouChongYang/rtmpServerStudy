@@ -47,7 +47,7 @@ func rtmpClientRelayProxy(network,host,vhost,App,streamId,desUrl string,stage in
 					continue
 				}
 				connectErrTimes = 0
-				self = NewSesion(netConn)
+				self = NewSsesion(netConn)
 				self.network = network
 				self.netconn = netConn
 				self.URL = url1

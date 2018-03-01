@@ -45,7 +45,11 @@ func (self *Session)rtmpClosePublishingSession(){
 	//flv
 	//other things
 	self.CursorList = nil
-	self.netconn.Close()
+	if self.QuicOn == true{
+		self.QuicConn.Close()
+	}else{
+		self.netconn.Close()
+	}
 }
 
 func (self *Session) rtmpCloseSessionHanler() {

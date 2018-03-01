@@ -26,6 +26,14 @@ import (
 	"os"
 	"rtmpServerStudy/config"
 	"rtmpServerStudy/amf"
+	"github.com/lucas-clemente/quic-go"
+	"crypto/tls"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/rand"
+	"math/big"
+	"encoding/pem"
+	"github.com/xtaci/kcp-go"
 )
 
 /* RTMP message types */
@@ -65,6 +73,8 @@ var RelaySessionMap [HashMapFactors]relaySessionIndexStruct
 type Server struct {
 	RtmpAddr      []string
 	HttpAddr      []string
+	QuicAddr      string
+	KcpAddr       string
 	done          chan bool
 	HandlePublish func(*Session)
 	HandlePlay    func(*Session)
@@ -95,6 +105,9 @@ type Session struct {
 	RegisterChannel   chan *Session
 	PacketAck         chan bool
 	curgopcount       int
+	QuicOn            bool
+	QuicConn quic.Stream
+
 
 	App               string
 	StreamId          string
@@ -230,7 +243,7 @@ func RtmpSessionDel(session *Session) {
 	PublishingSessionMap[i].Unlock()
 }
 
-func NewSesion(netconn net.Conn) *Session {
+func NewSsesion(netconn net.Conn) *Session {
 	session := &Session{}
 	session.netconn = netconn
 	session.readcsmap = make(map[uint32]*chunkStream)
@@ -748,6 +761,18 @@ func (self *Server)ListenAndServersStart(){
 	for _, addr := range self.RtmpAddr {
 		go self.rtmpServeStart(addr)
 	}
+
+	if len(self.KcpAddr)>0{
+		fmt.Println(self.KcpAddr)
+		go self.rtmpKcpServerStart(self.KcpAddr)
+	}
+
+	if len(self.QuicAddr) >0 {
+		fmt.Println(self.QuicAddr)
+		go self.rtmpQuicServerStart(self.QuicAddr)
+	}
+
+
 	//http server start
 	for _, addr :=  range self.HttpAddr{
 		go self.httpServerStart(addr)
@@ -760,8 +785,8 @@ func NewServer(file string) (err error,server *Server){
 	if err,Gconfig = config.ParseConfig(file);err != nil{
 		return
 	}
-	server.RtmpAddr ,server.HttpAddr =
-		Gconfig.RtmpServer.RtmpListen,Gconfig.RtmpServer.HttpListen
+	server.RtmpAddr ,server.HttpAddr,server.QuicAddr,server.KcpAddr =
+		Gconfig.RtmpServer.RtmpListen,Gconfig.RtmpServer.HttpListen ,Gconfig.RtmpServer.QuicListen,Gconfig.RtmpServer.KcpListen
 	return
 }
 
@@ -818,7 +843,7 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 			//error handle
 		}
 		tcpConn.SetNoDelay(true)
-		session := NewSesion(netconn)
+		session := NewSsesion(netconn)
 		session.isServer = true
 		go func() {
 			defer func() {
@@ -838,6 +863,147 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 		}()
 	}
 }
+
+func NewQuicSesion(netconn quic.Stream) *Session {
+	session := &Session{}
+	session.readcsmap = make(map[uint32]*chunkStream)
+	session.readMaxChunkSize = 128
+	session.writeMaxChunkSize = 128
+	session.CursorList = AvQue.NewPublist()
+	session.maxgopcount = 2
+	session.rtmpCmdHandler = newRtmpCmdHandler()
+	session.lock = &sync.RWMutex{}
+	session.stage = stageHandshakeStart
+	session.metaData = amf.AMFMap{}
+	session.QuicOn = true
+	session.QuicConn = netconn
+	//just for regist cursor session
+	//session.RegisterChannel = make(chan *Session, MAXREGISTERCHANNEL)
+	//true register ok ,false register false
+
+	session.PacketAck = make(chan bool, 1)
+
+	//this maybe
+	//session.context , session.cancel = context.WithCancel(context.Background())
+	//
+	session.bufr = bufio.NewReaderSize(netconn, 4096)
+	session.bufw = bufio.NewWriterSize(netconn, 4096)
+	//session.bufr = bufio.NewReaderSize(netconn, pio.RecommendBufioSize)
+	session.writebuf = make([]byte, 4096)
+	session.readbuf = make([]byte, 4096)
+	session.chunkHeaderBuf = make([]byte, chunkHeaderLength)
+	//session.GopCache = AvQue.RingBufferCreate(8)
+	session.CurQue = AvQue.RingBufferCreate(10) //
+	return session
+}
+
+func generateTLSConfig() *tls.Config {
+	key, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		panic(err)
+	}
+	template := x509.Certificate{SerialNumber: big.NewInt(1)}
+	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
+	if err != nil {
+		panic(err)
+	}
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
+
+	tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		panic(err)
+	}
+	return &tls.Config{Certificates: []tls.Certificate{tlsCert}}
+}
+
+//quic
+func (self * Server)rtmpQuicServerStart(addr string)(err error) {
+
+	listener, err := quic.ListenAddr(addr, generateTLSConfig(), nil)
+	if err != nil {
+		return err
+	}
+
+	for {
+		sess, err := listener.Accept()
+		if err != nil {
+			return err
+		}
+		stream, err := sess.AcceptStream()
+		if err != nil {
+			sess.Close(err)
+			fmt.Println("udp accept err:",err)
+			continue
+		}
+		session := NewQuicSesion(stream)
+		session.isServer = true
+		go func() {
+			defer func() {
+				if err := recover(); err != nil  {
+					const size = 64 << 10
+					buf := make([]byte, size)
+					buf = buf[:runtime.Stack(buf, false)]
+					session.rtmpCloseSessionHanler()
+					fmt.Println("rtmp: panic serving %v: %v\n%s", session.netconn.RemoteAddr(), err, string(buf))
+				}
+			}()
+
+			err := self.ServerHandle(session)
+			if Debug {
+				fmt.Println("rtmp: server: client closed err:", err)
+			}
+		}()
+	}
+}
+
+//kcp
+func (self * Server)rtmpKcpServerStart(addr string)(err error) {
+
+	/*var pass = pbkdf2.Key(key, []byte(SALT), 4096, 32, sha1.New)
+	block, _ := kcp.NewSalsa20BlockCrypt(pass)
+    */
+	//listener, err := kcp.ListenWithOptions(addr, nil, 10, 3)
+	//no key no fec
+	listener, err := kcp.ListenWithOptions(addr, nil, -1, -1)
+	if err != nil {
+		fmt.Println(err)
+	}
+	kcplistener := listener
+	kcplistener.SetReadBuffer(4 * 1024 * 1024)
+	kcplistener.SetWriteBuffer(4 * 1024 * 1024)
+	kcplistener.SetDSCP(46)
+	for {
+		s, err := listener.Accept()
+		if err != nil {
+			return err
+		}
+
+		// coverage test
+		s.(*kcp.UDPSession).SetReadBuffer(4 * 1024 * 1024)
+		s.(*kcp.UDPSession).SetWriteBuffer(4 * 1024 * 1024)
+		session := NewSsesion(s)
+		session.isServer = true
+		go func() {
+			defer func() {
+				if err := recover(); err != nil  {
+					const size = 64 << 10
+					buf := make([]byte, size)
+					buf = buf[:runtime.Stack(buf, false)]
+					session.rtmpCloseSessionHanler()
+					fmt.Println("rtmp: panic serving %v: %v\n%s", session.netconn.RemoteAddr(), err, string(buf))
+				}
+			}()
+
+			err := self.ServerHandle(session)
+			if Debug {
+				fmt.Println("rtmp: server: client closed err:", err)
+			}
+		}()
+
+	}
+}
+
 
 func SplitPath(u *url.URL) (app, stream string) {
 	pathsegs := strings.SplitN(u.RequestURI(), "/", 3)

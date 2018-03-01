@@ -236,8 +236,11 @@ func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	return
 }
 
-func hlsLiveRecord(self *Session,stream av.CodecData,pkt *av.Packet){
-	//init
+func hlsLiveRecord(self *Session,stream av.CodecData,pkt *av.Packet) {
+
+	if self.UserCnf.RecodeHls != 1{
+		return
+	}
 	if self.hlsLiveRecordInfo.muxer == nil {
 		self.hlsLiveRecordInfo.audioCachedPkts = make([]*av.Packet,0,1024)
 		nowTime:=time.Now().UnixNano()/1000000

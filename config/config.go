@@ -36,6 +36,8 @@ type Rtmpserver struct{
 	ClusterCnf []string `yaml:"ClusterCnf"`
 	SelfIp string `yaml:"SelfIp"`
 	HttpListen []string `yaml:"HttpListen"`
+	QuicListen string `yaml:"QuicListen"`
+	KcpListen string `yaml:"KcpListen"`
 }
 type UserConf struct {
 	PublishDomain map[string]publishdomain `yaml:"PublishDomain"`
