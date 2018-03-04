@@ -1,11 +1,14 @@
 package tsio
 
 import (
-"io"
-"time"
-"fmt"
-"github.com/nareix/bits/pio"
+	"io"
+	"time"
+	"fmt"
+	"github.com/nareix/bits/pio"
+	"bufio"
+
 )
+
 
 const (
 	StreamIdH264 = 0xe0
@@ -466,9 +469,7 @@ func PCRToTime(pcr uint64) (tm time.Duration) {
 
 func TimeToTs(tm time.Duration) (v uint64) {
 	ts := uint64(tm*PTS_HZ/time.Second)
-	// 0010	PTS 32..30 1	PTS 29..15 1 PTS 14..00 1
-	v = ((ts>>30)&0x7)<<33 | ((ts>>15)&0x7fff)<<17 | (ts&0x7fff)<<1 | 0x100010001
-	return
+	return ts
 }
 
 func TsToTime(v uint64) (tm time.Duration) {
@@ -558,7 +559,32 @@ most significant 3 bits from PTS, 1, following next 15 bits, 1, rest 15 bits and
  If both PTS and DTS are present, first 4 bits are 0011 and first 4 bits for DTS are 0001. Other appended bytes have similar but different encoding.
 */
 
-func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts time.Duration) (n int) {
+//see see nginx
+func writeTs(src []byte,fb uint, ts uint64) {
+
+	val := uint32(0)
+	if ts > 0x1ffffffff {
+		ts -= 0x1ffffffff
+	}
+
+	i:=0
+	val = uint32(fb<<4) | ((uint32(ts>>30) & 0x07) << 1) | 1
+	src[i] = byte(val)
+	i++
+
+	val = ((uint32(ts>>15) & 0x7fff) << 1) | 1
+	src[i] = byte(val >> 8)
+	i++
+	src[i] = byte(val)
+	i++
+
+	val = (uint32(ts&0x7fff) << 1) | 1
+	src[i] = byte(val >> 8)
+	i++
+	src[i] = byte(val)
+}
+
+func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts uint64) (n int) {
 	h[0] = 0
 	h[1] = 0
 	h[2] = 1
@@ -567,7 +593,7 @@ func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts time.Duration
 	const PTS = 1 << 7
 	const DTS = 1 << 6
 
-	var flags uint8
+	var flags uint
 	if pts != 0 {
 		flags |= PTS
 		if dts != 0 {
@@ -593,7 +619,7 @@ func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts time.Duration
 	pio.PutU16BE(h[4:6], pktlen)
 
 	h[6] = 2<<6|1 // resverd(6,2)=2,original_or_copy(0,1)=1
-	h[7] = flags
+	h[7] = byte(flags)
 	h[8] = uint8(n)
 
 	// pts(40)?
@@ -603,11 +629,12 @@ func FillPESHeader(h []byte, streamid uint8, datalen int, pts, dts time.Duration
 	if flags&PTS != 0 {
 		if flags&DTS != 0 {
 			//first 4 bits are 0011 and first 4 bits for DTS are 0001
-			pio.PutU40BE(h[9:14], TimeToTs(pts)|3<<36)
-			pio.PutU40BE(h[14:19], TimeToTs(dts)|1<<36)
+			writeTs(h[9:14],flags>>6, (pts))
+			writeTs(h[14:19],1, (dts))
+
 		} else {
 			////If only PTS is present, this is done by catenating 0010b
-			pio.PutU40BE(h[9:14], TimeToTs(pts)|2<<36)
+			writeTs(h[9:14],flags>>6, (pts))
 		}
 	}
 
@@ -632,8 +659,24 @@ func NewTSWriter(pid uint16) *TSWriter {
 	return w
 }
 
+func  writePcr(b []byte, i byte, pcr uint64) error {
+	b[i] = byte(pcr >> 25)
+	i++
+	b[i] = byte((pcr >> 17) & 0xff)
+	i++
+	b[i] = byte((pcr >> 9) & 0xff)
+	i++
+	b[i] = byte((pcr >> 1) & 0xff)
+	i++
+	b[i] = byte(((pcr & 0x1) << 7) | 0x7e)
+	i++
+	b[i] = 0x00
+
+	return nil
+}
+
 //write frame to ts file
-func (self *TSWriter) WritePackets(w io.Writer, datav [][]byte, pcr time.Duration, sync bool, paddata bool) (err error) {
+func (self *TSWriter) WritePackets(w *bufio.Writer, datav [][]byte, pcr uint64, sync bool, paddata bool) (err error) {
 	datavlen := pio.VecLen(datav)
 	writev := make([][]byte, len(datav))
 	writepos := 0
@@ -654,7 +697,9 @@ func (self *TSWriter) WritePackets(w io.Writer, datav [][]byte, pcr time.Duratio
 				hdrlen += 6
 				//set pcr flag 0x10
 				self.tshdr[5] = 0x10|self.tshdr[5] // PCR flag (Discontinuity indicator 0x80)
-				pio.PutU48BE(self.tshdr[6:12], TimeToPCR(pcr))
+				pio.PutU48BE(self.tshdr[6:12], (pcr))
+				/*pcr1 := uint64(pcr*PTS_HZ/time.Second)
+				writePcr(self.tshdr[6:12],0,pcr1)*/
 			}
 			if sync {
 				self.tshdr[5] = 0x40|self.tshdr[5] // Random Access indicator

@@ -6,9 +6,9 @@ import (
 	"time"
 	//"rtmpServerStudy/AvQue"
 	//"context"
-	"rtmpServerStudy/amf"
+	//"rtmpServerStudy/amf"
 	"rtmpServerStudy/av"
-	"rtmpServerStudy/flv"
+	//"rtmpServerStudy/flv"
 	"rtmpServerStudy/flv/flvio"
 	"rtmpServerStudy/timer"
 )
@@ -39,8 +39,17 @@ func (self *Session)rtmpClosePublishingSession(){
 			}
 		}
 	}
+	//close other thing
+	//recode
+	//hls
+	//flv
+	//other things
 	self.CursorList = nil
-	self.netconn.Close()
+	if self.QuicOn == true{
+		self.QuicConn.Close()
+	}else{
+		self.netconn.Close()
+	}
 }
 
 func (self *Session) rtmpCloseSessionHanler() {
@@ -53,8 +62,17 @@ func (self *Session) rtmpCloseSessionHanler() {
 
 }
 
+func (self *Session)rtmpSendMeta()(err error){
+
+	if err = self.writeDataMsg(5, self.avmsgsid, "onMetaData", self.metaData); err != nil {
+		return
+	}
+	self.metaversion = self.pubSession.metaversion
+	return
+}
+
 func (self *Session) rtmpSendHead() (err error) {
-	var metadata amf.AMFMap
+
 	var streams []av.CodecData
 
 	if self.aCodec == nil && self.vCodec == nil {
@@ -67,12 +85,10 @@ func (self *Session) rtmpSendHead() (err error) {
 		streams = append(streams, self.vCodec)
 	}
 
-	if metadata, err = flv.NewMetadataByStreams(streams); err != nil {
+	if err = self.rtmpSendMeta();err != nil{
 		return
 	}
-	if err = self.writeDataMsg(5, self.avmsgsid, "onMetaData", metadata); err != nil {
-		return
-	}
+
 	for _, stream := range streams {
 		var ok bool
 		var tag *flvio.Tag
@@ -115,6 +131,9 @@ func (self *Session) rtmpSendGop() (err error) {
 
 func (self *Session) RtmpSendAvPackets() (err error) {
 	for {
+		if self.metaversion != self.pubSession.metaversion{
+			self.rtmpSendMeta()
+		}
 		pkt := self.CurQue.RingBufferGet()
 
 		if self.context != nil  {
@@ -195,6 +214,7 @@ func (self *Session) ServerSession(stage int) (err error) {
 					self.vCodecData = pubSession.vCodecData
 					self.aCodecData = pubSession.aCodecData
 					self.vCodec = pubSession.vCodec
+					self.metaData = pubSession.metaData
 					//copy all gop just ptr copy
 					self.GopCache = pubSession.GopCache.GopCopy()
 					pubSession.RUnlock()

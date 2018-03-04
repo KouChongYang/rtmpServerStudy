@@ -24,6 +24,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 		fmt.Println("parse frame hare err ")
 		return
 	}
+	AvHeader:=false
 	dataPos:=n
 	if tag.CodecID == flvio.VIDEO_H264 {
 		if !(tag.FrameType == flvio.FRAME_INTER || tag.FrameType == flvio.FRAME_KEY) {
@@ -42,6 +43,8 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 			session.vCodec = &stream
 			session.vCodecData = msgdata
 			session.Unlock()
+			AvHeader = true
+
 		case flvio.AVC_NALU:
 			b := tag.Data
 			nalus, _ := h264parser.SplitNALUs(b)
@@ -82,6 +85,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 	//session.updatedGop == true
 	session.Unlock()
 
+
 	var next *list.Element
 	CursorList := session.CursorList.GetList()
 	pkt.GopIsKeyFrame = pkt.IsKeyFrame
@@ -111,6 +115,17 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 		}
 	}
 
+	if AvHeader == true {
+		return
+	}
+
+	//startTime:=time.Now()
+
+	if isSelf := session.RtmpCheckStreamIsSelf();isSelf == true {
+		RecordHandler(session, session.vCodec, pkt)
+	}
+	//dis := time.Now().Sub(startTime).Nanoseconds()/1000
+	//fmt.Println(dis)
 	return
 }
 
@@ -158,12 +173,16 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 		fmt.Println("parse frame hare err ")
 		return
 	}
+	AvHeader:=false
 	dataPos:=n
 	switch tag.SoundFormat {
 	case flvio.SOUND_AAC:
 		tag.Data = msgdata[n:]
 		switch tag.AACPacketType {
 		case flvio.AAC_SEQHDR:
+			if len(tag.Data)==0{
+				return
+			}
 			fmt.Println("find acc seqhdr")
 			var stream aacparser.CodecData
 			if stream, err = aacparser.NewCodecDataFromMPEG4AudioConfigBytes(tag.Data); err != nil {
@@ -174,6 +193,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 			session.aCodec = &stream
 			session.aCodecData = msgdata
 			session.Unlock()
+			AvHeader = true
 		}
 	}
 	var pkt *av.Packet
@@ -221,6 +241,13 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 		}
 	}
 
+	if AvHeader == true {
+		return
+	}
+	//just hash push record
+	if isSelf := session.RtmpCheckStreamIsSelf();isSelf == true {
+		RecordHandler(session, session.aCodec, pkt)
+	}
 	return
 }
 

@@ -32,8 +32,9 @@ func rtmpClientRelayProxy(network,host,vhost,App,streamId,desUrl string,stage in
 	}()
 	isBreak := true
 	connectErrTimes:=0
+	stageHandshakeDoneTimes:=0
 	for isBreak {
-		for (proxyStage < stage ) && isBreak{
+		for (proxyStage <= stage ) && isBreak{
 			switch proxyStage {
 			case stageClientConnect:
 				var netConn net.Conn
@@ -46,7 +47,7 @@ func rtmpClientRelayProxy(network,host,vhost,App,streamId,desUrl string,stage in
 					continue
 				}
 				connectErrTimes = 0
-				self = NewSesion(netConn)
+				self = NewSsesion(netConn)
 				self.network = network
 				self.netconn = netConn
 				self.URL = url1
@@ -66,13 +67,21 @@ func rtmpClientRelayProxy(network,host,vhost,App,streamId,desUrl string,stage in
 						err.Error() == "Stream.Already.Publishing"{
 						return
 					}
-					fmt.Println(err)
-					proxyStage = stageClientConnect
+					if self != nil {
+						self.rtmpCloseSessionHanler()
+					}
+					stageHandshakeDoneTimes++
+					if stageHandshakeDoneTimes > 5{
+						proxyStage = stageSessionDone
+					}else {
+						proxyStage = stageClientConnect
+					}
 					time.Sleep(1*time.Second)
 					continue
 				}
 			case stageSessionDone:
 				isBreak = false
+				return
 			}
 
 		}
@@ -215,15 +224,14 @@ func (self *Session) writeConnect(path string) (err error) {
 func RtmpRelay(network,host,vhost,App,streamId,desUrl string,stage int) bool{
 	i:=hash(desUrl)%HashMapFactors
 	RelaySessionMap[i].RLock()
-	defer 	RelaySessionMap[i].RUnlock()
-	_, ok := RelaySessionMap[i].sessionIndex[desUrl]
-	if ok {
-		return true
-	}else{
+	if _, ok := RelaySessionMap[i].sessionIndex[desUrl]; ok != true{
 		RelaySessionMap[i].sessionIndex[desUrl] = true
+		RelaySessionMap[i].RUnlock()
 		go rtmpClientRelayProxy(network, host,vhost,App,streamId,desUrl,stage)
 		return false
 	}
+	RelaySessionMap[i].RUnlock()
+
 	return false
 }
 

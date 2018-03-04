@@ -1,7 +1,8 @@
 RtmpServer:
-  ClusterCnf: ["127.0.0.1:1935","127.0.0.1:1936"]
-  RtmpListen: [":1935","rtmp.socket"]
-  HttpListen: [":80","http.socket"]
+  ClusterCnf: ["127.0.0.1:1935","10.137.16.47:1935"]
+  SelfIp: "127.0.0.1:1935"
+  RtmpListen: [":1935","/tmp/rtmp.socket8"]
+  HttpListen: [":8087","/tmp/http.socket6"]
 
 UserConf:
   PublishDomain:
@@ -9,29 +10,33 @@ UserConf:
       UniqueName: test
       App:
         live:
-          GopCacheNum: 1
+          GopCacheNum: 2
           ExtTimeSend: 1
           RecodeFlv: 1
           RecodeHls: 1
-          RecodeFlvPath: "/tmp/flv"
-          RecodeHlsPath: "/tmp/hls"
+          hlsFragment: "5s"
+          RecodeFlvPath: "/dev/shm/data/flv"
+          RecodeHlsPath: "/data/hls"
           RecodePicture: 1
-          TurnHost: ["test.uplive.com/test","test.uplive.com/test1"]
+          TurnHost: ["test.uplive.com/test"]
         test:
           GopCacheNum: 1
           RecodeHls: 1
-          RecodeFlvPath: "/tmp/flv"
-          RecodeHlsPath: "/tmp/hls"
+          hlsFragment: "5s"
+          RecodeFlvPath: "/dev/shm/data/flv"
+          RecodeHlsPath: "/data/hls"
           RecodePicture: 1
         test1:
           GopCacheNum: 1
           RecodeFlv: 1
           RecodeHls: 1
-          RecodeFlvPath: "/tmp/flv"
-          RecodeHlsPath: "/tmp/hls"
+          hlsFragment: "5s"
+          RecodeFlvPath: "/data/flv"
+          RecodeHlsPath: "/data/hls"
           RecodePicture: 1
   PlayDomain:
     test.live.com:
       UniqueName: test
       App:
         live:
+

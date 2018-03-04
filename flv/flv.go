@@ -229,7 +229,21 @@ func MetadeToTag(args ...interface{}) (_tag *flvio.Tag, ok bool) {
 	return
 }
 
-func (self *Muxer) WriteHeader(streams []av.CodecData) (err error) {
+func (self *Muxer)WriteMeta(metadata amf.AMFMap) (err error) {
+	var tag *flvio.Tag
+	var ok bool
+
+	if tag, ok = MetadeToTag("onMetaData", metadata); err != nil {
+	}
+	if ok {
+		if err = flvio.WriteTag(self.bufw, tag, 0, self.B); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (self *Muxer) WriteHeader(streams []av.CodecData,metadata amf.AMFMap) (err error) {
 	var flags uint8
 	flags |= flvio.FILE_HAS_VIDEO
 	flags |= flvio.FILE_HAS_AUDIO
@@ -238,9 +252,6 @@ func (self *Muxer) WriteHeader(streams []av.CodecData) (err error) {
 	if _, err = self.bufw.Write(self.B[:n]); err != nil {
 		return
 	}
-
-	metadata := amf.AMFMap{}
-
 
 	var tag *flvio.Tag
 	var ok bool

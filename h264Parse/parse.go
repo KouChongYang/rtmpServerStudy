@@ -198,6 +198,24 @@ Additionally, there is a new variable called NALULengthSizeMinusOne. This confus
 An advantage to this format is the ability to configure the decoder at the start and jump into the middle of a stream. This is a common use case where the media is available on a random access medium such as a hard drive, and is therefore used in common container formats such as MP4 and MKV.
 */
 
+const(
+	AVC_NAL_SLICE           = 1
+	AVC_NAL_DPA             = 2
+	AVC_NAL_DPB             = 3
+	AVC_NAL_DPC             = 4
+	AVC_NAL_IDR_SLICE       = 5
+	AVC_NAL_SEI             = 6
+	AVC_NAL_SPS             = 7
+	AVC_NAL_PPS             = 8
+	AVC_NAL_AUD             = 9
+	AVC_NAL_END_SEQUENCE    = 10
+	AVC_NAL_END_STREAM      = 11
+	AVC_NAL_FILLER_DATA     = 12
+	AVC_NAL_SPS_EXT         = 13
+	AVC_NAL_AUXILIARY_SLICE = 19
+	AVC_NAL_FF_IGNORE       = 0xff0f001
+)
+
 var StartCodeBytes = []byte{0, 0, 1}
 var AUDBytes = []byte{0, 0, 0, 1, 0x9, 0xf0, 0, 0, 0, 1} // AUD
 

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 	"github.com/nareix/bits/pio"
-	"github.com/nareix/joy4/av"
-	"github.com/nareix/joy4/format/ts/tsio"
-	"github.com/nareix/joy4/codec/aacparser"
-	"github.com/nareix/joy4/codec/h264parser"
+	"rtmpServerStudy/av"
+	"rtmpServerStudy/ts/tsio"
+	"rtmpServerStudy/aacParse"
+	"rtmpServerStudy/h264Parse"
 	"io"
 )
 
@@ -192,7 +192,7 @@ func (self *Stream) addPacket(payload []byte, timedelta time.Duration) {
 
 	demuxer := self.demuxer
 	pkt := av.Packet{
-		Idx: int8(self.idx),
+		//Idx: int8(self.idx),
 		IsKeyFrame: self.iskeyframe,
 		Time: dts+timedelta,
 		Data: payload,
@@ -237,15 +237,15 @@ func (self *Stream) payloadEnd() (n int, err error) {
 
 	case tsio.ElementaryStreamTypeH264:
 		nalus, _ := h264parser.SplitNALUs(payload)
-		var sps, pps []byte
+		var sps, pps [][]byte
 		for _, nalu := range nalus {
 			if len(nalu) > 0 {
 				naltype := nalu[0] & 0x1f
 				switch {
 				case naltype == 7:
-					sps = nalu
+					sps = append(sps, nalu)
 				case naltype == 8:
-					pps = nalu
+					pps = append(pps, nalu)
 				case h264parser.IsDataNALU(nalu):
 					// raw nalu to avcc
 					b := make([]byte, 4+len(nalu))

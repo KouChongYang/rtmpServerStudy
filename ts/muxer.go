@@ -7,15 +7,18 @@ import (
 	"rtmpServerStudy/h264Parse"
 	"rtmpServerStudy/ts/tsio"
 	"io"
-	"time"
+//	"time"
 	//"encoding/hex"
+	"bufio"
+	"github.com/nareix/bits/pio"
 )
 
 //now just support aac h264 for ts
 var CodecTypes = []av.CodecType{av.H264, av.AAC}
 
 type Muxer struct {
-	w                        io.Writer
+	w                        io.WriteCloser
+	bufw       		 *bufio.Writer
 	//streams                  []*Stream
 	astream *Stream
 	vstream *Stream
@@ -32,9 +35,10 @@ type Muxer struct {
 }
 
 
-func NewMuxer(w io.Writer) *Muxer {
+func NewMuxer(w io.WriteCloser) *Muxer {
 	return &Muxer{
 		w:       w,
+		bufw: 	 bufio.NewWriterSize(w, pio.RecommendBufioSize),
 		psidata: make([]byte, 188),
 		peshdr:  make([]byte, tsio.MaxPESHeaderLength),
 		tshdr:   make([]byte, tsio.MaxTSHeaderLength),
@@ -48,8 +52,8 @@ func NewMuxer(w io.Writer) *Muxer {
 
 
 const	(
-	videoPid = 0x100
-	audioPid = 0x101
+	videoPid = uint16(0x100)
+	audioPid = uint16(0x101)
 )
 //new stream
 func (self *Muxer) newStream(codec av.CodecData) (err error) {
@@ -94,7 +98,7 @@ func (self *Muxer) newStream(codec av.CodecData) (err error) {
 
 func (self *Muxer) writePaddingTSPackets(tsw *tsio.TSWriter) (err error) {
 	for tsw.ContinuityCounter&0xf != 0x0 {
-		if err = tsw.WritePackets(self.w, self.datav[:0], 0, false, true); err != nil {
+		if err = tsw.WritePackets(self.bufw, self.datav[:0], 0, false, true); err != nil {
 			return
 		}
 	}
@@ -115,12 +119,13 @@ func (self *Muxer) WriteTrailer() (err error) {
 			}
 		}
 	}
-
+	self.bufw.Flush()
 	return
 }
 
-func (self *Muxer) SetWriter(w io.Writer) {
+func (self *Muxer) SetWriter(w io.WriteCloser) {
 	self.w = w
+	self.bufw = bufio.NewWriterSize(w, pio.RecommendBufioSize)
 	return
 }
 
@@ -133,35 +138,23 @@ func (self *Muxer) WritePATPMT() (err error) {
 	patlen := pat.Marshal(self.psidata[tsio.PSIHeaderLength:])
 	n := tsio.FillPSI(self.psidata, tsio.TableIdPAT, tsio.TableExtPAT, patlen)
 	self.datav[0] = self.psidata[:n]
-	if err = self.tswpat.WritePackets(self.w, self.datav[:1], 0, false, true); err != nil {
+	if err = self.tswpat.WritePackets(self.bufw, self.datav[:1], 0, false, true); err != nil {
 		return
 	}
 
 	var elemStreams []tsio.ElementaryStreamInfo
 
-	if self.astream != nil {
-		switch self.astream.Type() {
-		case av.AAC:
-			elemStreams = append(elemStreams, tsio.ElementaryStreamInfo{
-				StreamType:    tsio.ElementaryStreamTypeAdtsAAC,
-				ElementaryPID: self.astream.pid,
-			})
-		}
-	}else{
-		// for debug log
-	}
+	//aac
+	elemStreams = append(elemStreams, tsio.ElementaryStreamInfo{
+		StreamType:    tsio.ElementaryStreamTypeAdtsAAC,
+		ElementaryPID: self.astream.pid,
+	})
 
-	if self.vstream != nil {
-		switch self.vstream.Type() {
-		case av.H264:
-			elemStreams = append(elemStreams, tsio.ElementaryStreamInfo{
-				StreamType:    tsio.ElementaryStreamTypeH264,
-				ElementaryPID: self.vstream.pid,
-			})
-		}
-	}else{
-		//for debug log
-	}
+	//h264
+	elemStreams = append(elemStreams, tsio.ElementaryStreamInfo{
+		StreamType:    tsio.ElementaryStreamTypeH264,
+		ElementaryPID: self.vstream.pid,
+	})
 
 	pmt := tsio.PMT{
 		PCRPID:                0x100,
@@ -177,27 +170,25 @@ func (self *Muxer) WritePATPMT() (err error) {
 	pmt.Marshal(self.psidata[tsio.PSIHeaderLength:])
 	n = tsio.FillPSI(self.psidata, tsio.TableIdPMT, tsio.TableExtPMT, pmtlen)
 	self.datav[0] = self.psidata[:n]
-	if err = self.tswpmt.WritePackets(self.w, self.datav[:1], 0, false, true); err != nil {
+	if err = self.tswpmt.WritePackets(self.bufw, self.datav[:1], 0, false, true); err != nil {
 		return
 	}
 
 	return
 }
 
-func (self *Muxer) WriteHeader(astream av.CodecData,vstream av.CodecData) (err error) {
+func (self *Muxer) WriteHeader() (err error) {
 
-	//audio stream
-	if astream != nil {
-		if err = self.newStream(astream); err != nil {
-			return
-		}
+	self.vstream = &Stream{
+		muxer:     self,
+		pid:       videoPid,
+		tsw:       tsio.NewTSWriter(videoPid),
 	}
 
-	//vedio stream
-	if vstream != nil {
-		if err = self.newStream(vstream); err != nil {
-			return
-		}
+	self.astream = &Stream{
+		muxer:     self,
+		pid:       audioPid,
+		tsw:       tsio.NewTSWriter(audioPid),
 	}
 
 	//write pat pmt
@@ -207,25 +198,40 @@ func (self *Muxer) WriteHeader(astream av.CodecData,vstream av.CodecData) (err e
 	return
 }
 
-func (self *Muxer) WritePacket(pkt av.Packet,Cstream av.CodecData) (err error) {
+//const NGX_RTMP_HLS_DELAY = 63000
+func (self *Muxer)WriteAudioPacket(pkts []*av.Packet,Cstream av.CodecData,pts uint64)(err error){
 
-	pkt.Time += time.Second
+	datav:=make([][]byte,(len(pkts)+1)*2+1)
+	audioLen:=0
+	j:=1
+
+	for i,_:= range pkts {
+		codec := Cstream.(*aacparser.CodecData)
+		aacparser.FillADTSHeader(self.adtshdr, codec.Config, 1024, len(pkts[i].Data[pkts[i].DataPos:]))
+		datav[j] = self.adtshdr
+		j++
+		datav[j] = pkts[i].Data[pkts[i].DataPos:]
+		j++
+		audioLen+=len(self.adtshdr) + len(pkts[i].Data[pkts[i].DataPos:])
+	}
+	pts1:=(pts)
+	// pes heaer
+	n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC,audioLen ,pts1, 0)
+	datav[0] = self.peshdr[:n]
+
+	// packet
+	if err = self.astream.tsw.WritePackets(self.bufw, datav[:j],0, true, false); err != nil {
+		return
+	}
+	return
+}
+
+func (self *Muxer) WritePacket(pkt *av.Packet,Cstream av.CodecData) (err error) {
+
 	switch Cstream.Type() {
-	case av.AAC:
-
-		codec := self.astream.CodecData.(aacparser.CodecData)
-		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdAAC, len(self.adtshdr)+len(pkt.Data), pkt.Time, 0)
-		self.datav[0] = self.peshdr[:n]
-		aacparser.FillADTSHeader(self.adtshdr, codec.Config, 1024, len(pkt.Data))
-		self.datav[1] = self.adtshdr
-		self.datav[2] = pkt.Data
-
-		if err = self.astream.tsw.WritePackets(self.w, self.datav[:3], pkt.Time, true, false); err != nil {
-			return
-		}
 
 	case av.H264:
-		codec := self.vstream.CodecData.(h264parser.CodecData)
+		codec := Cstream.(*h264parser.CodecData)
 
 		nalus := self.nalus[:0]
 		if pkt.IsKeyFrame {
@@ -233,25 +239,40 @@ func (self *Muxer) WritePacket(pkt av.Packet,Cstream av.CodecData) (err error) {
 			nalus = append(nalus, codec.PPS())
 		}
 
-		pktnalus, _ := h264parser.SplitNALUs(pkt.Data)
+		pktnalus, _ := h264parser.SplitNALUs(pkt.Data[pkt.DataPos:])
 		for _, pktnalu:= range pktnalus {
 			nalus = append(nalus, pktnalu)
 		}
 
 		datav := self.datav[:1]
+		audSent := 0
 		for i,nal:= range nalus {
 			if i == 0 {
+				naltype := nal[0] & 0x1f
+				if naltype == h264parser.AVC_NAL_AUD{
+					continue
+				}
+			}
+			if audSent == 0{
 				datav = append(datav, h264parser.AUDBytes)
-			} else {
+				audSent = 1
+			}else {
 				datav = append(datav, h264parser.StartCodeBytes)
 			}
 			datav = append(datav, nal)
 		}
 
-		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdH264, -1, pkt.Time+pkt.CompositionTime, pkt.Time)
+		pts:=tsio.TimeToTs(pkt.Time+pkt.CompositionTime)
+		dts:=tsio.TimeToTs(pkt.Time)
+		n := tsio.FillPESHeader(self.peshdr, tsio.StreamIdH264, -1, pts, dts)
 		datav[0] = self.peshdr[:n]
-
-		if err = self.vstream.tsw.WritePackets(self.w, datav, pkt.Time, pkt.IsKeyFrame, false); err != nil {
+		var pcr uint64
+		if pkt.IsKeyFrame{
+			pcr =tsio.TimeToTs(pkt.Time)
+		}else{
+			pcr = uint64(0)
+		}
+		if err = self.vstream.tsw.WritePackets(self.bufw, datav, pcr, pkt.IsKeyFrame, false); err != nil {
 			return
 		}
 	}

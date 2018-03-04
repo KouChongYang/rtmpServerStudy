@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"time"
+	"strings"
 )
 
 /*
@@ -80,9 +81,15 @@ func (self *Session)RtmpChckeApp(host ,app string)(err error){
 		self.flushWrite()
 	}else{
 		if PlayOk{
-			self.UserCnf = Gconfig.UserConf.PlayDomain[host].App[app]
+			if Gconfig.UserConf.PlayDomain[host].App[app] != nil {
+				self.UserCnf = *(Gconfig.UserConf.PlayDomain[host].App[app])
+			}
+			self.uniqueName = Gconfig.UserConf.PlayDomain[host].UniqueName
 		}else{
-			self.UserCnf = Gconfig.UserConf.PublishDomain[host].App[app]
+			if Gconfig.UserConf.PublishDomain[host].App[app] != nil {
+				self.UserCnf = *(Gconfig.UserConf.PublishDomain[host].App[app])
+			}
+			self.uniqueName = Gconfig.UserConf.PublishDomain[host].UniqueName
 		}
 	}
 	return
@@ -161,6 +168,10 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 		m, _ := url.ParseQuery(u.RawQuery)
 		if len(m["vhost"])>0{
 			host = m["vhost"][0]
+		}
+		h := strings.Split(host, ":")
+		if  len(h)>0{
+			host = h[0]
 		}
 		if err = session.RtmpcheckHost(host,"connect");err != nil {
 			return
@@ -319,18 +330,26 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 			//hls recode start
 		}
 	}
+	session.recordTime = time.Now()
 	//
 	if len(session.UserCnf.TurnHost) > 0{
 
 	}
 
-	if noSelf := session.RtmpCheckStreamIsSelf();noSelf != true{
+	isSelf := false
+	if isSelf = session.RtmpCheckStreamIsSelf(); isSelf != true{
 		//push stream to the true server
 		//rtmp://127.0.0.1/live?vhost=test.uplive.com/123
 		url1:= "rtmp://" + session.pushIp + "/" + session.App +"?" + "vhost=" + session.Vhost + "/" + session.StreamId +"?hashpull=1"
 		go rtmpClientPullProxy(session,"tcp", session.pushIp,url1,stageSessionDone)
 		//rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage, flags int)
 	}
+
+	//just hash self record
+	if isSelf == true {
+		RecordPublishHandler(session)
+	}
+
 	session.stage = stageCommandDone
 	return
 }
@@ -559,6 +578,44 @@ func CheckConnectResult(session *Session, b []byte) (n int, err error){
 	return
 }
 
+func setDtaFrameHandler(session *Session, b []byte) (n int, err error) {
+
+	if _, err = session.handleCommandMsgAMF0(b,session.rtmpCmdHandler); err != nil {
+		return
+	}
+
+	return
+}
+
+func onMetaDataHandler(session *Session, b []byte) (n int, err error) {
+	var size int
+	n = 0
+	session.metaData = amf.AMFMap{}
+	var metaDatas []amf.AMFMap
+
+	for n < len(b) {
+		var  obj interface{}
+		if obj, size, err = amf.ParseAMF0Val(b[n:]); err != nil {
+			//some log
+		}else{
+			switch value1 := obj.(type) {
+			case amf.AMFMap:
+				metaDatas = append(metaDatas, value1)
+			}
+		}
+		n += size
+	}
+	if len(metaDatas) >0{
+		for i:=range metaDatas{
+			for k,_:=range metaDatas[i]{
+				session.metaData[k] = (metaDatas[i])[k]
+			}
+		}
+	}
+	session.metaData["create"] = "kouyang"
+	session.metaversion++
+	return
+}
 
 func newRtmpCmdHandler() (RtmpCmdHandles RtmpCmdHandle){
 	RtmpCmdHandles = make(RtmpCmdHandle)
@@ -569,6 +626,8 @@ func newRtmpCmdHandler() (RtmpCmdHandles RtmpCmdHandle){
 	RtmpCmdHandles["publish"] = RtmpPublishCmdHandler
 	RtmpCmdHandles["play"] = RtmpPlayCmdHandler
 	RtmpCmdHandles["onStatus"] =CheckOnStatus
+	RtmpCmdHandles["@setDataFrame"] =setDtaFrameHandler
+	RtmpCmdHandles["onMetaData"] =onMetaDataHandler
 	return
 }
 

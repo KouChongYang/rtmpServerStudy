@@ -12,9 +12,11 @@ type App struct {
 	ExtTimeSend int `yaml:"ExtTimeSend"`
 	RecodeFlv int `yaml:"RecodeFlv"`
 	RecodeHls int `yaml:"RecodeHls"`
+	HlsFragment   string `yaml:"HlsFragment"`
 	RecodeFlvPath string `yaml:"RecodeFlvPath"`
 	RecodeHlsPath string `yaml:"RecodeHlsPath"`
 	RecodePicture int `yaml:"RecodePicture"`
+	RecodePicPath string `yaml:"RecodePicPath"`
 	TurnHost []string `yaml:"TurnHost"`
 }
 
@@ -34,6 +36,8 @@ type Rtmpserver struct{
 	ClusterCnf []string `yaml:"ClusterCnf"`
 	SelfIp string `yaml:"SelfIp"`
 	HttpListen []string `yaml:"HttpListen"`
+	QuicListen string `yaml:"QuicListen"`
+	KcpListen string `yaml:"KcpListen"`
 }
 type UserConf struct {
 	PublishDomain map[string]publishdomain `yaml:"PublishDomain"`

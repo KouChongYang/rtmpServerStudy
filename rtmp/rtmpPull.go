@@ -48,7 +48,7 @@ func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage in
 					continue
 				}
 				connectErrTimes = 0
-				self = NewSesion(netConn)
+				self = NewSsesion(netConn)
 				self.network = network
 				self.netconn = netConn
 				self.URL = url1
@@ -174,6 +174,7 @@ func (self *Session) connectPublish() (err error) {
 	self.vCodecData = pubSession.vCodecData
 	self.aCodecData = pubSession.aCodecData
 	self.vCodec = pubSession.vCodec
+	self.metaData = pubSession.metaData
 	//copy all gop just ptr copy
 	self.GopCache = pubSession.GopCache.GopCopy()
 	pubSession.RUnlock()
