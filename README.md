@@ -28,6 +28,7 @@ just for study golang and AV knowledge
 3. 上行推流：通过 `RTMP` 协议把视频流推送到 `rtmp://test.uplive.com:1935/live/test`，
 例如使用 `ffmpeg -re -i 4b.flv -c copy -f flv rtmp://127.0.0.1:1935/123?vhost=test.uplive.com/live` 推送；
 或者绑定host test.uplive.com 127.0.0.1 直接通过以下命令推送`ffmpeg -re -i 4b.flv -c copy -f flv rtmp://test.uplive.com/live/123`
+亦或直接通过obs推流
 4. 下行播放：支持以下三种播放协议，播放地址如下：
     - `RTMP`:`rtmp://test.live.com:1935/live/123`
     - `FLV`:`http://test.live.com:8087/live/123.flv`
