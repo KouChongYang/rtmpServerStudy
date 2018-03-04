@@ -5,7 +5,7 @@ RtmpServer:
   HttpListen: [":8087","/tmp/http.socket6"]
   QuicListen: ":443"
   KcpListen: ":9997"
-  
+
 UserConf:
   PublishDomain:
     test.uplive.com:
