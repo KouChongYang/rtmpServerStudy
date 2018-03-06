@@ -4,21 +4,18 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/nareix/bits/pio"
+	"rtmpServerStudy/utils/bits/pio"
 	"io"
 	"net"
 	"net/url"
 	"time"
 	//"encoding/hex"
 	"sync"
-
 	"rtmpServerStudy/AvQue"
 	"rtmpServerStudy/h264Parse"
-
 	"rtmpServerStudy/aacParse"
 	"rtmpServerStudy/flv/flvio"
 	"strings"
-
 	"rtmpServerStudy/av"
 	//"encoding/hex"
 	"hash/fnv"

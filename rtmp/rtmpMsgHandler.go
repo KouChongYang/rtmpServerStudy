@@ -2,7 +2,7 @@ package rtmp
 
 import (
 	"fmt"
-	"github.com/nareix/bits/pio"
+	"rtmpServerStudy/utils/bits/pio"
 	"rtmpServerStudy/amf"
 	"encoding/hex"
 )

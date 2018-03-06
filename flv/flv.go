@@ -3,13 +3,10 @@ package flv
 import (
 	"bufio"
 	"fmt"
-
-	"github.com/nareix/bits/pio"
-
+	"rtmpServerStudy/utils/bits/pio"
 	"io"
 	"rtmpServerStudy/av"
 	"rtmpServerStudy/flv/flvio"
-
 	"rtmpServerStudy/aacParse"
 	"rtmpServerStudy/amf"
 	"rtmpServerStudy/h264Parse"

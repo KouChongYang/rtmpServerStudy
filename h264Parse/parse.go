@@ -3,8 +3,8 @@ package h264parser
 import (
 	"bytes"
 	"fmt"
-	"github.com/nareix/bits"
-	"github.com/nareix/bits/pio"
+	"rtmpServerStudy/utils/bits"
+	"rtmpServerStudy/utils/bits/pio"
 	"rtmpServerStudy/av"
 )
 

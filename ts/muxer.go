@@ -10,7 +10,7 @@ import (
 //	"time"
 	//"encoding/hex"
 	"bufio"
-	"github.com/nareix/bits/pio"
+	"rtmpServerStudy/utils/bits/pio"
 )
 
 //now just support aac h264 for ts
