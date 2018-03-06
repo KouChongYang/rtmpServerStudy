@@ -27,9 +27,11 @@ just for study golang and AV knowledge
 
 #### 从源码编译
 1. 下载源码 `git clone https://github.com/KouChongYang/rtmpServerStudy`
-2. 去 main 目录中 执行 `go build`
+2. cd rtmpServerStudy 目录
+2. cd main 目录下执行 `go build`
 
 ## 使用
+1. linux 运行
 2. 启动服务：执行 `./main -c config.yaml -p ./ ` 二进制文件启动 rtmp server 服务；
 3. 上行推流：通过 `RTMP` 协议把视频流推送到 `rtmp://test.uplive.com:1935/live/test`，
 例如使用 `ffmpeg -re -i 4b.flv -c copy -f flv rtmp://127.0.0.1:1935/123?vhost=test.uplive.com/live` 推送；
