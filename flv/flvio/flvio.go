@@ -1,10 +1,10 @@
 package flvio
 import (
-"fmt"
-"github.com/nareix/bits/pio"
-"rtmpServerStudy/av"
-"io"
-"time"
+	"fmt"
+	"rtmpServerStudy/utils/bits/pio"
+	"rtmpServerStudy/av"
+	"io"
+	"time"
 )
 
 func TsToTime(ts int32) time.Duration {

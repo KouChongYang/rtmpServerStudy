@@ -3,7 +3,7 @@ package aacparser
 import (
 	"bytes"
 	"fmt"
-	"github.com/nareix/bits"
+	"rtmpServerStudy/utils/bits"
 	"io"
 	"rtmpServerStudy/av"
 	"time"

@@ -5,7 +5,7 @@ import (
 
 	"encoding/hex"
 	"fmt"
-	"github.com/nareix/bits/pio"
+	"rtmpServerStudy/utils/bits/pio"
 )
 
 func (self *Session) writeDataMsg(csid, msgsid uint32, args ...interface{}) (err error) {

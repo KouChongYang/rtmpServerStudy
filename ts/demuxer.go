@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"time"
-	"github.com/nareix/bits/pio"
+	"rtmpServerStudy/utils/bits/pio"
+
+//	"github.com/nareix/bits/pio"
 	"rtmpServerStudy/av"
 	"rtmpServerStudy/ts/tsio"
 	"rtmpServerStudy/aacParse"
