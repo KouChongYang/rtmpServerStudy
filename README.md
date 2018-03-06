@@ -4,6 +4,8 @@ just for study golang and AV knowledge
 纯golang直播服务器：
 - 安装和使用非常简单；
 
+- golang version >1.9
+
 #### 支持的传输协议
 - [x] RTMP
 - [x] AMF
