@@ -363,7 +363,7 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 			return
 		}
 		n += 1
-		csid = uint32(b[0]) + 64
+		csid = uint32(b[1]) + 64
 	case 1: // Chunk basic header 3
 		if _, err = io.ReadFull(self.bufr, b[:2]); err != nil {
 			return
@@ -491,34 +491,43 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 		cs.Start()
 
 	case 3:
-		if cs.hastimeext && EXTTIME==true {
-			timestamp := uint32(0)
-			if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
-				return
-			}
-			n += 4
-			timestamp = pio.U32BE(b)
-
+		if cs.msgdataleft == 0 {
 			switch cs.msghdrtype {
 			case 0:
-				cs.timenow = timestamp
-			case 1, 2:
-				if cs.msgdataleft == 0 {
-					cs.timenow += timestamp
+				if cs.hastimeext {
+					if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
+						return
+					}
+					n += 4
+					timestamp = pio.U32BE(b)
+					cs.timenow = timestamp
 				}
-			}
-		}else{
-			switch cs.msghdrtype {
 			case 1, 2:
-				if cs.msgdataleft == 0 {
-					cs.timenow += cs.timedelta
+				if cs.hastimeext {
+					if _, err = io.ReadFull(self.bufr, b[:4]); err != nil {
+						return
+					}
+					n += 4
+					timestamp = pio.U32BE(b)
+				} else {
+					timestamp = cs.timedelta
 				}
+				cs.timenow += timestamp
 			}
-
-		}
-		if cs.msgdataleft == 0 {
 			cs.Start()
+		}else{
+			if cs.hastimeext {
+				tmpb, tmperr := self.bufr.Peek(4)
+				if tmperr != nil {
+					return tmperr
+				}
+				timestamp = pio.U32BE(tmpb)
+				if timestamp == cs.timenow {
+					self.bufr.Discard(4)
+				}
+			}
 		}
+
 	default:
 		err = fmt.Errorf("Rtmp.Invalid.ChunkMsg.Header(type=%d)", fmtTpye)
 		return
