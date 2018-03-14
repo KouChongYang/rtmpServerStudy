@@ -257,7 +257,7 @@ func MergM3u8(self *Session,fileName string) uint64{
 		panic(err)
 	}
 	p0 := p.(*(m3u8.MediaPlaylist))
-	item:=p0.Segments[p0.Count()]
+	item:=p0.Segments[p0.Count()-1]
 	tsitem := NewTSItem(item.URI,  float32(item.Duration),p0.SeqNo +2)
 	//写m3u8
 	self.hlsLiveRecordInfo.m3u8Box.SetItem(tsitem)
