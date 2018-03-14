@@ -293,10 +293,10 @@ func hlsLiveRecord(self *Session,stream av.CodecData,pkt *av.Packet) {
 		self.hlsLiveRecordInfo.m3u8Box = NewM3u8Box(self.StreamId)
 
 		if Exist(self.hlsLiveRecordInfo.m3u8BackFileName) == true{
-			MergM3u8(self,self.hlsLiveRecordInfo.m3u8BackFileName)
+			self.hlsLiveRecordInfo.seqNum = MergM3u8(self,self.hlsLiveRecordInfo.m3u8BackFileName)
+		}else {
+			self.hlsLiveRecordInfo.seqNum = uint64(nowTime)
 		}
-		self.hlsLiveRecordInfo.seqNum = uint64(nowTime)
-
 	}
 
 
