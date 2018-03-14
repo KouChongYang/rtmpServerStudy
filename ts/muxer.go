@@ -120,6 +120,7 @@ func (self *Muxer) WriteTrailer() (err error) {
 		}
 	}
 	self.bufw.Flush()
+	self.w.Close()
 	return
 }
 
