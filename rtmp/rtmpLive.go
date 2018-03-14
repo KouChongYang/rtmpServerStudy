@@ -41,6 +41,10 @@ func (self *Session)rtmpClosePublishingSession(){
 	}
 	//close other thing
 	//recode
+	isSelf := false
+	if isSelf = self.RtmpCheckStreamIsSelf(); isSelf == true {
+		RecordPublishDoneHandler(self)
+	}
 	//hls
 	//flv
 	//other things
@@ -50,6 +54,7 @@ func (self *Session)rtmpClosePublishingSession(){
 	}else{
 		self.netconn.Close()
 	}
+
 }
 
 func (self *Session) rtmpCloseSessionHanler() {
