@@ -44,6 +44,18 @@ func hlsLiveRecordOnPublish(self *Session){
 		fmt.Printf("%s\n",err.Error())
 		return
 	}
+
+	HlsFragment:=5.0
+	//大于5s 切片
+	if len(self.UserCnf.HlsFragment)>0{
+		time_len := len(self.UserCnf.HlsFragment)
+		if self.UserCnf.HlsFragment[time_len-1] == 's' {
+			time_len--
+			HlsFragment, _ = strconv.ParseFloat(self.UserCnf.HlsFragment[:time_len],64)
+		}
+	}
+
+	self.hlsLiveRecordInfo.HlsFragment = (HlsFragment)
 	return
 }
 
@@ -87,6 +99,7 @@ type  hlsLiveRecordInfo struct {
 	audioBaseTime   uint64
 	m3u8Box *m3u8Box
 	seqNum uint64
+	HlsFragment float64
 }
 
 //打开新的文件
@@ -143,23 +156,10 @@ func hlsLiveRecordCloseFragment(self *Session,stream av.CodecData,pkt *av.Packet
 func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flush_rate uint64,boundary int){
 
 	cutting := 0
-
-	HlsFragment:=0.0
-	//大于5s 切片
-	if len(self.UserCnf.HlsFragment)>0{
-		time_len := len(self.UserCnf.HlsFragment)
-		if self.UserCnf.HlsFragment[time_len-1] == 's' {
-			time_len--
-			HlsFragment, _ = strconv.ParseFloat(self.UserCnf.HlsFragment[:time_len],32)
-		} else {
-			HlsFragment = 5.0
-		}
-	}else{
-		HlsFragment = 5.0
-	}
-
-	self.hlsLiveRecordInfo.duration = float32(flvio.TimeToTs(pkt.Time - self.hlsLiveRecordInfo.lastTs))/(1000.0)
-	if self.hlsLiveRecordInfo.duration > float32(HlsFragment)   && boundary == 1{
+	self.hlsLiveRecordInfo.duration =
+		float32(flvio.TimeToTs(pkt.Time - self.hlsLiveRecordInfo.lastTs))/(1000.0)
+	if float64(self.hlsLiveRecordInfo.duration) >
+		(self.hlsLiveRecordInfo.HlsFragment)   && boundary == 1{
 		cutting = 1
 	}
 	//需要切割
@@ -170,8 +170,10 @@ func hlsLiveUpdateFragment(self *Session,stream av.CodecData,pkt *av.Packet,flus
 
 	//see see nginx
 	if len(self.hlsLiveRecordInfo.audioCachedPkts) >0 &&
-		((self.hlsLiveRecordInfo.audioPts  + 30 * 90 / flush_rate)< uint64(flvio.TimeToTs(pkt.Time)*90)){
-		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts, self.aCodec, self.hlsLiveRecordInfo.audioPts)
+		((self.hlsLiveRecordInfo.audioPts  + 30 * 90 / flush_rate) <
+							uint64(flvio.TimeToTs(pkt.Time)*90)){
+		self.hlsLiveRecordInfo.muxer.WriteAudioPacket(self.hlsLiveRecordInfo.audioCachedPkts,
+							self.aCodec, self.hlsLiveRecordInfo.audioPts)
 		self.hlsLiveRecordInfo.audioCachedPkts = make([](*av.Packet), 0, 10)
 	}
 	return

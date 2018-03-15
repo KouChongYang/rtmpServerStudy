@@ -11,9 +11,6 @@ const(
 	BasePath="/data/rtmp/"
 )
 
-//只是不想用反射，导致我写了这么多的代码，
-// 不知道为什么这么反感反射，是c语音开发习惯了吗
-
 type RecordMuxerInfo struct {
 	RecordVodPath string
 	RecordFormatName string
