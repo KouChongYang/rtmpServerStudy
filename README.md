@@ -43,8 +43,10 @@ just for study golang and AV knowledge
 
 ### 性能比较
 1. nginx rtmp 性能比较
-gortmp 性能：
+
+- gortmp 性能：
 ![](pic/gortmp.jpg)
-nginx rtmp 性能：
+
+- nginx rtmp 性能：
 ![](pic/nginx-rtmp.jpg)
 ### 首屏比较
