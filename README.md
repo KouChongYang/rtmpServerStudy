@@ -40,3 +40,11 @@ just for study golang and AV knowledge
 4. 下行播放：支持以下三种播放协议，播放地址如下：
     - `RTMP`:`rtmp://test.live.com:1935/live/123`
     - `FLV`:`http://test.live.com:8087/live/123.flv`
+
+### 性能比较
+1. nginx rtmp 性能比较
+gortmp 性能：
+![](pic/gortmp.jpg)
+nginx rtmp 性能：
+![](pic/nginx-rtmp.jpg)
+### 首屏比较
