@@ -40,3 +40,16 @@ just for study golang and AV knowledge
 4. 下行播放：支持以下三种播放协议，播放地址如下：
     - `RTMP`:`rtmp://test.live.com:1935/live/123`
     - `FLV`:`http://test.live.com:8087/live/123.flv`
+
+### 性能比较
+1. nginx rtmp 性能比较
+#### 压测方法
+
+* 使用sb_rtmp_publish 压测7500路，500M码率的流压测，压测报告如下：
+
+- gortmp 性能：
+![](pic/gortmp.jpg)
+
+- nginx rtmp 性能：
+![](pic/nginx-rtmp.jpg)
+### 首屏比较

@@ -203,6 +203,10 @@ func NewMuxer(w io.Writer) *Muxer {
 	return NewMuxerWriteFlusher(bufio.NewWriterSize(w, pio.RecommendBufioSize))
 }
 
+func (m *Muxer)ResetMuxer(w io.Writer) {
+	m.bufw = bufio.NewWriterSize(w, pio.RecommendBufioSize)
+}
+
 var CodecTypes = []av.CodecType{av.H264, av.AAC, av.SPEEX}
 
 func MetadeToTag(args ...interface{}) (_tag *flvio.Tag, ok bool) {

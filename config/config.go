@@ -17,6 +17,7 @@ type App struct {
 	RecodeHlsPath string `yaml:"RecodeHlsPath"`
 	RecodePicture int `yaml:"RecodePicture"`
 	RecodePicPath string `yaml:"RecodePicPath"`
+	RecidePicFragment string `yaml:"RecidePicFragment"`
 	TurnHost []string `yaml:"TurnHost"`
 }
 
