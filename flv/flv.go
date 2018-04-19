@@ -10,6 +10,7 @@ import (
 	"rtmpServerStudy/aacParse"
 	"rtmpServerStudy/amf"
 	"rtmpServerStudy/h264Parse"
+	"rtmpServerStudy/h265Parse"
 	"encoding/hex"
 )
 
@@ -26,7 +27,8 @@ func NewMetadataByStreams(streams []av.CodecData) (metadata amf.AMFMap, err erro
 			switch typ {
 			case av.H264:
 				metadata["videocodecid"] = flvio.VIDEO_H264
-
+			case av.H265:
+				metadata["videocodecid"] = flvio.VIDEO_H265
 			default:
 				err = fmt.Errorf("Flv.MetaData.Unsupported.Video.CodecType(%v)", stream.Type())
 				return
@@ -78,7 +80,6 @@ func CodecDataToTag(stream av.CodecData) (_tag *flvio.Tag, ok bool, err error) {
 	_tag = new(flvio.Tag)
 	switch stream.Type() {
 	case av.H264:
-
 		fmt.Println("head:h264")
 		h264 := stream.(h264parser.CodecData)
 		_tag.Type = flvio.TAG_VIDEO
@@ -88,6 +89,16 @@ func CodecDataToTag(stream av.CodecData) (_tag *flvio.Tag, ok bool, err error) {
 		_tag.Data =  h264.AVCDecoderConfRecordBytes()
 		ok = true
 
+	case av.H265:
+
+		fmt.Println("head:h265")
+		h265 := stream.(h265parser.CodecData)
+		_tag.Type = flvio.TAG_VIDEO
+		_tag.FrameType = flvio.FRAME_KEY
+		_tag.AVCPacketType = flvio.AVC_SEQHDR
+		_tag.CodecID = flvio.VIDEO_H265
+		_tag.Data =  h265.AVCDecoderConfRecordBytes()
+		ok = true
 	case av.NELLYMOSER:
 	case av.SPEEX:
 
@@ -123,6 +134,20 @@ func CodecDataToTag(stream av.CodecData) (_tag *flvio.Tag, ok bool, err error) {
 func PacketToTag(pkt av.Packet, stream av.CodecData) (tag flvio.Tag, timestamp int32) {
 	switch stream.Type() {
 	case av.H264:
+		tag = flvio.Tag{
+			Type:            flvio.TAG_VIDEO,
+			AVCPacketType:   flvio.AVC_NALU,
+			CodecID:         flvio.VIDEO_H264,
+			Data:            pkt.Data,
+			CompositionTime: flvio.TimeToTs(pkt.CompositionTime),
+		}
+		if pkt.IsKeyFrame {
+			tag.FrameType = flvio.FRAME_KEY
+		} else {
+			tag.FrameType = flvio.FRAME_INTER
+		}
+
+	case av.H265:
 		tag = flvio.Tag{
 			Type:            flvio.TAG_VIDEO,
 			AVCPacketType:   flvio.AVC_NALU,

@@ -40,7 +40,7 @@ func (self *Session) hdlSendHead(w * flv.Muxer, r *http.Request) (err error) {
 		streams = append(streams, *self.aCodec)
 	}
 	if self.vCodec != nil {
-		streams = append(streams, *self.vCodec)
+		streams = append(streams, self.vCodec)
 	}
 
 	w.WriteHeader(streams,self.metaData)
@@ -202,7 +202,6 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 			//copy all gop just ptr copy
 			//session.metaversion = pubSession.metaversion
 			session.metaData = pubSession.metaData
-
 			session.GopCache = pubSession.GopCache.GopCopy()
 			pubSession.RUnlock()
 			/*Cache-Control: no-cache

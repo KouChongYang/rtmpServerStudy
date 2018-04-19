@@ -97,7 +97,7 @@ func flvRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 		defer f1.Close()
 		self.flvReordInfo.muxer = flv.NewMuxer(f1)
 		var streams []av.CodecData
-		streams = append(streams, *self.vCodec)
+		streams = append(streams, self.vCodec)
 		self.flvReordInfo.muxer.WriteHeader(streams,self.metaData)
 		tag,ts := PacketToTag(pkt)
 		self.flvReordInfo.lastTs = pkt.Time
@@ -119,7 +119,7 @@ func flvRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 		defer f1.Close()
 		self.flvReordInfo.muxer.ResetMuxer(f1)
 		var streams []av.CodecData
-		streams = append(streams, *self.vCodec)
+		streams = append(streams, self.vCodec)
 		self.flvReordInfo.muxer.WriteHeader(streams,self.metaData)
 		tag,ts := PacketToTag(pkt)
 		self.flvReordInfo.lastTs = pkt.Time

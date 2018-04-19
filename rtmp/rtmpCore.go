@@ -12,7 +12,6 @@ import (
 	//"encoding/hex"
 	"sync"
 	"rtmpServerStudy/AvQue"
-	"rtmpServerStudy/h264Parse"
 	"rtmpServerStudy/aacParse"
 	"rtmpServerStudy/flv/flvio"
 	"strings"
@@ -95,7 +94,7 @@ type Session struct {
 	maxgopcount            int
 	audioAfterLastVideoCnt int
 	CurQue                 *AvQue.AvRingbuffer
-	vCodec            *h264parser.CodecData
+	vCodec            av.CodecData
 	vCodecData        []byte
 	aCodec            *aacparser.CodecData
 	aCodecData        []byte
