@@ -2,7 +2,6 @@ package main
 
 import (
 	"rtmpServerStudy/rtmp"
-	"runtime"
 	"fmt"
 	_ "net/http/pprof"
 	"flag"
@@ -46,8 +45,8 @@ func ParseCommandLine() {
 // ffplay.exe 'rtmp://127.0.0.1/live?vhost=test.live.com/1231'
 //./main -c config.yaml -p ./ >1 &
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
-	//ParseCommandLine()
+	//runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	ParseCommandLine()
 	go prometheus()
 	confFile := fmt.Sprintf("%s%s", GDefaultPath, GConfFile)
 	if err,srv:=rtmp.NewServer(confFile);err != nil {
