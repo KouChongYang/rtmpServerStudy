@@ -874,7 +874,7 @@ func NewQuicSesion(netconn quic.Stream) *Session {
 	session := &Session{}
 	session.readcsmap = make(map[uint32]*chunkStream)
 	session.readMaxChunkSize = 128
-	session.writeMaxChunkSize = 128
+	session.writeMaxChunkSize = 4096
 	session.CursorList = AvQue.NewPublist()
 	session.maxgopcount = 2
 	session.rtmpCmdHandler = newRtmpCmdHandler()
