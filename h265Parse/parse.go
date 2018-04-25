@@ -6,6 +6,7 @@ import (
 "rtmpServerStudy/utils/bits"
 "rtmpServerStudy/utils/bits/pio"
 "rtmpServerStudy/av"
+	"encoding/hex"
 )
 
 const (
@@ -320,7 +321,10 @@ func SplitNALUs(b []byte) (nalus [][]byte, typ int) {
 type SPSInfo struct {
 	ProfileIdc uint
 	LevelIdc   uint
-
+	VpsId      uint
+	MaxSubLayers uint
+	SpsId      uint
+	CfIdc	   uint
 	MbWidth  uint
 	MbHeight uint
 
@@ -333,195 +337,193 @@ type SPSInfo struct {
 	Height uint
 }
 
+const(
+	MAX_VPS_COUNT  = 16
+	MAX_SUB_LAYERS = 7
+	MAX_SPS_COUNT  = 32
+)
+
+func decodeProfileTierLevel(r *bits.GolombBitReader)(err error){
+
+	/*
+		profile_space
+	*/
+	if _,err = r.ReadBits(2);err != nil{
+		return 
+	}
+	/*
+		tier_flag
+	*/
+	if _,err = r.ReadBits(1);err != nil{
+		return 
+	}
+	/*profile_idc*/
+	if _,err = r.ReadBits(5);err != nil{
+		return 
+	}
+
+
+	/*profile_compatibility_flag*/
+
+	if _,err = r.ReadBits(32);err != nil{
+		return
+	}
+
+	/*reserved 44bit*/
+	if _,err = r.ReadBits(48);err != nil{
+		return 
+	}
+
+	return 
+}
+
+func CodecParsePtl(r *bits.GolombBitReader,MaxSubLayers uint)(err error){
+	var n uint;
+	profilePresentFlag := make([]uint,MAX_SUB_LAYERS)
+	levelPresentFlag := make([]uint,MAX_SUB_LAYERS)
+	
+	if err = decodeProfileTierLevel(r);err != nil{
+		return
+	}
+		
+	if n,err = r.ReadBits(8);err != nil{
+		return 
+	}
+
+	for n=0;n < MaxSubLayers; n++{
+
+		if profilePresentFlag[n],err = r.ReadBit();err != nil{
+			return 
+		}
+		if levelPresentFlag[n],err = r.ReadBit();err != nil{
+			return 
+		}
+	}
+	
+	if MaxSubLayers >0{
+		for n = MaxSubLayers;n < 8; n++{
+ 	   		if _,err = r.ReadBits(2);err != nil{
+        			return
+    			}
+		}
+	}
+	
+	for n=0;n < MaxSubLayers; n++{
+
+		if (profilePresentFlag[n] >0){
+			if err = decodeProfileTierLevel(r);err != nil{
+				return
+			}
+		}
+
+		if levelPresentFlag[n] >0 {
+			if _,err = r.ReadBits(8);err != nil{
+				return
+            		}
+		}
+	}
+
+	return	
+}
+
 func ParseSPS(data []byte) (self SPSInfo, err error) {
 	r := &bits.GolombBitReader{R: bytes.NewReader(data)}
+	var nalType uint
+	var tmp  uint
 
-	if _, err = r.ReadBits(8); err != nil {
+	if _,err=r.ReadBit();err!=nil{
+		return 
+	}
+
+	if nalType,err=r.ReadBits(6);err!= nil{
+		return 
+	}
+
+	if nalType != HEVC_NAL_PPS{
+		err =  ErrDecconfInvalid
 		return
 	}
 
-	if self.ProfileIdc, err = r.ReadBits(8); err != nil {
+	if _,err = r.ReadBits(9);err != nil{
+		return 
+	}
+
+	if self.VpsId,err = r.ReadBits(4);err != nil{
+		return
+	}
+	
+	if self.MaxSubLayers,err = r.ReadBits(3);err != nil{
+       	 	return
+    	}
+
+	if _,err = r.ReadBit();err != nil{
+        	return
+    	}
+
+	if _,err = r.ReadBits(4);err != nil{
+        	return
+    	}
+	if err = CodecParsePtl(r,self.MaxSubLayers);err != nil{
+		return 
+	}
+
+	if self.SpsId, err = r.ReadExponentialGolombCode(); err != nil {
 		return
 	}
 
-	// constraint_set0_flag-constraint_set6_flag,reserved_zero_2bits
-	if _, err = r.ReadBits(8); err != nil {
+	if self.SpsId >= MAX_SPS_COUNT{
+		err =  ErrDecconfInvalid 
+		return
+	}
+	
+	if self.CfIdc, err = r.ReadExponentialGolombCode(); err != nil {
 		return
 	}
 
-	// level_idc
-	if self.LevelIdc, err = r.ReadBits(8); err != nil {
+	if self.CfIdc == 3{
+		if _,err = r.ReadBit();err != nil{
+        		return
+    		}
+	}
+
+	if self.Width ,err =  r.ReadExponentialGolombCode();err != nil {
 		return
 	}
 
-	// seq_parameter_set_id
-	if _, err = r.ReadExponentialGolombCode(); err != nil {
+	if self.Height ,err =  r.ReadExponentialGolombCode();err != nil {
 		return
 	}
 
-	if self.ProfileIdc == 100 || self.ProfileIdc == 110 ||
-		self.ProfileIdc == 122 || self.ProfileIdc == 244 ||
-		self.ProfileIdc == 44 || self.ProfileIdc == 83 ||
-		self.ProfileIdc == 86 || self.ProfileIdc == 118 {
+	if tmp,err = r.ReadBit();err != nil{
+            return
+    }
 
-		var chroma_format_idc uint
-		if chroma_format_idc, err = r.ReadExponentialGolombCode(); err != nil {
+	if (tmp >0 ){
+				
+		if self.CropLeft ,err =  r.ReadExponentialGolombCode();err != nil {
 			return
 		}
 
-		if chroma_format_idc == 3 {
-			// residual_colour_transform_flag
-			if _, err = r.ReadBit(); err != nil {
-				return
-			}
-		}
-
-		// bit_depth_luma_minus8
-		if _, err = r.ReadExponentialGolombCode(); err != nil {
-			return
-		}
-		// bit_depth_chroma_minus8
-		if _, err = r.ReadExponentialGolombCode(); err != nil {
-			return
-		}
-		// qpprime_y_zero_transform_bypass_flag
-		if _, err = r.ReadBit(); err != nil {
+		if self.CropRight ,err =  r.ReadExponentialGolombCode();err != nil {
 			return
 		}
 
-		var seq_scaling_matrix_present_flag uint
-		if seq_scaling_matrix_present_flag, err = r.ReadBit(); err != nil {
+		if self.CropTop ,err =  r.ReadExponentialGolombCode();err != nil {
 			return
 		}
-
-		if seq_scaling_matrix_present_flag != 0 {
-			for i := 0; i < 8; i++ {
-				var seq_scaling_list_present_flag uint
-				if seq_scaling_list_present_flag, err = r.ReadBit(); err != nil {
-					return
-				}
-				if seq_scaling_list_present_flag != 0 {
-					var sizeOfScalingList uint
-					if i < 6 {
-						sizeOfScalingList = 16
-					} else {
-						sizeOfScalingList = 64
-					}
-					lastScale := uint(8)
-					nextScale := uint(8)
-					for j := uint(0); j < sizeOfScalingList; j++ {
-						if nextScale != 0 {
-							var delta_scale uint
-							if delta_scale, err = r.ReadSE(); err != nil {
-								return
-							}
-							nextScale = (lastScale + delta_scale + 256) % 256
-						}
-						if nextScale != 0 {
-							lastScale = nextScale
-						}
-					}
-				}
-			}
+		if self.CropBottom ,err =  r.ReadExponentialGolombCode();err != nil {
+			return
 		}
+	}else{
+		self.CropLeft = 0
+		self.CropRight = 0
+		self.CropTop = 0
+		self.CropBottom = 0
 	}
 
-	// log2_max_frame_num_minus4
-	if _, err = r.ReadExponentialGolombCode(); err != nil {
-		return
-	}
-
-	var pic_order_cnt_type uint
-	if pic_order_cnt_type, err = r.ReadExponentialGolombCode(); err != nil {
-		return
-	}
-	if pic_order_cnt_type == 0 {
-		// log2_max_pic_order_cnt_lsb_minus4
-		if _, err = r.ReadExponentialGolombCode(); err != nil {
-			return
-		}
-	} else if pic_order_cnt_type == 1 {
-		// delta_pic_order_always_zero_flag
-		if _, err = r.ReadBit(); err != nil {
-			return
-		}
-		// offset_for_non_ref_pic
-		if _, err = r.ReadSE(); err != nil {
-			return
-		}
-		// offset_for_top_to_bottom_field
-		if _, err = r.ReadSE(); err != nil {
-			return
-		}
-		var num_ref_frames_in_pic_order_cnt_cycle uint
-		if num_ref_frames_in_pic_order_cnt_cycle, err = r.ReadExponentialGolombCode(); err != nil {
-			return
-		}
-		for i := uint(0); i < num_ref_frames_in_pic_order_cnt_cycle; i++ {
-			if _, err = r.ReadSE(); err != nil {
-				return
-			}
-		}
-	}
-
-	// max_num_ref_frames
-	if _, err = r.ReadExponentialGolombCode(); err != nil {
-		return
-	}
-
-	// gaps_in_frame_num_value_allowed_flag
-	if _, err = r.ReadBit(); err != nil {
-		return
-	}
-
-	if self.MbWidth, err = r.ReadExponentialGolombCode(); err != nil {
-		return
-	}
-	self.MbWidth++
-
-	if self.MbHeight, err = r.ReadExponentialGolombCode(); err != nil {
-		return
-	}
-	self.MbHeight++
-
-	var frame_mbs_only_flag uint
-	if frame_mbs_only_flag, err = r.ReadBit(); err != nil {
-		return
-	}
-	if frame_mbs_only_flag == 0 {
-		// mb_adaptive_frame_field_flag
-		if _, err = r.ReadBit(); err != nil {
-			return
-		}
-	}
-
-	// direct_8x8_inference_flag
-	if _, err = r.ReadBit(); err != nil {
-		return
-	}
-
-	var frame_cropping_flag uint
-	if frame_cropping_flag, err = r.ReadBit(); err != nil {
-		return
-	}
-	if frame_cropping_flag != 0 {
-		if self.CropLeft, err = r.ReadExponentialGolombCode(); err != nil {
-			return
-		}
-		if self.CropRight, err = r.ReadExponentialGolombCode(); err != nil {
-			return
-		}
-		if self.CropTop, err = r.ReadExponentialGolombCode(); err != nil {
-			return
-		}
-		if self.CropBottom, err = r.ReadExponentialGolombCode(); err != nil {
-			return
-		}
-	}
-
-	self.Width = (self.MbWidth * 16) - self.CropLeft*2 - self.CropRight*2
-	self.Height = ((2 - frame_mbs_only_flag) * self.MbHeight * 16) - self.CropTop*2 - self.CropBottom*2
-
+	self.Width = self.Width - (self.CropLeft + self.CropRight)
+	self.Height = self.Height - (self.CropRight + self.CropBottom)
+	fmt.Println("====================================:",self.Width,self.Height,self.CropLeft,self.CropRight,self.CropTop);
 	return
 }
 
@@ -557,19 +559,25 @@ func (self CodecData) Height() int {
 
 func NewCodecDataFromAVCDecoderConfRecord(record []byte) (self CodecData, err error) {
 	self.Record = record
+	fmt.Print(hex.Dump(record))
 	if _, err = (&self.RecordInfo).Unmarshal(record); err != nil {
+		fmt.Println(err)
 		return
 	}
 	if len(self.RecordInfo.SPS) == 0 {
 		err = fmt.Errorf("%s","H265Parser.No.SPS.Found.AVCDecoderConfRecord")
+		fmt.Println(err)
 		return
 	}
 	if len(self.RecordInfo.PPS) == 0 {
 		err = fmt.Errorf("%s","H265Parser.No.PPS.Found.AVCDecoderConfRecord")
+		fmt.Println(err)
 		return
 	}
+	fmt.Print(hex.Dump(self.RecordInfo.SPS[0]))
 	if self.SPSInfo, err = ParseSPS(self.RecordInfo.SPS[0]); err != nil {
 		err = fmt.Errorf("H265Parser.Parse.SPS.Failed(%s)", err)
+		fmt.Println(err)
 		return
 	}
 	return
@@ -578,7 +586,7 @@ func NewCodecDataFromAVCDecoderConfRecord(record []byte) (self CodecData, err er
 func NewCodecDataFromSPSAndPPS(sps, pps [][]byte) (self CodecData, err error) {
 	recordinfo := AVCDecoderConfRecord{}
 	recordinfo.AVCProfileIndication = sps[0][1]
-	recordinfo.ProfileCompatibility = sps[0][2]
+	recordinfo.ProfileCompatibility = uint32(pio.U32BE(sps[0][2:]))
 	recordinfo.AVCLevelIndication = sps[0][3]
 	recordinfo.SPS = sps
 	recordinfo.PPS = pps
@@ -598,9 +606,10 @@ func NewCodecDataFromSPSAndPPS(sps, pps [][]byte) (self CodecData, err error) {
 
 type AVCDecoderConfRecord struct {
 	AVCProfileIndication uint8
-	ProfileCompatibility uint8
+	ProfileCompatibility uint32
 	AVCLevelIndication   uint8
 	LengthSizeMinusOne   uint8
+	VPS                  [][]byte
 	SPS                  [][]byte
 	PPS                  [][]byte
 }
@@ -608,57 +617,64 @@ type AVCDecoderConfRecord struct {
 var ErrDecconfInvalid = fmt.Errorf("%s","H264Parser.AVCDecoderConfRecord.invalid")
 
 func (self *AVCDecoderConfRecord) Unmarshal(b []byte) (n int, err error) {
+	b_len:=len(b)	
 	if len(b) < 7 {
 		err = ErrDecconfInvalid
 		return
 	}
-
-	self.AVCProfileIndication = b[1]
-	self.ProfileCompatibility = b[2]
-	self.AVCLevelIndication = b[3]
-	self.LengthSizeMinusOne = b[4] & 0x03
-	spscount := int(b[5] & 0x1f)
-	n += 6
-
-	for i := 0; i < spscount; i++ {
-		if len(b) < n+2 {
-			err = ErrDecconfInvalid
-			return
-		}
-		spslen := int(pio.U16BE(b[n:]))
-		n += 2
-
-		if len(b) < n+spslen {
-			err = ErrDecconfInvalid
-			return
-		}
-		self.SPS = append(self.SPS, b[n:n+spslen])
-		n += spslen
-	}
-
-	if len(b) < n+1 {
+	
+	n++
+	self.AVCProfileIndication = b[1] & 0x1f
+	n++
+	self.ProfileCompatibility =  uint32(pio.U32BE(b[n:]))
+	n+=4
+	self.AVCLevelIndication = b[n]
+	n++
+	fmt.Println(self.AVCProfileIndication, self.ProfileCompatibility,self.AVCLevelIndication)
+	if n+15 >= b_len{
 		err = ErrDecconfInvalid
 		return
 	}
-	ppscount := int(b[n])
-	n++
+	n += 15
+	spscount :=int(b[n])
+	n++;
+	fmt.Println("spscount:%d,,%d",spscount,len(b))	
+	nal_type := 0
+	
+	for i := 0; i < spscount; i++ {
+		nal_type = int(b[n] & 0x3f)
+		n++
 
-	for i := 0; i < ppscount; i++ {
-		if len(b) < n+2 {
+		if b_len < n+2 {
+			fmt.Println("====================================2")
 			err = ErrDecconfInvalid
 			return
 		}
-		ppslen := int(pio.U16BE(b[n:]))
+
+		nal_num:= int(pio.U16BE(b[n:]))
 		n += 2
-
-		if len(b) < n+ppslen {
-			err = ErrDecconfInvalid
-			return
+		for m:=0;m < nal_num;m++{
+			nal_len:= int(pio.U16BE(b[n:]))
+			n += 2
+			if b_len < (n + nal_len){
+				fmt.Println("====================================3")
+				err = ErrDecconfInvalid
+				return
+			}
+			switch nal_type {
+				case     HEVC_NAL_VPS:
+					self.VPS = append(self.VPS, b[n:n+nal_len])
+    			case 	 HEVC_NAL_SPS:
+					self.SPS = append(self.SPS, b[n:n+nal_len])
+    			case     HEVC_NAL_PPS:
+					self.PPS = append(self.PPS, b[n:n+nal_len])
+			}
+			n += nal_len
 		}
-		self.PPS = append(self.PPS, b[n:n+ppslen])
-		n += ppslen
 	}
-
+	fmt.Print("VPS:",hex.Dump(self.VPS[0]))
+	fmt.Print("SPS:",hex.Dump(self.SPS[0]))
+	fmt.Print("PPS:",hex.Dump(self.PPS[0]))
 	return
 }
 
@@ -674,13 +690,15 @@ func (self AVCDecoderConfRecord) Len() (n int) {
 }
 
 func (self AVCDecoderConfRecord) Marshal(b []byte) (n int) {
-	b[0] = 1
-	b[1] = self.AVCProfileIndication
-	b[2] = self.ProfileCompatibility
-	b[3] = self.AVCLevelIndication
-	b[4] = self.LengthSizeMinusOne | 0xfc
-	b[5] = uint8(len(self.SPS)) | 0xe0
-	n += 6
+	
+	b[n] = 1
+	n++
+	b[n] = self.AVCProfileIndication
+	n++
+	pio.PutU32BE(b[n:],self.ProfileCompatibility)
+	n+=4
+	b[n] = self.AVCLevelIndication
+	//n += 6
 
 	for _, sps := range self.SPS {
 		pio.PutU16BE(b[n:], uint16(len(sps)))
