@@ -12,7 +12,7 @@ import (
 	//"encoding/hex"
 	"sync"
 	"rtmpServerStudy/AvQue"
-	"rtmpServerStudy/aacParse"
+	//"rtmpServerStudy/aacParse"
 	"rtmpServerStudy/flv/flvio"
 	"strings"
 	"rtmpServerStudy/av"
@@ -96,7 +96,7 @@ type Session struct {
 	CurQue                 *AvQue.AvRingbuffer
 	vCodec            av.CodecData
 	vCodecData        []byte
-	aCodec            aacparser.CodecData
+	aCodec            av.CodecData
 	aCodecData        []byte
 	RegisterChannel   chan *Session
 	PacketAck         chan bool
