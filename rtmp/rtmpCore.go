@@ -96,7 +96,7 @@ type Session struct {
 	CurQue                 *AvQue.AvRingbuffer
 	vCodec            av.CodecData
 	vCodecData        []byte
-	aCodec            *aacparser.CodecData
+	aCodec            aacparser.CodecData
 	aCodecData        []byte
 	RegisterChannel   chan *Session
 	PacketAck         chan bool
