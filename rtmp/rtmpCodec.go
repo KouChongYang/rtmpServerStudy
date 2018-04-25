@@ -212,7 +212,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 			}
 
 			session.Lock()
-			session.aCodec = &stream
+			session.aCodec = stream
 			session.aCodecData = msgdata
 			session.Unlock()
 			AvHeader = true
@@ -280,7 +280,7 @@ func (session *Session) rtmpUpdateGopCache(pkt *av.Packet) (err error) {
 		return
 	}
 
-	if (session.vCodec).Type() != av.H264 {
+	if (session.vCodec).Type() != av.H264  &&  (session.vCodec).Type() != av.H265{
 		return
 	}
 

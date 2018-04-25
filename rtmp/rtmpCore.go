@@ -658,7 +658,14 @@ func (self *Session)CodecDataToTag(stream av.CodecData) (tag *flvio.Tag, ok bool
 		tag.Data = self.vCodecData
 		ok = true
 		tag = tag
-
+	case av.H265:
+		fmt.Println("head:h265")
+		tag.Type = flvio.TAG_VIDEO
+		tag.AVCPacketType = flvio.AVC_SEQHDR
+		tag.CodecID = flvio.VIDEO_H265
+		tag.Data = self.vCodecData
+		ok = true
+		tag = tag
 	case av.AAC:
 		tag.Type = flvio.TAG_AUDIO
 		tag.SoundFormat =    flvio.SOUND_AAC
