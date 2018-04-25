@@ -37,7 +37,7 @@ func (self *Session) hdlSendHead(w * flv.Muxer, r *http.Request) (err error) {
 		return
 	}
 	if self.aCodec != nil {
-		streams = append(streams, *self.aCodec)
+		streams = append(streams, self.aCodec)
 	}
 	if self.vCodec != nil {
 		streams = append(streams, self.vCodec)

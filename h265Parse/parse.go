@@ -534,7 +534,7 @@ type CodecData struct {
 }
 
 func (self CodecData) Type() av.CodecType {
-	return av.H264
+	return av.H265
 }
 
 func (self CodecData) AVCDecoderConfRecordBytes() []byte {
@@ -646,7 +646,6 @@ func (self *AVCDecoderConfRecord) Unmarshal(b []byte) (n int, err error) {
 		n++
 
 		if b_len < n+2 {
-			fmt.Println("====================================2")
 			err = ErrDecconfInvalid
 			return
 		}
@@ -657,7 +656,6 @@ func (self *AVCDecoderConfRecord) Unmarshal(b []byte) (n int, err error) {
 			nal_len:= int(pio.U16BE(b[n:]))
 			n += 2
 			if b_len < (n + nal_len){
-				fmt.Println("====================================3")
 				err = ErrDecconfInvalid
 				return
 			}
