@@ -439,7 +439,7 @@ func ParseSPS(data []byte) (self SPSInfo, err error) {
 		return 
 	}
 
-	if nalType != HEVC_NAL_PPS{
+	if nalType != HEVC_NAL_SPS{
 		err =  ErrDecconfInvalid
 		return
 	}
