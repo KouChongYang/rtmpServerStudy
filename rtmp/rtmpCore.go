@@ -12,8 +12,7 @@ import (
 	//"encoding/hex"
 	"sync"
 	"rtmpServerStudy/AvQue"
-	"rtmpServerStudy/h264Parse"
-	"rtmpServerStudy/aacParse"
+	//"rtmpServerStudy/aacParse"
 	"rtmpServerStudy/flv/flvio"
 	"strings"
 	"rtmpServerStudy/av"
@@ -95,9 +94,9 @@ type Session struct {
 	maxgopcount            int
 	audioAfterLastVideoCnt int
 	CurQue                 *AvQue.AvRingbuffer
-	vCodec            *h264parser.CodecData
+	vCodec            av.CodecData
 	vCodecData        []byte
-	aCodec            *aacparser.CodecData
+	aCodec            av.CodecData
 	aCodecData        []byte
 	RegisterChannel   chan *Session
 	PacketAck         chan bool
@@ -659,7 +658,14 @@ func (self *Session)CodecDataToTag(stream av.CodecData) (tag *flvio.Tag, ok bool
 		tag.Data = self.vCodecData
 		ok = true
 		tag = tag
-
+	case av.H265:
+		fmt.Println("head:h265")
+		tag.Type = flvio.TAG_VIDEO
+		tag.AVCPacketType = flvio.AVC_SEQHDR
+		tag.CodecID = flvio.VIDEO_H265
+		tag.Data = self.vCodecData
+		ok = true
+		tag = tag
 	case av.AAC:
 		tag.Type = flvio.TAG_AUDIO
 		tag.SoundFormat =    flvio.SOUND_AAC
@@ -875,7 +881,7 @@ func NewQuicSesion(netconn quic.Stream) *Session {
 	session := &Session{}
 	session.readcsmap = make(map[uint32]*chunkStream)
 	session.readMaxChunkSize = 128
-	session.writeMaxChunkSize = 128
+	session.writeMaxChunkSize = 4096
 	session.CursorList = AvQue.NewPublist()
 	session.maxgopcount = 2
 	session.rtmpCmdHandler = newRtmpCmdHandler()

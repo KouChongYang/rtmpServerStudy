@@ -2,11 +2,12 @@ package main
 
 import (
 	"rtmpServerStudy/rtmp"
-	"runtime"
 	"fmt"
 	_ "net/http/pprof"
 	"flag"
 	"os"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"net/http"
 )
 
 var GConfFile string
@@ -14,6 +15,13 @@ var GDefaultPath string
 var (
 	version = "1.0.0.0"
 )
+
+func prometheus() {
+	http.Handle("/metrics", promhttp.Handler())
+	addr:=":9090"
+	http.ListenAndServe(addr, nil)
+}
+
 
 func ParseCommandLine() {
 
@@ -37,8 +45,9 @@ func ParseCommandLine() {
 // ffplay.exe 'rtmp://127.0.0.1/live?vhost=test.live.com/1231'
 //./main -c config.yaml -p ./ >1 &
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+	//runtime.GOMAXPROCS(runtime.NumCPU() - 1)
 	ParseCommandLine()
+	go prometheus()
 	confFile := fmt.Sprintf("%s%s", GDefaultPath, GConfFile)
 	if err,srv:=rtmp.NewServer(confFile);err != nil {
 		return

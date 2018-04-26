@@ -7,6 +7,7 @@ import (
 	"rtmpServerStudy/av"
 	"rtmpServerStudy/flv/flvio"
 	"rtmpServerStudy/h264Parse"
+	"rtmpServerStudy/h265Parse"
 )
 
 func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
@@ -26,7 +27,9 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 	}
 	AvHeader:=false
 	dataPos:=n
-	if tag.CodecID == flvio.VIDEO_H264 {
+
+	switch tag.CodecID {
+	case flvio.VIDEO_H264:
 		if !(tag.FrameType == flvio.FRAME_INTER || tag.FrameType == flvio.FRAME_KEY) {
 			fmt.Println("parse frame err fomat is err")
 			return
@@ -40,7 +43,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 				return
 			}
 			session.Lock()
-			session.vCodec = &stream
+			session.vCodec = stream
 			session.vCodecData = msgdata
 			session.Unlock()
 			AvHeader = true
@@ -66,12 +69,31 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 					return
 				}
 				session.Lock()
-				session.vCodec = &stream
+				session.vCodec = stream
 				session.Unlock()
 			}
 		}
-		//
+	case flvio.VIDEO_H265:
+		if !(tag.FrameType == flvio.FRAME_INTER || tag.FrameType == flvio.FRAME_KEY) {
+			fmt.Println("parse frame err fomat is err")
+			return
+		}
+		tag.Data = msgdata[n:]
+		var stream h265parser.CodecData
+		switch tag.AVCPacketType {
+		case flvio.AVC_SEQHDR:
+			fmt.Println("find avc seqhdr")
+			if stream, err = h265parser.NewCodecDataFromAVCDecoderConfRecord(tag.Data); err != nil {
+				return
+			}
+			session.Lock()
+			session.vCodec = stream
+			session.vCodecData = msgdata
+			session.Unlock()
+			AvHeader = true
+		}
 	}
+
 	var pkt *av.Packet
 	pkt, _ = TagToPacket(tag, int32(timestamp), msgdata)
 	pkt.DataPos = dataPos
@@ -190,7 +212,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 			}
 
 			session.Lock()
-			session.aCodec = &stream
+			session.aCodec = stream
 			session.aCodecData = msgdata
 			session.Unlock()
 			AvHeader = true
@@ -258,7 +280,7 @@ func (session *Session) rtmpUpdateGopCache(pkt *av.Packet) (err error) {
 		return
 	}
 
-	if (*session.vCodec).Type() != av.H264 {
+	if (session.vCodec).Type() != av.H264  &&  (session.vCodec).Type() != av.H265{
 		return
 	}
 

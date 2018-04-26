@@ -155,6 +155,7 @@ var ()
 
 var (
 	H264       = MakeVideoCodecType(avCodecTypeMagic + 1)
+	H265       = MakeVideoCodecType(avCodecTypeMagic + 2)
 	AAC        = MakeAudioCodecType(avCodecTypeMagic + 1)
 	PCM_MULAW  = MakeAudioCodecType(avCodecTypeMagic + 2)
 	PCM_ALAW   = MakeAudioCodecType(avCodecTypeMagic + 3)
