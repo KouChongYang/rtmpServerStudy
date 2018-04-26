@@ -10,7 +10,7 @@ just for study golang and AV knowledge
 - [x] RTMP
 - [x] AMF
 - [x] HLS (h264 aac)
-- [x] HTTP-FLV
+- [x] HTTP-FLV (h264,h265,aac)
 
 #### 支持的容器格式
 - [x] FLV
