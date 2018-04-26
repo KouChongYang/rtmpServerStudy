@@ -460,11 +460,12 @@ func ParseSPS(data []byte) (self SPSInfo, err error) {
         	return
     	}
 
-	if _,err = r.ReadBits(4);err != nil{
-        	return
-    	}
 	if err = CodecParsePtl(r,self.MaxSubLayers);err != nil{
 		return 
+	}
+
+	if _,err = r.ReadBits(4);err != nil{
+		return
 	}
 
 	if self.SpsId, err = r.ReadExponentialGolombCode(); err != nil {
