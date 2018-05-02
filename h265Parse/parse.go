@@ -228,7 +228,7 @@ const (
 )
 
 var StartCodeBytes = []byte{0, 0, 1}
-var AUDBytes = []byte{0, 0, 0, 1, 0x9, 0xf0, 0, 0, 0, 1} // AUD
+var AUDBytes = []byte{0, 0, 0, 1, 0x46, 0x01,0x10, 0, 0, 0, 1} // AUD
 
 func CheckNALUsType(b []byte) (typ int) {
 	_, typ = SplitNALUs(b)
