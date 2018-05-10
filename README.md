@@ -2,6 +2,8 @@
 just for study golang and AV knowledge
 
 纯golang直播服务器：
+修改自joy4
+
 - 安装和使用非常简单；
 
 - golang version >1.9
