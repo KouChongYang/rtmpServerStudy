@@ -254,7 +254,7 @@ func MergM3u8(self *Session,fileName string) uint64{
 	if err != nil {
 		panic(err)
 	}
-	p, _, err := m3u8.DecodeFrom(bufio.NewReader(f), true,1024)
+	p, _, err := m3u8.DecodeFrom(bufio.NewReader(f), true)
 	if err != nil {
 		panic(err)
 	}
