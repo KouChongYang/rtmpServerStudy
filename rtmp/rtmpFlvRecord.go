@@ -8,6 +8,7 @@ import (
 	"os"
 	"rtmpServerStudy/flv/flvio"
 	"strconv"
+	"strings"
 )
 
 type flvReordInfo struct  {
@@ -54,20 +55,6 @@ func flvRecordOnPublish(self *Session){
 	return
 }
 
-func flvVedioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
-	//no body
-	if len(pkt.Data[pkt.DataPos:])<=0{
-		return
-	}
-	//关键帧判断是否需求切割
-	if pkt.IsKeyFrame {
-		hlsLiveUpdateFragment(self ,stream,pkt,1,1)
-	}
-	//将vedio 写入文件
-	self.hlsLiveRecordInfo.muxer.WritePacket(pkt,stream)
-	return
-}
-
 func flvRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 
 	if self.UserCnf.RecodeFlv != 1{
@@ -87,7 +74,7 @@ func flvRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	if self.flvReordInfo.muxer == nil {
 
 		nowTime:=time.Now().UnixNano()/1000000
-		self.flvReordInfo.flvBackFileName = fmt.Sprintf("%s%d.flvbak",self.UserCnf.RecodeHlsPath,nowTime)
+		self.flvReordInfo.flvBackFileName = fmt.Sprintf("%s%d.flvbak",self.UserCnf.RecodeFlvPath,nowTime)
 		self.flvReordInfo.flvName = fmt.Sprintf("%d.flv",nowTime)
 		fmt.Println(self.flvReordInfo.flvBackFileName)
 		f1, err := FileCreate(self.flvReordInfo.flvBackFileName)
@@ -109,8 +96,7 @@ func flvRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 	}else if (float64(flvio.TimeToTs(pkt.Time - self.flvReordInfo.lastTs))/(1000.0) >self.flvReordInfo.RecidePicFragment ){
 
 		nowTime:=time.Now().UnixNano()/1000000
-		self.flvReordInfo.flvBackFileName = fmt.Sprintf("%s%d.flvbak",self.UserCnf.RecodeHlsPath,nowTime)
-		self.flvReordInfo.flvName = fmt.Sprintf("%d.flv",nowTime)
+		self.flvReordInfo.flvBackFileName = fmt.Sprintf("%s%d.flvbak",self.UserCnf.RecodeFlvPath,nowTime)
 		fmt.Println(self.flvReordInfo.flvBackFileName)
 		f1, err := FileCreate(self.flvReordInfo.flvBackFileName)
 		if err != nil {
@@ -127,7 +113,10 @@ func flvRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 			return
 		}
 		self.flvReordInfo.muxer.GetMuxerWrite().Flush()
+
 	}
+	dstkey := strings.Replace(self.flvReordInfo.flvBackFileName, ".flvbak", ".flv", 1)
+	os.Rename(self.flvReordInfo.flvBackFileName, dstkey)
 
 	return
 }

@@ -220,7 +220,7 @@ func hlsAudioRecord(self *Session,stream av.CodecData,pkt *av.Packet){
 
 	//更新pts 只有缓存第一个音频时才需要更新pts（其他缓存的音频参考该pts）
 	self.hlsLiveRecordInfo.audioPts = uint64(pts)
-	codec := stream.(*aacparser.CodecData)
+	codec := stream.(aacparser.CodecData)
 	if codec.SampleFormat() <=0{
 		return
 	}
@@ -254,7 +254,7 @@ func MergM3u8(self *Session,fileName string) uint64{
 	if err != nil {
 		panic(err)
 	}
-	p, _, err := m3u8.DecodeFrom(bufio.NewReader(f), true)
+	p, _, err := m3u8.DecodeFrom(bufio.NewReader(f), true,1024)
 	if err != nil {
 		panic(err)
 	}
