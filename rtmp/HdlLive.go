@@ -121,12 +121,12 @@ func (self *Session) hdlSendAvPackets(w * flv.Muxer, r *http.Request) (err error
 		}
 
 		if pkt == nil && self.isClosed  != true {
-			t := timer.GlobalTimerPool.Get(time.Second * MAXREADTIMEOUT)
+			//t := timer.GlobalTimerPool.Get(time.Second * MAXREADTIMEOUT)
 			select {
 			case <-self.PacketAck:
-			case <-t.C:
+			//case <-t.C:
 			}
-			timer.GlobalTimerPool.Put(t)
+			//timer.GlobalTimerPool.Put(t)
 		}
 		if self.pubSession.isClosed == true{
 			self.isClosed = true
@@ -188,7 +188,6 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 			//may be is err
 			}
 			timer.GlobalTimerPool.Put(t)
-
 			session.pubSession = pubSession
 
 
@@ -244,16 +243,15 @@ func HDLHandler(w http.ResponseWriter, r *http.Request){
 			//hdl relay or rtmp relay must add
 			//
 			if noSelf := session.RtmpCheckStreamIsSelf(); noSelf != true {
-
 				//http://127.0.0.1/app/123.flv?vhost=test.live.com&relay=1
 				/*url1 := "http://" + session.pushIp + "/" + session.App +
 					"?" + "vhost=" + session.Vhost + "/" + session.StreamId + "?relay=1"*/
 				url1:= "rtmp://" + session.pushIp + "/" + session.App +"?" + "vhost=" + session.Vhost + "/" + session.StreamId +"?relay=1"
 				fmt.Println(url1)
 				RtmpRelay("tcp", session.pushIp, session.Vhost, session.App, session.StreamId, url1, stageSessionDone)
-				time.Sleep(1 * time.Second)
-				stage++
 			}
+			time.Sleep(1 * time.Second)
+			stage++
 		}
 	}
 }

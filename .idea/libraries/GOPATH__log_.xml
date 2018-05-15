@@ -1,0 +1,68 @@
+<component name="libraryTable">
+  <library name="GOPATH &lt;log&gt;">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../go.uber.org" />
+      <root url="file://$PROJECT_DIR$/../ww" />
+      <root url="file://$PROJECT_DIR$/../newgit.op.ksyun.com" />
+      <root url="file://$PROJECT_DIR$/../github.com" />
+      <root url="file://$PROJECT_DIR$/../flv-to-fmp4" />
+      <root url="file://$PROJECT_DIR$/../gout-test" />
+      <root url="file://$PROJECT_DIR$/../golang.org" />
+      <root url="file://$PROJECT_DIR$/../bbllive" />
+      <root url="file://$PROJECT_DIR$/../maid" />
+      <root url="file://$PROJECT_DIR$/../sourcegraph.com" />
+      <root url="file://$PROJECT_DIR$/../websocketStreamServer" />
+      <root url="file://$PROJECT_DIR$/../internal-api-set" />
+      <root url="file://$PROJECT_DIR$/../gopkg.in" />
+      <root url="file://$PROJECT_DIR$/../Gout" />
+      <root url="file://$PROJECT_DIR$/../ceshi" />
+      <root url="file://$PROJECT_DIR$/../untitled" />
+      <root url="file://$PROJECT_DIR$/../os" />
+      <root url="file://$PROJECT_DIR$/../flvMp4Retray" />
+      <root url="file://$PROJECT_DIR$/../rtmpServerStudy-bak" />
+      <root url="file://$PROJECT_DIR$/../rtmpflvparse" />
+      <root url="file://$PROJECT_DIR$/../m3u8" />
+      <root url="file://$PROJECT_DIR$/../vodUpload" />
+      <root url="file://$PROJECT_DIR$/../container" />
+      <root url="file://$PROJECT_DIR$/../fmt" />
+      <root url="file://$PROJECT_DIR$/../bufio" />
+      <root url="file://$PROJECT_DIR$/../scripts" />
+      <root url="file://$PROJECT_DIR$/../rtmpServer" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../go.uber.org" />
+      <root url="file://$PROJECT_DIR$/../ww" />
+      <root url="file://$PROJECT_DIR$/../newgit.op.ksyun.com" />
+      <root url="file://$PROJECT_DIR$/../github.com" />
+      <root url="file://$PROJECT_DIR$/../flv-to-fmp4" />
+      <root url="file://$PROJECT_DIR$/../gout-test" />
+      <root url="file://$PROJECT_DIR$/../golang.org" />
+      <root url="file://$PROJECT_DIR$/../bbllive" />
+      <root url="file://$PROJECT_DIR$/../maid" />
+      <root url="file://$PROJECT_DIR$/../sourcegraph.com" />
+      <root url="file://$PROJECT_DIR$/../websocketStreamServer" />
+      <root url="file://$PROJECT_DIR$/../internal-api-set" />
+      <root url="file://$PROJECT_DIR$/../gopkg.in" />
+      <root url="file://$PROJECT_DIR$/../Gout" />
+      <root url="file://$PROJECT_DIR$/../ceshi" />
+      <root url="file://$PROJECT_DIR$/../untitled" />
+      <root url="file://$PROJECT_DIR$/../os" />
+      <root url="file://$PROJECT_DIR$/../flvMp4Retray" />
+      <root url="file://$PROJECT_DIR$/../rtmpServerStudy-bak" />
+      <root url="file://$PROJECT_DIR$/../rtmpflvparse" />
+      <root url="file://$PROJECT_DIR$/../m3u8" />
+      <root url="file://$PROJECT_DIR$/../vodUpload" />
+      <root url="file://$PROJECT_DIR$/../container" />
+      <root url="file://$PROJECT_DIR$/../fmt" />
+      <root url="file://$PROJECT_DIR$/../bufio" />
+      <root url="file://$PROJECT_DIR$/../scripts" />
+      <root url="file://$PROJECT_DIR$/../rtmpServer" />
+    </SOURCES>
+    <excluded>
+      <root url="file://$PROJECT_DIR$" />
+      <root url="file://$PROJECT_DIR$/h265Parse" />
+      <root url="file://$PROJECT_DIR$/log" />
+    </excluded>
+  </library>
+</component>

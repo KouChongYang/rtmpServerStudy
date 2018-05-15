@@ -148,22 +148,22 @@ func (self *Session) RtmpSendAvPackets() (err error) {
 				self.isClosed = true
 				return
 			default:
-
 			// 没有结束 ... 执行 ...
 			}
 		}
 
 		if pkt == nil && self.isClosed  != true {
-			t := timer.GlobalTimerPool.Get(time.Second * MAXREADTIMEOUT)
+			//t := timer.GlobalTimerPool.Get(time.Second * MAXREADTIMEOUT)
 			select {
 			case <-self.PacketAck:
-			case <-t.C:
+			//case <-t.C:
 			}
-			timer.GlobalTimerPool.Put(t)
+			//timer.GlobalTimerPool.Put(t)
 		}
 
 		if self.pubSession.isClosed == true && pkt == nil{
 			self.isClosed = true
+			fmt.Println("the publisher is close")
 			err = fmt.Errorf("%s","Rtmp.PubSession.Closed.And.pkts.Is.Nil")
 			return
 		}
