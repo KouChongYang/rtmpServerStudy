@@ -11,10 +11,10 @@ import (
 
 var Log *zap.Logger
 
-func initLogger(logPath string, level string) (Log *zap.Logger){
-
+func initLogger(logPath string, level string)(err error) {
 	var cfg zap.Config
-	var err error
+	//var err error
+	var logt *zap.Logger
 
 	cfg.Level = level
 	cfg.Encoding = "json"
@@ -23,23 +23,36 @@ func initLogger(logPath string, level string) (Log *zap.Logger){
 	cfg.EncoderConfig = zap.NewProductionEncoderConfig()
 	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
-	Log, err = cfg.Build()
+	logB := Log
+	logt, err = cfg.Build()
 	if err != nil {
 		log.Fatal("init logger error: ", err)
+		Log = logB
+	}else{
+		Log = logt
 	}
-	return Log
+
+	return
 }
 
-func ReloadLoger(oldfile ,logfile ,level string) (Log *zap.Logger) {
+func ReloadLoger(oldfile ,logfile ,level string)  {
 
 	err := os.Rename(logfile, oldfile)
+
 	if err != nil {
 		return nil
 	} else {
-		Log.Info(fmt.Sprintf("[rename logstatsh ok]the file %s\n",))
+		Log.Info(fmt.Sprintf("[rename logstatsh ok]the file %s\n",oldfile))
+	}
+	logB := Log
+	err = initLogger(logfile, level)
+	if err != nil {
+		Log.Info(fmt.Sprintf("[rename logstatsh ok]the file %s\n",logfile))
+	}else{
+		Log = logB
 	}
 
-	return initLogger(logfile, level)
+	return
 }
 
 func logCutByHour(LogPath,level string) {
@@ -52,26 +65,20 @@ func logCutByHour(LogPath,level string) {
 		tm := time.Unix(now, 0)
 		tim1 := tm.Format("2006-01-02-15")
 		path_name := fmt.Sprintf("%s%s", LogPath, tim1)
-		ReloadLoger
+		ReloadLoger(path_name,LogPath,level)
 	}
 }
 
-func main() {
-	Log:=initLogger("out.log", "INFO", false)
-
-	s := []string{
-		"hello info",
-		"hello error",
-		"hello debug",
-		"hello fatal",
-	}
-
-	Log.Info("info:", zap.String("s", s[0]))
-	Log.Error("info:", zap.String("s", s[1]))
-	Log.Debug("info:", zap.String("s", s[2]))
-	Log.Fatal("info:", zap.String("s", s[3]))
+func Info(msg string, fields ...zap.Field){
+	Log.Info(msg,fields...)
 }
 
+func Debug(msg string, fields ...zap.Field){
+	Log.Debug(msg,fields...)
+}
 
+func Error(msg string, fields ...zap.Field){
+	Log.Error(msg,fields...)
+}
 
 
