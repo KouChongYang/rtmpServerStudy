@@ -106,7 +106,8 @@ type Session struct {
 	curgopcount       int
 	QuicOn            bool
 	QuicConn quic.Stream
-
+	SessionId 	  string
+	RemoteAddr        string
 
 	App               string
 	StreamId          string
@@ -810,6 +811,8 @@ func NewServer(file string) (err error,server *Server){
 	if len(Gconfig.LogInfo.OutPaths) >0 {
 		if Gconfig.LogInfo.OutPaths[len(Gconfig.LogInfo.OutPaths)-1] != '/' {
 			logpath = Gconfig.LogInfo.OutPaths + "/" + "err.log"
+		}else{
+			logpath = Gconfig.LogInfo.OutPaths + "err.log"
 		}
 	}else{
 		logpath = "./err.log"
@@ -825,6 +828,12 @@ func NewServer(file string) (err error,server *Server){
 	return
 }
 
+func (self *Session)LogFormat()string{
+
+	return fmt.Sprintf("session_id:%d uniquename:%s app:%s name:%s ",
+		self.SessionId,self.uniqueName,self.App,self.StreamId)
+}
+
 func (self *Server) rtmpServeStart(addr string,) (err error) {
 
 	if addr == "" {
@@ -837,11 +846,11 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 
 	var listener net.Listener
 	if listener,err = self.socketListen(addr); err != nil {
-		log.Error("rtmp server listen err the addr: " + addr ,zap.String("errMsg",err.Error()))
+		log.Log.Error("rtmp server listen err the addr: " + addr ,zap.String("errMsg",err.Error()))
 		return err
 	}
 
-	log.Debug("the server listening on :"+ addr)
+	log.Log.Debug("the server listening on :"+ addr)
 	for {
 		var netconn net.Conn
 		var tempDelay time.Duration
@@ -857,12 +866,13 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 				if max := 1 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				log.Info(fmt.Sprintf("rtmp: Accept error: %v; retrying in %v\n", e, tempDelay))
+				log.Log.Info(fmt.Sprintf("rtmp: Accept error: %v; retrying in %v\n", e, tempDelay))
 				//fmt.Printf("rtmp: Accept error: %v; retrying in %v\n", e, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			}
-			log.Error("",zap.String("errMsg",e.Error()))
+
+			log.Log.Error("rtmp server accept err",zap.String("errMsg",e.Error()))
 			return e
 		}
 		tempDelay = 0
@@ -871,9 +881,18 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 		if !ok {
 			//error handle
 		}
-		tcpConn.RemoteAddr().String()
+
 		tcpConn.SetNoDelay(true)
 		session := NewSsesion(netconn)
+		var f *os.File
+		if f,err = tcpConn.File();err != nil{
+			log.Log.Error("rtmp server get socket fd err ",zap.String("errMsg",e.Error()))
+			return err
+		}
+
+		session.SessionId = fmt.Sprintf("%d",f.Fd())
+		session.RemoteAddr = tcpConn.RemoteAddr().String()
+
 		session.isServer = true
 		go func() {
 			defer func() {
@@ -882,14 +901,14 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 					buf := make([]byte, size)
 					buf = buf[:runtime.Stack(buf, false)]
 					session.rtmpCloseSessionHanler()
-					fmt.Println("rtmp: panic serving %v: %v\n%s", session.netconn.RemoteAddr(), err, string(buf))
+					log.Log.Error(fmt.Sprintf("%s rtmp: panic serving %v: %v\n%s",
+							session.LogFormat(),session.netconn.RemoteAddr(), err, string(buf)))
 				}
 			}()
 
 			err := self.ServerHandle(session)
-			if Debug {
-				fmt.Println("rtmp: server: client closed err:", err)
-			}
+			log.Info(fmt.Sprintf("%s rtmp: server: client closed the remoteAddr %s err:%s",
+				session.LogFormat(),session.netconn.RemoteAddr(), err.Error()))
 		}()
 	}
 }
