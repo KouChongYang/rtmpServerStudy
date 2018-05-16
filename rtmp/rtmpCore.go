@@ -30,6 +30,9 @@ import (
 	"math/big"
 	"encoding/pem"
 	"github.com/xtaci/kcp-go"
+	"rtmpServerStudy/log"
+	//"go.uber.org/zap/zapcore"
+	"go.uber.org/zap"
 )
 
 /* RTMP message types */
@@ -794,12 +797,31 @@ func (self *Server)ListenAndServersStart(){
 }
 
 func NewServer(file string) (err error,server *Server){
+	//
 	server = new(Server)
+	//解析配置文件
 	if err,Gconfig = config.ParseConfig(file);err != nil{
 		return
 	}
 	server.RtmpAddr ,server.HttpAddr,server.QuicAddr,server.KcpAddr =
 		Gconfig.RtmpServer.RtmpListen,Gconfig.RtmpServer.HttpListen ,Gconfig.RtmpServer.QuicListen,Gconfig.RtmpServer.KcpListen
+
+	logpath:=""
+	if len(Gconfig.LogInfo.OutPaths) >0 {
+		if Gconfig.LogInfo.OutPaths[len(Gconfig.LogInfo.OutPaths)-1] != '/' {
+			logpath = Gconfig.LogInfo.OutPaths + "/" + "err.log"
+		}
+	}else{
+		logpath = "./err.log"
+	}
+
+	err =os.MkdirAll( Gconfig.LogInfo.OutPaths,0666)
+	if err != nil{
+		fmt.Printf("%s\n",err.Error())
+		return
+	}
+	//初始化log
+	err = log.InitLogger(logpath,Gconfig.LogInfo.Level)
 	return
 }
 
@@ -815,13 +837,11 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 
 	var listener net.Listener
 	if listener,err = self.socketListen(addr); err != nil {
+		log.Error("rtmp server listen err the addr: " + addr ,zap.String("errMsg",err.Error()))
 		return err
 	}
 
-	if Debug {
-		fmt.Println("rtmp: server: listening on", addr)
-	}
-
+	log.Debug("the server listening on :"+ addr)
 	for {
 		var netconn net.Conn
 		var tempDelay time.Duration
@@ -837,24 +857,21 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 				if max := 1 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				fmt.Printf("rtmp: Accept error: %v; retrying in %v\n", e, tempDelay)
+				log.Info(fmt.Sprintf("rtmp: Accept error: %v; retrying in %v\n", e, tempDelay))
+				//fmt.Printf("rtmp: Accept error: %v; retrying in %v\n", e, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			}
-			if Debug {
-				fmt.Printf("rtmp: Accept error:%v\n", e)
-			}
+			log.Error("",zap.String("errMsg",e.Error()))
 			return e
 		}
 		tempDelay = 0
 
-		if Debug {
-			fmt.Println("rtmp: server: accepted")
-		}
 		tcpConn, ok := netconn.(*net.TCPConn)
 		if !ok {
 			//error handle
 		}
+		tcpConn.RemoteAddr().String()
 		tcpConn.SetNoDelay(true)
 		session := NewSsesion(netconn)
 		session.isServer = true

@@ -60,7 +60,6 @@ type RtmpServerCnf struct{
 type LogInfo struct {
 	Level string    		`yaml:"Level"`
 	OutPaths string			`yaml:"OutPaths"`
-	LogFileCutInterval string       `yaml:"LogFileCutInterval"`
 }
 
 func ParseConfig(file string) (err error,cnf *RtmpServerCnf){
