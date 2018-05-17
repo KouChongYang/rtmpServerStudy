@@ -830,7 +830,7 @@ func NewServer(file string) (err error,server *Server){
 
 func (self *Session)LogFormat()string{
 
-	return fmt.Sprintf("session_id:%d uniquename:%s app:%s name:%s ",
+	return fmt.Sprintf("session_id:%s uniquename:%s app:%s name:%s ",
 		self.SessionId,self.uniqueName,self.App,self.StreamId)
 }
 
