@@ -10,6 +10,7 @@ import (
 	//"rtmpServerStudy/flv"
 	"rtmpServerStudy/flv/flvio"
 	"rtmpServerStudy/timer"
+	"rtmpServerStudy/log"
 )
 
 func (self *Session)rtmpClosePublishingSession(){
@@ -182,17 +183,22 @@ func (self *Session) ServerSession(stage int) (err error) {
 		switch self.stage {
 		//first handshake
 		case stageHandshakeStart:
+			log.Log.Debug(self.LogFormat()+"handshake start")
 			if err = self.handshakeServer(); err != nil {
 				self.netconn.Close()
 				return
 			}
+			log.Log.Debug(self.LogFormat() + "rtmp handshake done")
 		case stageHandshakeDone:
+			log.Log.Debug(self.LogFormat() + "rtmp cmd Msg Cycle")
 			if err = self.rtmpReadCmdMsgCycle(); err != nil {
 				self.netconn.Close()
 				return
 			}
+			log.Log.Debug(self.LogFormat() + "rtmp cmd msg cycle done")
 		case stageCommandDone:
 			if self.publishing {
+				log.Log.Debug(self.LogFormat() + "rtmp publish client is publishing client addr:" + self.RemoteAddr)
 				//only publish and relay need cache gop
 				err = self.rtmpReadMsgCycle()
 				self.stage = stageSessionDone
