@@ -5,6 +5,7 @@ import (
 	"rtmpServerStudy/utils/bits/pio"
 	"rtmpServerStudy/amf"
 	"encoding/hex"
+	"rtmpServerStudy/log"
 )
 
 // recv peer set chunk  size
@@ -15,7 +16,9 @@ func RtmpMsgChunkSizeHandler(session *Session, timeStamp uint32,
 		err = fmt.Errorf("rtmp: short packet of SetChunkSize the len:%d", msgLen)
 		return
 	}
+
 	session.readMaxChunkSize = int(pio.U32BE(msgdata))
+	log.Log.Debug(fmt.Sprintf("%s the peer chunkSize:%d ",session.LogFormat(),session.readMaxChunkSize))
 	return
 
 }

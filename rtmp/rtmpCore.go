@@ -904,7 +904,7 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 			}()
 
 			err := self.ServerHandle(session)
-			log.Info(fmt.Sprintf("%s rtmp: server: client closed the remoteAddr %s err:%s",
+			log.Log.Info(fmt.Sprintf("%s rtmp server: client closed the remoteAddr %s err:%s",
 				session.LogFormat(),session.netconn.RemoteAddr(), err.Error()))
 		}()
 	}
