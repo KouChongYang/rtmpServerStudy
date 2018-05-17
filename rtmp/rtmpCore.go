@@ -552,15 +552,12 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 	cs.msgdataleft -= uint32(size)
 
 	if Debug {
-		fmt.Printf("rtmp: chunk msgsid=%d msgtypeid=%d msghdrtype=%d len=%d left=%d\n",
-			cs.msgsid, cs.msgtypeid, cs.msghdrtype, cs.msgdatalen, cs.msgdataleft)
+		log.Log.Debug(self.LogFormat() + fmt.Sprintf("rtmp: chunk msgsid=%d msgtypeid=%d msghdrtype=%d len=%d left=%d\n",
+			cs.msgsid, cs.msgtypeid, cs.msghdrtype, cs.msgdatalen, cs.msgdataleft))
 	}
 
 	if cs.msgdataleft == 0 {
-		if Debug {
-			fmt.Println("rtmp: chunk data")
-			//fmt.Print(hex.Dump(cs.msgdata))
-		}
+
 
 		if hands[cs.msgtypeid] != nil {
 			if err = hands[cs.msgtypeid](self, cs.timenow, cs.msgsid, cs.msgtypeid, cs.msgdata); err != nil {
@@ -850,7 +847,7 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 		return err
 	}
 
-	log.Log.Debug("the server listening on :"+ addr)
+	log.Log.Info("the server listening on :"+ addr)
 	for {
 		var netconn net.Conn
 		var tempDelay time.Duration
