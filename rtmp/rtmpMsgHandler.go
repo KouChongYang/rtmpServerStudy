@@ -188,11 +188,13 @@ func (self *Session) handleCommandMsgAMF0(b []byte,RtmpCmdHandles RtmpCmdHandle)
 
 func RtmpMsgAmf3Handler(session *Session, timestamp uint32,
 	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
+
 	msgLen := len(msgdata)
 	if msgLen < 1 {
 		err = fmt.Errorf("rtmp: short packet of CommandMsgAMF3 the msgLen:%d", msgLen)
 		return
 	}
+
 	// skip first byte
 	if _, err = session.handleCommandMsgAMF0(msgdata[1:],session.rtmpCmdHandler); err != nil {
 		return
@@ -204,10 +206,10 @@ func RtmpMsgAmfHandler(session *Session, timestamp uint32,
 	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
 	/* AMF command names come with string type, but shared object names
 	 * come without type */
-	fmt.Println("========================================:",hex.Dump(msgdata))
 	if _, err = session.handleCommandMsgAMF0(msgdata,session.rtmpCmdHandler); err != nil {
 		return
 	}
+
 	return
 }
 

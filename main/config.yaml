@@ -1,3 +1,7 @@
+LogInfo:
+  Level: DEBUG #DEBUG,ERROR, INFO
+  OutPaths: ./logs/
+
 RtmpServer:
   ClusterCnf: ["127.0.0.1:1935","10.137.16.47:1935"]
   SelfIp: "127.0.0.1:1935"
@@ -14,28 +18,28 @@ UserConf:
         live:
           GopCacheNum: 2
           ExtTimeSend: 1
-          RecodeFlv: 1
-          RecodeHls: 1
+          RecodeFlv: 0
+          RecodeHls: 0
           hlsFragment: "5s"
           RecodeFlvPath: "/dev/shm/data/flv"
           RecodeHlsPath: "/data/hls"
-          RecodePicture: 1
+          RecodePicture: 0
           TurnHost: ["test.uplive.com/test"]
         test:
           GopCacheNum: 1
-          RecodeHls: 1
+          RecodeHls: 0
           hlsFragment: "5s"
           RecodeFlvPath: "/dev/shm/data/flv"
           RecodeHlsPath: "/data/hls"
-          RecodePicture: 1
+          RecodePicture: 0
         test1:
           GopCacheNum: 1
-          RecodeFlv: 1
-          RecodeHls: 1
+          RecodeFlv: 0
+          RecodeHls: 0
           hlsFragment: "5s"
           RecodeFlvPath: "/data/flv"
           RecodeHlsPath: "/data/hls"
-          RecodePicture: 1
+          RecodePicture: 0
   PlayDomain:
     test.live.com:
       UniqueName: test

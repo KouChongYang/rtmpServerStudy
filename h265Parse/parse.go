@@ -524,7 +524,7 @@ func ParseSPS(data []byte) (self SPSInfo, err error) {
 
 	self.Width = self.Width - (self.CropLeft + self.CropRight)
 	self.Height = self.Height - (self.CropRight + self.CropBottom)
-	fmt.Println("====================================:",self.Width,self.Height,self.CropLeft,self.CropRight,self.CropTop);
+
 	return
 }
 
