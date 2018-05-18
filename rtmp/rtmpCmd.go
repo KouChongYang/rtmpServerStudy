@@ -142,8 +142,15 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 	if u, err = url.Parse(app);err != nil {
 		return
 	}
+	/*if GDefaultPath[len(GDefaultPath)-1] != '/' {
+		GDefaultPath = GDefaultPath + "/"
+	}*/
+	if u.Path[len(u.Path)-1] == '/'{
+		session.App = u.Path[0:len(u.Path)-1]
+	}else {
+		session.App = u.Path
+	}
 
-	session.App = u.Path
 
 	var tcurl string
 	if _tcurl, ok = commandobj["tcUrl"]; !ok {
@@ -380,6 +387,7 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 
 	log.Log.Debug(fmt.Sprintf("%s rtmp play cmd handler",
 		session.LogFormat()))
+
 	if err = session.RtmpcheckHost(session.Vhost,"play");err !=nil{
 		return
 	}
