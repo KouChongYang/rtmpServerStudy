@@ -156,6 +156,7 @@ type Session struct {
 	needUpPkt         bool
 
 	//record 时间 创建目录用
+	IsSelf		  bool
 	recordTime        time.Time
 	//hls 直播录制ts状态信息
 	hlsLiveRecordInfo hlsLiveRecordInfo

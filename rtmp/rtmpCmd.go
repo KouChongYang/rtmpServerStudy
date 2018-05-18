@@ -311,6 +311,8 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 
 	var u *url.URL
 	if u, err = url.Parse(publishpath);err != nil {
+		log.Log.Info(fmt.Sprintf("%s rtmp client publish parse publish path err:%s",
+			session.LogFormat(),publishpath))
 		return
 	}else{
 		session.StreamId = u.Path
@@ -334,6 +336,9 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 		session.RegisterChannel = make(chan *Session, MAXREGISTERCHANNEL)
 	}
 
+	log.Log.Info(fmt.Sprintf("%s rtmp client publish:%s desc:%s",
+		session.LogFormat(),session.StreamAnchor,desc))
+
 	if err = session.writeRtmpStatus(code , level,desc);err != nil{
 		return
 	}
@@ -341,42 +346,40 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 		return
 	}
 	session.publishing = true
-	if session.selfPush == false {
-		if session.UserCnf.RecodeFlv == 1 {
-			//flv recode start
-		}
-		if session.UserCnf.RecodeHls == 1 {
-			//hls recode start
-		}
-	}
+
 	session.recordTime = time.Now()
-	//
+
+	//转推逻辑
 	if len(session.UserCnf.TurnHost) > 0{
 
 	}
-
-	isSelf := false
-	if isSelf = session.RtmpCheckStreamIsSelf(); isSelf != true{
+	session.IsSelf = false
+	if session.IsSelf = session.RtmpCheckStreamIsSelf(); session.IsSelf != true{
 		//push stream to the true server
 		//rtmp://127.0.0.1/live?vhost=test.uplive.com/123
+
 		url1:= "rtmp://" + session.pushIp + "/" + session.App +"?" + "vhost=" + session.Vhost + "/" + session.StreamId +"?hashpull=1"
+
+
+		log.Log.Info(fmt.Sprintf("%s rtmp publish must hash push: push url:%s",
+			session.LogFormat(),url1))
 		go rtmpClientPullProxy(session,"tcp", session.pushIp,url1,stageSessionDone)
-		//rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage, flags int)
 	}
 
 	//just hash self record
-	if isSelf == true {
+	if session.IsSelf == true {
 		RecordPublishHandler(session)
 	}
-
+	log.Log.Info(fmt.Sprintf("%s rtmp publish ok!",
+					session.LogFormat()))
 	session.stage = stageCommandDone
 	return
 }
 
 func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
-	if Debug {
-		fmt.Println("rtmp: < play")
-	}
+
+	log.Log.Debug(fmt.Sprintf("%s rtmp play cmd handler",
+		session.LogFormat()))
 	if err = session.RtmpcheckHost(session.Vhost,"play");err !=nil{
 		return
 	}

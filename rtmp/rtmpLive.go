@@ -41,8 +41,8 @@ func (self *Session)rtmpClosePublishingSession(){
 	}
 	//close other thing
 	//recode
-	isSelf := false
-	if isSelf = self.RtmpCheckStreamIsSelf(); isSelf == true {
+
+	if self.IsSelf == true {
 		RecordPublishDoneHandler(self)
 	}
 	//hls
