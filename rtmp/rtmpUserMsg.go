@@ -3,23 +3,29 @@ package rtmp
 import (
 	"fmt"
 	"rtmpServerStudy/utils/bits/pio"
-
+	"rtmpServerStudy/log"
 )
 
 func RtmpUserStreamBeginHandler(session *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
-	fmt.Printf("%s %s stream begin\n", session.App, session.TcUrl)
+
+	log.Log.Info(fmt.Sprintf(" %s %s stream begin\n",
+			session.LogFormat(),session.TcUrl))
 	//do something your self
 	return
 }
 
 func RtmpUserStreamEofHandler(session *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
-	fmt.Printf("%s %s stream eof\n", session.App, session.TcUrl)
+
+	log.Log.Info(fmt.Sprintf("%s %s stream eof",
+			session.LogFormat(), session.TcUrl))
 	return
 	//do something your self
 }
 
 func RtmpUserSetBufLenHandler(session *Session, timestamp uint32, msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
-	fmt.Printf("%s %s RtmpUserSetBufLenHandler\n", session.App, session.TcUrl)
+
+	log.Log.Info(fmt.Sprintf("%s %s RtmpUserSetBufLenHandler",
+				session.LogFormat(), session.TcUrl))
 	return
 	//do something your self
 }

@@ -46,8 +46,20 @@ type UserConf struct {
 }
 
 type RtmpServerCnf struct{
-	RtmpServer Rtmpserver `yaml:"RtmpServer"`
-	UserConf UserConf `yaml:"UserConf"`
+	LogInfo LogInfo 	 `yaml:"LogInfo"`
+	RtmpServer Rtmpserver   `yaml:"RtmpServer"`
+	UserConf UserConf 	 `yaml:"UserConf"`
+}
+
+/*
+ Level: "DEBUG" #DEBUG,ERROR, INFO
+  OutPaths: "./rtmp.log"
+  LogFileCutInterval: "1h" #1s,1m,1h
+*/
+
+type LogInfo struct {
+	Level string    		`yaml:"Level"`
+	OutPaths string			`yaml:"OutPaths"`
 }
 
 func ParseConfig(file string) (err error,cnf *RtmpServerCnf){

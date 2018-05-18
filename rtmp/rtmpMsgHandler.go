@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"rtmpServerStudy/utils/bits/pio"
 	"rtmpServerStudy/amf"
-	"encoding/hex"
+	"rtmpServerStudy/log"
 )
 
 // recv peer set chunk  size
@@ -15,7 +15,9 @@ func RtmpMsgChunkSizeHandler(session *Session, timeStamp uint32,
 		err = fmt.Errorf("rtmp: short packet of SetChunkSize the len:%d", msgLen)
 		return
 	}
+
 	session.readMaxChunkSize = int(pio.U32BE(msgdata))
+	log.Log.Debug(fmt.Sprintf("%s the peer chunkSize:%d ",session.LogFormat(),session.readMaxChunkSize))
 	return
 
 }
@@ -185,11 +187,13 @@ func (self *Session) handleCommandMsgAMF0(b []byte,RtmpCmdHandles RtmpCmdHandle)
 
 func RtmpMsgAmf3Handler(session *Session, timestamp uint32,
 	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
+
 	msgLen := len(msgdata)
 	if msgLen < 1 {
 		err = fmt.Errorf("rtmp: short packet of CommandMsgAMF3 the msgLen:%d", msgLen)
 		return
 	}
+
 	// skip first byte
 	if _, err = session.handleCommandMsgAMF0(msgdata[1:],session.rtmpCmdHandler); err != nil {
 		return
@@ -201,10 +205,10 @@ func RtmpMsgAmfHandler(session *Session, timestamp uint32,
 	msgsid uint32, msgtypeid uint8, msgdata []byte) (err error) {
 	/* AMF command names come with string type, but shared object names
 	 * come without type */
-	fmt.Println("========================================:",hex.Dump(msgdata))
 	if _, err = session.handleCommandMsgAMF0(msgdata,session.rtmpCmdHandler); err != nil {
 		return
 	}
+
 	return
 }
 

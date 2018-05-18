@@ -6,7 +6,7 @@ import (
 	"context"
 	"rtmpServerStudy/AvQue"
 	"net/url"
-
+	"rtmpServerStudy/log"
 	"time"
 	"strings"
 )
@@ -96,7 +96,7 @@ func (self *Session)RtmpChckeApp(host ,app string)(err error){
 }
 
 func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
-	startTime:= time.Now()
+	//startTime:= time.Now()
 
 	var transid, obj interface{}
 	var size int
@@ -142,8 +142,15 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 	if u, err = url.Parse(app);err != nil {
 		return
 	}
-	fmt.Println(u.Path)
-	session.App = u.Path
+	/*if GDefaultPath[len(GDefaultPath)-1] != '/' {
+		GDefaultPath = GDefaultPath + "/"
+	}*/
+	if u.Path[len(u.Path)-1] == '/'{
+		session.App = u.Path[0:len(u.Path)-1]
+	}else {
+		session.App = u.Path
+	}
+
 
 	var tcurl string
 	if _tcurl, ok = commandobj["tcUrl"]; !ok {
@@ -154,6 +161,7 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 
 	host := ""
 	session.TcUrl = tcurl
+
 	u, err = url.Parse(tcurl)
 	if err != nil {
 		code ,level,desc := "NetStream.Connect.IllegalDomain","status","Illegal domain"
@@ -161,6 +169,10 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 			return
 		}
 		session.flushWrite()
+
+		log.Log.Info(fmt.Sprintf("%s rtmp server parse tcurl err :%s",
+							session.LogFormat(),tcurl))
+
 		err = fmt.Errorf("%s","Rtmp.NetStream.Connect.IllegalDomain")
 		return
 	}else{
@@ -176,8 +188,9 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 		if err = session.RtmpcheckHost(host,"connect");err != nil {
 			return
 		}
-
 	}
+
+
 	if err = session.RtmpChckeApp(host,session.App);err != nil{
 		return
 	}
@@ -206,8 +219,11 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 	if err = session.flushWrite(); err != nil {
 		return
 	}
-	dis := time.Now().Sub(startTime).Seconds()
-	fmt.Printf("===========================================%d\n",dis)
+
+	log.Log.Info(fmt.Sprintf("%s rtmp parse connect ok the host:%s tcurl:%s ",
+						session.LogFormat(),host,tcurl))
+	//dis := time.Now().Sub(startTime).Seconds()
+
 	return
 }
 
@@ -217,6 +233,8 @@ func RtmpCreateStreamCmdHandler(session *Session, b []byte) (n int, err error) {
 	var transid interface{}
 
 	if transid, _, err = amf.ParseAMF0Val(b[n:]); err != nil {
+		log.Log.Info(fmt.Sprintf("%s rtmp create stream cmd parse tranid err",
+						session.LogFormat()))
 		return
 	}
 	session.commandtransid, _ = transid.(float64)
@@ -227,15 +245,22 @@ func RtmpCreateStreamCmdHandler(session *Session, b []byte) (n int, err error) {
 	if err = session.flushWrite(); err != nil {
 		return
 	}
+
+	log.Log.Info(fmt.Sprintf("%s rtmp create stream ok!",
+						session.LogFormat()))
 	return
 }
 
-func RtmpCloseStreamCmdHandler(sesion *Session, b []byte) (n int, err error) {
+func RtmpCloseStreamCmdHandler(session *Session, b []byte) (n int, err error) {
+	log.Log.Info(fmt.Sprintf("%s rtmp close stream cmd!",
+						session.LogFormat()))
 	return
 }
 
-func RtmpDeleteStreamCmdHandler(sesion *Session, b []byte) (n int, err error) {
-	err = fmt.Errorf("%s","Rtmp.Delate.Stream")
+func RtmpDeleteStreamCmdHandler(session *Session, b []byte) (n int, err error) {
+	err = fmt.Errorf("%s","Rtmp.Delete.Stream")
+	log.Log.Info(fmt.Sprintf("%s rtmp delete stream cmd handler!",
+		session.LogFormat()))
 	return
 }
 
@@ -252,9 +277,10 @@ func (self *Session)RtmpCheckStreamIsSelf() bool{
 
 
 func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
-	if Debug {
-		fmt.Println("rtmp: < publish")
-	}
+
+	log.Log.Debug(fmt.Sprintf("%s rtmp publish cmd handler",
+					session.LogFormat()))
+
 	if err = session.RtmpcheckHost(session.Vhost,"publish");err !=nil{
 		return
 	}
@@ -289,9 +315,11 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 		return
 	}
 	publishpath, _ := commandparams[0].(string)
-	fmt.Println(publishpath)
+
 	var u *url.URL
 	if u, err = url.Parse(publishpath);err != nil {
+		log.Log.Info(fmt.Sprintf("%s rtmp client publish parse publish path err:%s",
+			session.LogFormat(),publishpath))
 		return
 	}else{
 		session.StreamId = u.Path
@@ -315,6 +343,9 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 		session.RegisterChannel = make(chan *Session, MAXREGISTERCHANNEL)
 	}
 
+	log.Log.Info(fmt.Sprintf("%s rtmp client publish:%s desc:%s",
+		session.LogFormat(),session.StreamAnchor,desc))
+
 	if err = session.writeRtmpStatus(code , level,desc);err != nil{
 		return
 	}
@@ -322,43 +353,42 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 		return
 	}
 	session.publishing = true
-	if session.selfPush == false {
-		if session.UserCnf.RecodeFlv == 1 {
-			//flv recode start
-		}
-		if session.UserCnf.RecodeHls == 1 {
-			//hls recode start
-		}
-	}
+
 	session.recordTime = time.Now()
-	//
+
+	//转推逻辑
 	if len(session.UserCnf.TurnHost) > 0{
 
 	}
-
-	isSelf := false
-	if isSelf = session.RtmpCheckStreamIsSelf(); isSelf != true{
+	session.IsSelf = false
+	if session.IsSelf = session.RtmpCheckStreamIsSelf(); session.IsSelf != true{
 		//push stream to the true server
 		//rtmp://127.0.0.1/live?vhost=test.uplive.com/123
+
 		url1:= "rtmp://" + session.pushIp + "/" + session.App +"?" + "vhost=" + session.Vhost + "/" + session.StreamId +"?hashpull=1"
+
+
+		log.Log.Info(fmt.Sprintf("%s rtmp publish must hash push: push url:%s",
+			session.LogFormat(),url1))
 		go rtmpClientPullProxy(session,"tcp", session.pushIp,url1,stageSessionDone)
-		//rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage, flags int)
 	}
 
 	//just hash self record
-	if isSelf == true {
+	if session.IsSelf == true {
 		RecordPublishHandler(session)
 	}
-
+	log.Log.Info(fmt.Sprintf("%s rtmp publish ok!",
+					session.LogFormat()))
 	session.stage = stageCommandDone
 	return
 }
 
 func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
-	if Debug {
-		fmt.Println("rtmp: < play")
-	}
-	if err = session.RtmpcheckHost(session.Vhost,"play");err !=nil{
+
+	log.Log.Debug(fmt.Sprintf("%s rtmp play cmd handler",
+		session.LogFormat()))
+
+	if err = session.RtmpcheckHost(session.Vhost, "play"); err != nil {
 		return
 	}
 	var transid, obj interface{}
@@ -383,28 +413,33 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 		commandparams = append(commandparams, obj)
 	}
 	if n < len(b) {
-		err = fmt.Errorf("Rtmp.Play.CommandMsgAMF0.Left(bytes=%d)", len(b)-n)
+		err = fmt.Errorf("Rtmp.Play.CommandMsgAMF0.Left(bytes=%d)", len(b) - n)
 		return
 	}
 
 	if len(commandparams) < 1 {
-		err = fmt.Errorf("%s","Rtmp.Play.CommandMsg.Params.Invalid")
+		err = fmt.Errorf("%s", "Rtmp.Play.CommandMsg.Params.Invalid")
 		return
 	}
 
 	playpath, _ := commandparams[0].(string)
-	fmt.Println(playpath)
+
 	var u *url.URL
-	if u, err = url.Parse(playpath);err != nil {
+	if u, err = url.Parse(playpath); err != nil {
+		log.Log.Info(fmt.Sprintf("%s rtmp play parse playPath err playPath:%s err:%s !",
+			session.LogFormat(), playpath, err.Error()))
 		return
-	}else{
+	} else {
 		session.StreamId = u.Path
 		session.StreamAnchor = u.Path + ":" + Gconfig.UserConf.PlayDomain[session.Vhost].UniqueName + ":" + session.App
 	}
+
+	//Onplay_handler{}
 	// > onStatus()
 	if err = session.writeRtmpStatus("NetStream.Play.Start" , "status","Start live");err != nil{
 		return
 	}
+
 	// > streamBegin(streamid)
 	if err = session.writeStreamBegin(session.avmsgsid); err != nil {
 		return
@@ -419,6 +454,10 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 	if err = session.flushWrite(); err != nil {
 		return
 	}
+
+	log.Log.Info(fmt.Sprintf("%s rtmp play cmd ok!",
+					session.LogFormat()))
+
 	session.URL = createURL(session.TcUrl, session.App, playpath)
 	session.playing = true
 	session.stage = stageCommandDone

@@ -30,6 +30,9 @@ import (
 	"math/big"
 	"encoding/pem"
 	"github.com/xtaci/kcp-go"
+	"rtmpServerStudy/log"
+	//"go.uber.org/zap/zapcore"
+	"go.uber.org/zap"
 )
 
 /* RTMP message types */
@@ -103,7 +106,8 @@ type Session struct {
 	curgopcount       int
 	QuicOn            bool
 	QuicConn quic.Stream
-
+	SessionId 	  string
+	RemoteAddr        string
 
 	App               string
 	StreamId          string
@@ -152,6 +156,7 @@ type Session struct {
 	needUpPkt         bool
 
 	//record 时间 创建目录用
+	IsSelf		  bool
 	recordTime        time.Time
 	//hls 直播录制ts状态信息
 	hlsLiveRecordInfo hlsLiveRecordInfo
@@ -548,15 +553,12 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 	cs.msgdataleft -= uint32(size)
 
 	if Debug {
-		fmt.Printf("rtmp: chunk msgsid=%d msgtypeid=%d msghdrtype=%d len=%d left=%d\n",
-			cs.msgsid, cs.msgtypeid, cs.msghdrtype, cs.msgdatalen, cs.msgdataleft)
+		log.Log.Debug(self.LogFormat() + fmt.Sprintf("rtmp: chunk msgsid=%d msgtypeid=%d msghdrtype=%d len=%d left=%d\n",
+			cs.msgsid, cs.msgtypeid, cs.msghdrtype, cs.msgdatalen, cs.msgdataleft))
 	}
 
 	if cs.msgdataleft == 0 {
-		if Debug {
-			fmt.Println("rtmp: chunk data")
-			//fmt.Print(hex.Dump(cs.msgdata))
-		}
+
 
 		if hands[cs.msgtypeid] != nil {
 			if err = hands[cs.msgtypeid](self, cs.timenow, cs.msgsid, cs.msgtypeid, cs.msgdata); err != nil {
@@ -794,13 +796,40 @@ func (self *Server)ListenAndServersStart(){
 }
 
 func NewServer(file string) (err error,server *Server){
+	//
 	server = new(Server)
+	//解析配置文件
 	if err,Gconfig = config.ParseConfig(file);err != nil{
 		return
 	}
 	server.RtmpAddr ,server.HttpAddr,server.QuicAddr,server.KcpAddr =
 		Gconfig.RtmpServer.RtmpListen,Gconfig.RtmpServer.HttpListen ,Gconfig.RtmpServer.QuicListen,Gconfig.RtmpServer.KcpListen
+
+	logpath:=""
+	if len(Gconfig.LogInfo.OutPaths) >0 {
+		if Gconfig.LogInfo.OutPaths[len(Gconfig.LogInfo.OutPaths)-1] != '/' {
+			logpath = Gconfig.LogInfo.OutPaths + "/" + "err.log"
+		}else{
+			logpath = Gconfig.LogInfo.OutPaths + "err.log"
+		}
+	}else{
+		logpath = "./err.log"
+	}
+
+	err =os.MkdirAll( Gconfig.LogInfo.OutPaths,0666)
+	if err != nil{
+		fmt.Printf("%s\n",err.Error())
+		return
+	}
+	//初始化log
+	err = log.InitLogger(logpath,Gconfig.LogInfo.Level)
 	return
+}
+
+func (self *Session)LogFormat()string{
+
+	return fmt.Sprintf("session_id:%s uniquename:%s app:%s name:%s ",
+		self.SessionId,self.uniqueName,self.App,self.StreamId)
 }
 
 func (self *Server) rtmpServeStart(addr string,) (err error) {
@@ -815,13 +844,11 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 
 	var listener net.Listener
 	if listener,err = self.socketListen(addr); err != nil {
+		log.Log.Error("rtmp server listen err the addr: " + addr ,zap.String("errMsg",err.Error()))
 		return err
 	}
 
-	if Debug {
-		fmt.Println("rtmp: server: listening on", addr)
-	}
-
+	log.Log.Info("the server listening on :"+ addr)
 	for {
 		var netconn net.Conn
 		var tempDelay time.Duration
@@ -837,26 +864,33 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 				if max := 1 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				fmt.Printf("rtmp: Accept error: %v; retrying in %v\n", e, tempDelay)
+				log.Log.Info(fmt.Sprintf("rtmp: Accept error: %v; retrying in %v\n", e, tempDelay))
+				//fmt.Printf("rtmp: Accept error: %v; retrying in %v\n", e, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			}
-			if Debug {
-				fmt.Printf("rtmp: Accept error:%v\n", e)
-			}
+
+			log.Log.Error("rtmp server accept err",zap.String("errMsg",e.Error()))
 			return e
 		}
 		tempDelay = 0
 
-		if Debug {
-			fmt.Println("rtmp: server: accepted")
-		}
 		tcpConn, ok := netconn.(*net.TCPConn)
 		if !ok {
 			//error handle
 		}
+
 		tcpConn.SetNoDelay(true)
 		session := NewSsesion(netconn)
+		var f *os.File
+		if f,err = tcpConn.File();err != nil{
+			log.Log.Error("rtmp server get socket fd err ",zap.String("errMsg",e.Error()))
+			return err
+		}
+
+		session.SessionId = fmt.Sprintf("%d",f.Fd())
+		session.RemoteAddr = tcpConn.RemoteAddr().String()
+
 		session.isServer = true
 		go func() {
 			defer func() {
@@ -865,14 +899,14 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 					buf := make([]byte, size)
 					buf = buf[:runtime.Stack(buf, false)]
 					session.rtmpCloseSessionHanler()
-					fmt.Println("rtmp: panic serving %v: %v\n%s", session.netconn.RemoteAddr(), err, string(buf))
+					log.Log.Error(fmt.Sprintf("%s rtmp: panic serving %v: %v\n%s",
+							session.LogFormat(),session.netconn.RemoteAddr(), err, string(buf)))
 				}
 			}()
 
 			err := self.ServerHandle(session)
-			if Debug {
-				fmt.Println("rtmp: server: client closed err:", err)
-			}
+			log.Log.Info(fmt.Sprintf("%s rtmp server: client closed the remoteAddr %s err:%s",
+				session.LogFormat(),session.netconn.RemoteAddr(), err.Error()))
 		}()
 	}
 }

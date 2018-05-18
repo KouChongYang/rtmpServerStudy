@@ -10,6 +10,7 @@ import (
 	//"rtmpServerStudy/flv"
 	"rtmpServerStudy/flv/flvio"
 	"rtmpServerStudy/timer"
+	"rtmpServerStudy/log"
 )
 
 func (self *Session)rtmpClosePublishingSession(){
@@ -40,8 +41,8 @@ func (self *Session)rtmpClosePublishingSession(){
 	}
 	//close other thing
 	//recode
-	isSelf := false
-	if isSelf = self.RtmpCheckStreamIsSelf(); isSelf == true {
+
+	if self.IsSelf == true {
 		RecordPublishDoneHandler(self)
 	}
 	//hls
@@ -148,22 +149,22 @@ func (self *Session) RtmpSendAvPackets() (err error) {
 				self.isClosed = true
 				return
 			default:
-
 			// 没有结束 ... 执行 ...
 			}
 		}
 
 		if pkt == nil && self.isClosed  != true {
-			t := timer.GlobalTimerPool.Get(time.Second * MAXREADTIMEOUT)
+			//t := timer.GlobalTimerPool.Get(time.Second * MAXREADTIMEOUT)
 			select {
 			case <-self.PacketAck:
-			case <-t.C:
+			//case <-t.C:
 			}
-			timer.GlobalTimerPool.Put(t)
+			//timer.GlobalTimerPool.Put(t)
 		}
 
 		if self.pubSession.isClosed == true && pkt == nil{
 			self.isClosed = true
+			fmt.Println("the publisher is close")
 			err = fmt.Errorf("%s","Rtmp.PubSession.Closed.And.pkts.Is.Nil")
 			return
 		}
@@ -182,19 +183,26 @@ func (self *Session) ServerSession(stage int) (err error) {
 		switch self.stage {
 		//first handshake
 		case stageHandshakeStart:
+			log.Log.Info(self.LogFormat()+"handshake start")
 			if err = self.handshakeServer(); err != nil {
 				self.netconn.Close()
 				return
 			}
+			log.Log.Info(self.LogFormat() + "rtmp handshake done")
 		case stageHandshakeDone:
+			log.Log.Info(self.LogFormat() + "rtmp cmd Msg Cycle")
 			if err = self.rtmpReadCmdMsgCycle(); err != nil {
 				self.netconn.Close()
 				return
 			}
+			log.Log.Info(self.LogFormat() + "rtmp cmd msg cycle done")
 		case stageCommandDone:
 			if self.publishing {
+				//just 推流
+				log.Log.Info(self.LogFormat() + "rtmp client is publishing client addr:" + self.RemoteAddr)
 				//only publish and relay need cache gop
 				err = self.rtmpReadMsgCycle()
+				log.Log.Info(self.LogFormat() + "rtmp publish client read msg cycle err:" + err.Error())
 				self.stage = stageSessionDone
 				continue
 			} else if self.playing {

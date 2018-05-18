@@ -143,7 +143,7 @@ func RtmpMsgDecodeVideoHandler(session *Session, timestamp uint32, msgsid uint32
 
 	//startTime:=time.Now()
 
-	if isSelf := session.RtmpCheckStreamIsSelf();isSelf == true {
+	if session.IsSelf == true {
 		RecordHandler(session, session.vCodec, pkt)
 	}
 	//dis := time.Now().Sub(startTime).Nanoseconds()/1000
@@ -267,7 +267,7 @@ func RtmpMsgDecodeAudioHandler(session *Session, timestamp uint32, msgsid uint32
 		return
 	}
 	//just hash push record
-	if isSelf := session.RtmpCheckStreamIsSelf();isSelf == true {
+	if session.IsSelf == true {
 		RecordHandler(session, session.aCodec, pkt)
 	}
 	return

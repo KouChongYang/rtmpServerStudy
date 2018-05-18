@@ -2,9 +2,6 @@ package rtmp
 
 import (
 	"rtmpServerStudy/amf"
-
-	"encoding/hex"
-	"fmt"
 	"rtmpServerStudy/utils/bits/pio"
 )
 
@@ -22,18 +19,18 @@ func (self *Session) DoSend(b []byte, csid uint32, timestamp uint32, msgtypeid u
 	sn := 0
 	last := self.writeMaxChunkSize
 	end := msgdatalen
-	//testn := 0
+
 	for msgdatalen > 0 {
 		if pos == 0 {
 			n := self.fillChunk0Header(self.chunkHeaderBuf, csid, timestamp, msgtypeid, msgsid, msgdatalen)
 			_, err = self.bufw.Write(self.chunkHeaderBuf[:n])
 		} else {
 			n := self.fillChunk3Header(self.chunkHeaderBuf, csid, timestamp)
-			//fmt.Print(hex.Dump(self.chunkHeaderBuf[:n]))
+
 			_, err = self.bufw.Write(self.chunkHeaderBuf[:n])
 		}
 		if msgdatalen > self.writeMaxChunkSize {
-			//fmt.Print(hex.Dump(b[pos:last]))
+
 			if sn, err = self.bufw.Write(b[pos:last]); err != nil {
 				return
 			}
@@ -43,7 +40,7 @@ func (self *Session) DoSend(b []byte, csid uint32, timestamp uint32, msgtypeid u
 			msgdatalen -= sn
 			continue
 		}
-		//fmt.Print(hex.Dump(b[pos:end]))
+
 		if sn, err = self.bufw.Write(b[pos:end]); err != nil {
 			return
 		}
@@ -66,8 +63,6 @@ func (self *Session) writeAMF0Msg(msgtypeid uint8, csid, msgsid uint32, args ...
 	for _, arg := range args {
 		n += amf.FillAMF0Val(b[n:], arg)
 	}
-	fmt.Print(hex.Dump(b[:n]))
-
 
 	_, err = self.DoSend(b, csid, 0, msgtypeid, msgsid, size)
 	return
