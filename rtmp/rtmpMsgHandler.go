@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"rtmpServerStudy/utils/bits/pio"
 	"rtmpServerStudy/amf"
-	"encoding/hex"
 	"rtmpServerStudy/log"
 )
 
