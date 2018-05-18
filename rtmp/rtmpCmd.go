@@ -388,7 +388,7 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 	log.Log.Debug(fmt.Sprintf("%s rtmp play cmd handler",
 		session.LogFormat()))
 
-	if err = session.RtmpcheckHost(session.Vhost,"play");err !=nil{
+	if err = session.RtmpcheckHost(session.Vhost, "play"); err != nil {
 		return
 	}
 	var transid, obj interface{}
@@ -413,28 +413,33 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 		commandparams = append(commandparams, obj)
 	}
 	if n < len(b) {
-		err = fmt.Errorf("Rtmp.Play.CommandMsgAMF0.Left(bytes=%d)", len(b)-n)
+		err = fmt.Errorf("Rtmp.Play.CommandMsgAMF0.Left(bytes=%d)", len(b) - n)
 		return
 	}
 
 	if len(commandparams) < 1 {
-		err = fmt.Errorf("%s","Rtmp.Play.CommandMsg.Params.Invalid")
+		err = fmt.Errorf("%s", "Rtmp.Play.CommandMsg.Params.Invalid")
 		return
 	}
 
 	playpath, _ := commandparams[0].(string)
-	fmt.Println(playpath)
+
 	var u *url.URL
-	if u, err = url.Parse(playpath);err != nil {
+	if u, err = url.Parse(playpath); err != nil {
+		log.Log.Info(fmt.Sprintf("%s rtmp play parse playPath err playPath:%s err:%s !",
+			session.LogFormat(), playpath, err.Error()))
 		return
-	}else{
+	} else {
 		session.StreamId = u.Path
 		session.StreamAnchor = u.Path + ":" + Gconfig.UserConf.PlayDomain[session.Vhost].UniqueName + ":" + session.App
 	}
+
+	//Onplay_handler{}
 	// > onStatus()
 	if err = session.writeRtmpStatus("NetStream.Play.Start" , "status","Start live");err != nil{
 		return
 	}
+
 	// > streamBegin(streamid)
 	if err = session.writeStreamBegin(session.avmsgsid); err != nil {
 		return
@@ -449,6 +454,10 @@ func RtmpPlayCmdHandler(session *Session, b []byte) (n int, err error) {
 	if err = session.flushWrite(); err != nil {
 		return
 	}
+
+	log.Log.Info(fmt.Sprintf("%s rtmp play cmd ok!",
+					session.LogFormat()))
+
 	session.URL = createURL(session.TcUrl, session.App, playpath)
 	session.playing = true
 	session.stage = stageCommandDone
