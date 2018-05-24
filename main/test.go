@@ -28,12 +28,12 @@ func ParseCommandLine() {
 	ok := flag.Bool("v", false, "is ok")
 	flag.StringVar(&GConfFile, "c", "config.yaml", "General configuration file of rtmpserver")
 
-	flag.StringVar(&GDefaultPath, "p", "/usr/local/rtmpserver/", "Default file path of rtmpserver")
+	flag.StringVar(&GDefaultPath, "p", "./", "Default file path of rtmpserver")
 
 	if GDefaultPath[len(GDefaultPath)-1] != '/' {
 		GDefaultPath = GDefaultPath + "/"
 	}
-
+	fmt.Println(GDefaultPath,GConfFile)
 	flag.Parse()
 	if *ok == true {
 		fmt.Println(version)
