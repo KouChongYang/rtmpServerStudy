@@ -885,13 +885,15 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 
 		tcpConn.SetNoDelay(true)
 		session := NewSsesion(netconn)
-		var f *os.File
+		/*var f *os.File
 		if f,err = tcpConn.File();err != nil{
 			log.Log.Error("rtmp server get socket fd err ",zap.String("errMsg",e.Error()))
 			return err
-		}
+		}*/
 
+		session.SessionId = time.Now().Nanosecond()
 		session.SessionId = fmt.Sprintf("%d",f.Fd())
+
 		session.RemoteAddr = tcpConn.RemoteAddr().String()
 
 		session.isServer = true
