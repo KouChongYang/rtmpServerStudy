@@ -33,12 +33,13 @@ type publishdomain struct {
 }
 
 type Rtmpserver struct{
-	RtmpListen []string `yaml:"RtmpListen"`
-	ClusterCnf []string `yaml:"ClusterCnf"`
-	SelfIp string `yaml:"SelfIp"`
-	HttpListen []string `yaml:"HttpListen"`
-	QuicListen string `yaml:"QuicListen"`
-	KcpListen string `yaml:"KcpListen"`
+	RtmpListen []string 	`yaml:"RtmpListen"`
+	ClusterCnf []string 	`yaml:"ClusterCnf"`
+	SelfIp string 		`yaml:"SelfIp"`
+	HttpListen []string 	`yaml:"HttpListen"`
+	QuicListen string 	`yaml:"QuicListen"`
+	KcpListen string 	`yaml:"KcpListen"`
+	QuicPush  int 		`yaml:"QuicPush"`
 }
 type UserConf struct {
 	PublishDomain map[string]publishdomain `yaml:"PublishDomain"`

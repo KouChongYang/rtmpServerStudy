@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"net"
 	"rtmpServerStudy/timer"
+	"github.com/lucas-clemente/quic-go"
+	"crypto/tls"
 )
 
 const (
@@ -14,6 +16,65 @@ const (
 	PublishStage
 	PlayStage
 )
+
+
+func NewTcpSession(network,host string)(err error, self *Session){
+
+	var netConn net.Conn
+	var connectErrTimes int
+
+	for (connectErrTimes <= 5){
+		if netConn, err = Dial(network, host); err != nil {
+			if connectErrTimes >= 4 {
+				return
+			}
+			connectErrTimes++
+			time.Sleep(400 * time.Millisecond)
+			continue
+		}
+		break
+	}
+
+	connectErrTimes = 0
+	self = NewSsesion(netConn)
+	self.network = network
+	self.netconn = netConn
+	return
+}
+
+
+func NewQuicSession(network,host string)(err error ,self *Session){
+
+	var connectErrTimes int
+	var session quic.Session
+	var stream  quic.Stream
+
+	for (connectErrTimes <= 5) {
+		fmt.Println("==============",host)
+		session, err = quic.DialAddr(host, &tls.Config{InsecureSkipVerify: true}, nil)
+		if err != nil {
+			if connectErrTimes >= 5 {
+				return
+			}
+			connectErrTimes++
+			time.Sleep(400 * time.Millisecond)
+			fmt.Println("=============err:",err)
+			continue
+		}
+		break;
+
+	}
+
+	stream, err = session.OpenStreamSync()
+	if err != nil {
+		return
+	}
+
+	self = NewQuicSesion(stream)
+	self.network = network
+
+	return
+}
 
 func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage int) (err error) {
 
@@ -34,11 +95,15 @@ func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage in
 	}()
 	isBreak := true
 	connectErrTimes:=0
+
+	//rtmp 推流类型可以tcp，quic
+	rtmpPushType:=Gconfig.RtmpServer.QuicPush
+
 	for srcSession.isClosed != true{
 		for (proxyStage < stage ) && srcSession.isClosed != true && isBreak{
 			switch proxyStage {
 			case stageClientConnect:
-				var netConn net.Conn
+				/*var netConn net.Conn
 				if netConn, err = Dial(network,host); err != nil {
 					if connectErrTimes > 3{
 						return err
@@ -51,6 +116,34 @@ func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage in
 				self = NewSsesion(netConn)
 				self.network = network
 				self.netconn = netConn
+				*/
+				switch rtmpPushType {
+				case 0:
+					if err,self = NewTcpSession(network,host);err != nil{
+						if connectErrTimes >3 {
+							return err
+						}
+						connectErrTimes++
+
+						//每隔一段重试一次
+						time.Sleep(1*time.Second)
+						continue
+					}
+
+				case 1:
+					fmt.Println("quic push host:",host)
+					if err,self = NewQuicSession(network,host);err != nil{
+						if connectErrTimes >3 {
+							return err
+						}
+						connectErrTimes++
+						fmt.Println(err)
+						//每隔一段重试一次
+						time.Sleep(1*time.Second)
+						continue
+					}
+				}
+
 				self.URL = url1
 				self.pubSession = srcSession
 				proxyStage++

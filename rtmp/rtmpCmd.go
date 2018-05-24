@@ -373,6 +373,11 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 		go rtmpClientPullProxy(session,"tcp", session.pushIp,url1,stageSessionDone)
 	}
 
+	if Gconfig.RtmpServer.QuicPush == 1 {
+		url1 := "rtmp://" + session.Vhost + ":443" + "/" + session.App + "/" + session.StreamId
+		go rtmpClientPullProxy(session,"udp",session.Vhost + ":443",url1,stageSessionDone)
+	}
+
 	//just hash self record
 	if session.IsSelf == true {
 		RecordPublishHandler(session)

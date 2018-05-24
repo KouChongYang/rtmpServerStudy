@@ -192,6 +192,7 @@ func (self *Session) ServerSession(stage int) (err error) {
 		case stageHandshakeDone:
 			log.Log.Info(self.LogFormat() + "rtmp cmd Msg Cycle")
 			if err = self.rtmpReadCmdMsgCycle(); err != nil {
+				fmt.Println(err)
 				self.netconn.Close()
 				return
 			}

@@ -605,8 +605,11 @@ func (self *Session) rtmpClosePlaySession(){
 	self.aCodec = nil
 	self.vCodec = nil
 	self.context = nil
-
-	self.netconn.Close()
+	if self.QuicOn == true {
+		self.QuicConn.Close()
+	}else {
+		self.netconn.Close()
+	}
 	//some
 }
 
