@@ -891,8 +891,8 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 			return err
 		}*/
 
-		session.SessionId = time.Now().Nanosecond()
-		session.SessionId = fmt.Sprintf("%d",f.Fd())
+		//session.SessionId = time.Now().Nanosecond()
+		session.SessionId = fmt.Sprintf("%d",time.Now().Nanosecond())
 
 		session.RemoteAddr = tcpConn.RemoteAddr().String()
 
