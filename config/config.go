@@ -40,6 +40,7 @@ type Rtmpserver struct{
 	QuicListen string 	`yaml:"QuicListen"`
 	KcpListen string 	`yaml:"KcpListen"`
 	QuicPush  int 		`yaml:"QuicPush"`
+	KcpPush   int           `yaml:"QuicPush"`
 }
 type UserConf struct {
 	PublishDomain map[string]publishdomain `yaml:"PublishDomain"`

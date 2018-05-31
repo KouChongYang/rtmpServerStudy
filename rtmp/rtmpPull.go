@@ -9,12 +9,19 @@ import (
 	"rtmpServerStudy/timer"
 	"github.com/lucas-clemente/quic-go"
 	"crypto/tls"
+	"github.com/xtaci/kcp-go"
 )
 
 const (
 	ConnectStage = iota
 	PublishStage
 	PlayStage
+)
+
+const (
+	tcpProxyPushType = iota
+	quicProxyPushType
+	kcpProxyPushType
 )
 
 
@@ -76,7 +83,47 @@ func NewQuicSession(network,host string)(err error ,self *Session){
 	return
 }
 
-func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage int) (err error) {
+func NewKcpSession(network,host string)(err error ,self *Session){
+
+	var connectErrTimes int
+
+	var sess *kcp.UDPSession
+	for (connectErrTimes <= 5) {
+		fmt.Println("==============", host)
+		sess, err = kcp.DialWithOptions("10.4.23.115:9997", nil, -1, -1)
+		if err != nil {
+			if connectErrTimes >= 5 {
+				return
+			}
+			connectErrTimes++
+			time.Sleep(400 * time.Millisecond)
+			fmt.Println("=============err:",err)
+			continue
+		}
+		break;
+	}
+	sess.SetStreamMode(true)
+	sess.SetStreamMode(false)
+	sess.SetStreamMode(true)
+	sess.SetWindowSize(4096, 4096)
+	sess.SetReadBuffer(4 * 1024 * 1024)
+	sess.SetWriteBuffer(4 * 1024 * 1024)
+	sess.SetStreamMode(true)
+	sess.SetNoDelay(1, 10, 2, 1)
+	sess.SetMtu(1400)
+	sess.SetMtu(1600)
+	sess.SetMtu(1400)
+	sess.SetACKNoDelay(true)
+	sess.SetDeadline(time.Now().Add(time.Minute))
+
+	self = NewSsesion(sess)
+	self.network = network
+	self.netconn = sess
+
+	return
+}
+
+func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage ,rtmpPushType int) (err error) {
 
 	var self *Session
 	var url1 *url.URL
@@ -97,7 +144,6 @@ func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage in
 	connectErrTimes:=0
 
 	//rtmp 推流类型可以tcp，quic
-	rtmpPushType:=Gconfig.RtmpServer.QuicPush
 
 	for srcSession.isClosed != true{
 		for (proxyStage < stage ) && srcSession.isClosed != true && isBreak{
@@ -133,6 +179,18 @@ func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage in
 				case 1:
 					fmt.Println("quic push host:",host)
 					if err,self = NewQuicSession(network,host);err != nil{
+						if connectErrTimes >3 {
+							return err
+						}
+						connectErrTimes++
+						fmt.Println(err)
+						//每隔一段重试一次
+						time.Sleep(1*time.Second)
+						continue
+					}
+				case 2:
+					fmt.Println("kcp push host:",host)
+					if err, self = NewQuicSession(network,host);err != nil {
 						if connectErrTimes >3 {
 							return err
 						}

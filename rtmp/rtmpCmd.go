@@ -370,12 +370,17 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 
 		log.Log.Info(fmt.Sprintf("%s rtmp publish must hash push: push url:%s",
 			session.LogFormat(),url1))
-		go rtmpClientPullProxy(session,"tcp", session.pushIp,url1,stageSessionDone)
+		go rtmpClientPullProxy(session,"tcp", session.pushIp,url1,stageSessionDone,0)
 	}
 
 	if Gconfig.RtmpServer.QuicPush == 1 {
-		url1 := "rtmp://" + session.Vhost + ":443" + "/" + session.App + "/" + session.StreamId
-		go rtmpClientPullProxy(session,"udp",session.Vhost + ":443",url1,stageSessionDone)
+		url1 := "rtmp://" + session.Vhost + ":8888" + "/" + session.App + "/" + session.StreamId
+		go rtmpClientPullProxy(session,"udp",session.Vhost + ":8888",url1,stageSessionDone,1)
+	}
+
+	if Gconfig.RtmpServer.KcpPush == 1 {
+		url1 := "rtmp://" + session.Vhost + ":8887" + "/" + session.App + "/" + session.StreamId
+		go rtmpClientPullProxy(session,"udp",session.Vhost + ":8887",url1,stageSessionDone,2)
 	}
 
 	//just hash self record
