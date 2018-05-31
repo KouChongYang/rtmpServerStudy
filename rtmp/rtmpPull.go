@@ -90,7 +90,7 @@ func NewKcpSession(network,host string)(err error ,self *Session){
 	var sess *kcp.UDPSession
 	for (connectErrTimes <= 5) {
 		fmt.Println("==============", host)
-		sess, err = kcp.DialWithOptions("10.4.23.115:9997", nil, -1, -1)
+		sess, err = kcp.DialWithOptions(host, nil, -1, -1)
 		if err != nil {
 			if connectErrTimes >= 5 {
 				return
