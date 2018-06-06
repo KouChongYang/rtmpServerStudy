@@ -33,6 +33,7 @@ import (
 	"rtmpServerStudy/log"
 	//"go.uber.org/zap/zapcore"
 	"go.uber.org/zap"
+	"sync/atomic"
 )
 
 /* RTMP message types */
@@ -44,6 +45,7 @@ var (
 )
 
 var Gconfig *config.RtmpServerCnf
+var GsessionId uint64
 
 const (
 	MAXREGISTERCHANNEL     = 512
@@ -106,7 +108,7 @@ type Session struct {
 	curgopcount       int
 	QuicOn            bool
 	QuicConn quic.Stream
-	SessionId 	  string
+	SessionId 	  uint64
 	RemoteAddr        string
 
 	App               string
@@ -226,6 +228,7 @@ func RtmpSessionGet(path string)(session *Session){
 //
 func RtmpSessionPush(session *Session) bool{
 	path:= session.StreamAnchor
+	log.Log.Info(fmt.Sprintf("%s add session to publishingMap",session.LogFormat()))
 	i:=hash(path)%HashMapFactors
 	PublishingSessionMap[i].Lock()
 	defer 	PublishingSessionMap[i].Unlock()
@@ -238,11 +241,13 @@ func RtmpSessionPush(session *Session) bool{
 }
 
 func RtmpSessionDel(session *Session) {
+
 	path:= session.StreamAnchor
 	i:=hash(path)%HashMapFactors
 	PublishingSessionMap[i].Lock()
 	delete(PublishingSessionMap[i].sessionIndex,path)
 	PublishingSessionMap[i].Unlock()
+	log.Log.Info(fmt.Sprintf("%s del session from publishingMap",session.LogFormat()))
 }
 
 func NewSsesion(netconn net.Conn) *Session {
@@ -262,7 +267,7 @@ func NewSsesion(netconn net.Conn) *Session {
 	//true register ok ,false register false
 
 	session.PacketAck = make(chan bool, 1)
-
+	session.SessionId = GetIncreaseID()
 	//this maybe
 	//session.context , session.cancel = context.WithCancel(context.Background())
 	//
@@ -334,9 +339,17 @@ func (self *Session) fillChunk0Header(b []byte, csid uint32, timestamp uint32, m
 }
 
 func (self *Session) flushWrite() (err error) {
+
+	if self.QuicOn == true{
+		self.QuicConn.SetWriteDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}else{
+		self.netconn.SetWriteDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}
+
 	if err = self.bufw.Flush(); err != nil {
 		return
 	}
+
 	return
 }
 
@@ -346,6 +359,13 @@ func (self *chunkStream) Start() {
 }
 
 func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
+
+	if self.QuicOn == true{
+		self.QuicConn.SetReadDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}else{
+		self.netconn.SetReadDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}
+
 
 	b := self.readbuf
 	n := 0
@@ -553,8 +573,8 @@ func (self *Session) readChunk(hands RtmpMsgHandle) (err error) {
 	cs.msgdataleft -= uint32(size)
 
 	if Debug {
-		log.Log.Debug(self.LogFormat() + fmt.Sprintf("rtmp: chunk msgsid=%d msgtypeid=%d msghdrtype=%d len=%d left=%d\n",
-			cs.msgsid, cs.msgtypeid, cs.msghdrtype, cs.msgdatalen, cs.msgdataleft))
+		log.Log.Debug(fmt.Sprintf("%s rtmp: chunk msgsid=%d msgtypeid=%d msghdrtype=%d len=%d left=%d\n",self.LogFormat(),
+		cs.msgsid, cs.msgtypeid, cs.msghdrtype, cs.msgdatalen, cs.msgdataleft))
 	}
 
 	if cs.msgdataleft == 0 {
@@ -605,7 +625,7 @@ func (self *Session) rtmpClosePlaySession(){
 	self.aCodec = nil
 	self.vCodec = nil
 	self.context = nil
-
+	log.Log.Info(fmt.Sprintf("%s close the play session",self.LogFormat()))
 	self.netconn.Close()
 	//some
 }
@@ -787,7 +807,6 @@ func (self *Server)ListenAndServersStart(){
 		go self.rtmpQuicServerStart(self.QuicAddr)
 	}
 
-
 	//http server start
 	for _, addr :=  range self.HttpAddr{
 		go self.httpServerStart(addr)
@@ -802,6 +821,15 @@ func NewServer(file string) (err error,server *Server){
 	if err,Gconfig = config.ParseConfig(file);err != nil{
 		return
 	}
+
+	if Gconfig.RtmpServer.SendTimeOut <= 0{
+		Gconfig.RtmpServer.SendTimeOut = 30
+	}
+
+	if Gconfig.RtmpServer.ReadTimeOut <=0 {
+		Gconfig.RtmpServer.ReadTimeOut = 30
+	}
+
 	server.RtmpAddr ,server.HttpAddr,server.QuicAddr,server.KcpAddr =
 		Gconfig.RtmpServer.RtmpListen,Gconfig.RtmpServer.HttpListen ,Gconfig.RtmpServer.QuicListen,Gconfig.RtmpServer.KcpListen
 
@@ -816,7 +844,7 @@ func NewServer(file string) (err error,server *Server){
 		logpath = "./err.log"
 	}
 
-	err =os.MkdirAll( Gconfig.LogInfo.OutPaths,0666)
+	err =os.MkdirAll( Gconfig.LogInfo.OutPaths,0777)
 	if err != nil{
 		fmt.Printf("%s\n",err.Error())
 		return
@@ -827,9 +855,25 @@ func NewServer(file string) (err error,server *Server){
 }
 
 func (self *Session)LogFormat()string{
-
-	return fmt.Sprintf("session_id:%s uniquename:%s app:%s name:%s ",
+	if self.QuicOn == true{
+		return fmt.Sprintf("quicserver sid:%d|uniname:%s|app:%s|name:%s|",
+			self.SessionId,self.uniqueName,self.App,self.StreamId)
+	}
+	return fmt.Sprintf("sid:%d|uniname:%s|app:%s|name:%s|",
 		self.SessionId,self.uniqueName,self.App,self.StreamId)
+}
+
+
+func GetIncreaseID() uint64 {
+	var n, v uint64
+	for {
+		v = atomic.LoadUint64(&GsessionId)
+		n = v + 1
+		if atomic.CompareAndSwapUint64(&GsessionId, v, n) {
+			break
+		}
+	}
+	return n
 }
 
 func (self *Server) rtmpServeStart(addr string,) (err error) {
@@ -844,7 +888,7 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 
 	var listener net.Listener
 	if listener,err = self.socketListen(addr); err != nil {
-		log.Log.Error("rtmp server listen err the addr: " + addr ,zap.String("errMsg",err.Error()))
+		log.Log.Error(fmt.Sprintf("rtmp server listen err the addr: %s ",addr) ,zap.String("errMsg",err.Error()))
 		return err
 	}
 
@@ -875,38 +919,36 @@ func (self *Server) rtmpServeStart(addr string,) (err error) {
 		}
 		tempDelay = 0
 
-		tcpConn, ok := netconn.(*net.TCPConn)
-		if !ok {
-			//error handle
-		}
-
-		tcpConn.SetNoDelay(true)
-		session := NewSsesion(netconn)
-		var f *os.File
-		if f,err = tcpConn.File();err != nil{
-			log.Log.Error("rtmp server get socket fd err ",zap.String("errMsg",e.Error()))
-			return err
-		}
-
-		session.SessionId = fmt.Sprintf("%d",f.Fd())
-		session.RemoteAddr = tcpConn.RemoteAddr().String()
-
-		session.isServer = true
 		go func() {
+			session := NewSsesion(netconn)
+			session.isServer = true
+
 			defer func() {
+				if session != nil {
+					session.rtmpCloseSessionHanler()
+				}
+
 				if err := recover(); err != nil  {
 					const size = 64 << 10
 					buf := make([]byte, size)
 					buf = buf[:runtime.Stack(buf, false)]
-					session.rtmpCloseSessionHanler()
 					log.Log.Error(fmt.Sprintf("%s rtmp: panic serving %v: %v\n%s",
 							session.LogFormat(),session.netconn.RemoteAddr(), err, string(buf)))
 				}
 			}()
 
+			tcpConn, ok := netconn.(*net.TCPConn)
+			if !ok {
+				//error handle
+			}
+			tcpConn.SetNoDelay(true)
+			session.RemoteAddr = tcpConn.RemoteAddr().String()
+			session.isServer = true
+
 			err := self.ServerHandle(session)
-			log.Log.Info(fmt.Sprintf("%s rtmp server: client closed the remoteAddr %s err:%s",
-				session.LogFormat(),session.netconn.RemoteAddr(), err.Error()))
+			log.Log.Info(fmt.Sprintf("%s rtmp server: client closed the remoteAddr %s err:%v",
+				session.LogFormat(),session.netconn.RemoteAddr(), err))
+			return
 		}()
 	}
 }
@@ -924,10 +966,10 @@ func NewQuicSesion(netconn quic.Stream) *Session {
 	session.metaData = amf.AMFMap{}
 	session.QuicOn = true
 	session.QuicConn = netconn
+	session.SessionId = GetIncreaseID()
 	//just for regist cursor session
 	//session.RegisterChannel = make(chan *Session, MAXREGISTERCHANNEL)
 	//true register ok ,false register false
-
 	session.PacketAck = make(chan bool, 1)
 
 	//this maybe
@@ -969,41 +1011,53 @@ func (self * Server)rtmpQuicServerStart(addr string)(err error) {
 
 	listener, err := quic.ListenAddr(addr, generateTLSConfig(), nil)
 	if err != nil {
+		log.Log.Error(fmt.Sprintf("rtmp quic server listen err  :%s",err.Error()))
 		return err
 	}
+
+	log.Log.Info(fmt.Sprintf("rtmp quic server listen the addr:%s",addr))
 
 	for {
 		sess, err := listener.Accept()
 		if err != nil {
-			return err
+			log.Log.Info(fmt.Sprintf("rtmp quic server accept err: %s",err.Error()))
+			continue
 		}
+
 		stream, err := sess.AcceptStream()
 		if err != nil {
 			sess.Close(err)
-			fmt.Println("udp accept err:",err)
+			log.Log.Info(fmt.Sprintf("rtmp quic server accept stream err: %s",err.Error()))
 			continue
 		}
 		session := NewQuicSesion(stream)
 		session.isServer = true
+
 		go func() {
 			defer func() {
+				if session != nil {
+					session.rtmpCloseSessionHanler()
+				}
 				if err := recover(); err != nil  {
 					const size = 64 << 10
 					buf := make([]byte, size)
 					buf = buf[:runtime.Stack(buf, false)]
-					session.rtmpCloseSessionHanler()
-					fmt.Println("rtmp: panic serving %v: %v\n%s", session.netconn.RemoteAddr(), err, string(buf))
+					//session.rtmpCloseSessionHanler()
+					log.Log.Error(fmt.Sprintf("%s rtmp: panic quic serving  %v: %v\n%s",
+						session.LogFormat(),session.netconn.RemoteAddr(), err, string(buf)))
 				}
 			}()
 
 			err := self.ServerHandle(session)
-			if Debug {
-				fmt.Println("rtmp: server: client closed err:", err)
-			}
+
+			log.Log.Info(fmt.Sprint(fmt.Sprintf("rtmp server: quic conn close %s connect remoteaddr:%v close err:%v",
+				session.LogFormat(),session.netconn.RemoteAddr(), err)))
+
 		}()
 	}
 }
 
+//kcp server start
 //kcp
 func (self * Server)rtmpKcpServerStart(addr string)(err error) {
 
@@ -1012,10 +1066,14 @@ func (self * Server)rtmpKcpServerStart(addr string)(err error) {
     */
 	//listener, err := kcp.ListenWithOptions(addr, nil, 10, 3)
 	//no key no fec
+
 	listener, err := kcp.ListenWithOptions(addr, nil, -1, -1)
 	if err != nil {
-		fmt.Println(err)
+		log.Log.Info(fmt.Sprintf("rtmp kcp server listen err  :%s",err.Error()))
+		return err
 	}
+
+	log.Log.Info(fmt.Sprintf("rtmp kcp server listen the addr:%s",addr))
 	kcplistener := listener
 	kcplistener.SetReadBuffer(4 * 1024 * 1024)
 	kcplistener.SetWriteBuffer(4 * 1024 * 1024)
@@ -1031,21 +1089,26 @@ func (self * Server)rtmpKcpServerStart(addr string)(err error) {
 		s.(*kcp.UDPSession).SetWriteBuffer(4 * 1024 * 1024)
 		session := NewSsesion(s)
 		session.isServer = true
+
 		go func() {
 			defer func() {
+
+				if session != nil {
+					session.rtmpCloseSessionHanler()
+				}
 				if err := recover(); err != nil  {
 					const size = 64 << 10
 					buf := make([]byte, size)
 					buf = buf[:runtime.Stack(buf, false)]
-					session.rtmpCloseSessionHanler()
-					fmt.Println("rtmp: panic serving %v: %v\n%s", session.netconn.RemoteAddr(), err, string(buf))
+					//session.rtmpCloseSessionHanler()
+					log.Log.Error(fmt.Sprintf("%s rtmp: panic kcp serving  %v: %v\n%s",
+						session.LogFormat(),session.netconn.RemoteAddr(), err, string(buf)))
 				}
 			}()
 
 			err := self.ServerHandle(session)
-			if Debug {
-				fmt.Println("rtmp: server: client closed err:", err)
-			}
+			log.Log.Info(fmt.Sprint(fmt.Sprintf("rtmp server: kcp conn close %s connect remoteaddr:%v close err:%v",
+				session.LogFormat(),session.netconn.RemoteAddr(), err)))
 		}()
 
 	}

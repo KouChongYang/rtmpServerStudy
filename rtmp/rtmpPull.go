@@ -67,12 +67,13 @@ func rtmpClientPullProxy(srcSession *Session,network,host,desUrl string,stage in
 					}else{
 						fmt.Println(err)
 					}
-					self.rtmpCloseSessionHanler()
+
 					proxyStage = stageClientConnect
 					time.Sleep(1*time.Second)
 					continue
 				}
 			case stageSessionDone:
+				proxyStage++
 				isBreak = false
 			}
 

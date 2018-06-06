@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"rtmpServerStudy/utils/bits/pio"
 	"io"
+	"time"
 )
 
 var (
@@ -108,12 +109,25 @@ func (self *Session) handshakeClient() (err error) {
 	C0[0] = 3
 	//hsCreate01(C0C1, hsClientFullKey)
 
+	if self.QuicOn == true{
+		self.QuicConn.SetWriteDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}else{
+		self.netconn.SetWriteDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}
 	// > C0C1
 	if _, err = self.bufw.Write(C0C1); err != nil {
 		return
 	}
+
+
 	if err = self.bufw.Flush(); err != nil {
 		return
+	}
+
+	if self.QuicOn == true{
+		self.QuicConn.SetReadDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}else{
+		self.netconn.SetReadDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
 	}
 
 	// < S0S1S2
@@ -125,17 +139,25 @@ func (self *Session) handshakeClient() (err error) {
 		fmt.Println("rtmp: handshakeClient: server version", S1[4], S1[5], S1[6], S1[7])
 	}
 
+
 	if ver := pio.U32BE(S1[4:8]); ver != 0 {
 		C2 = S1
 	} else {
 		C2 = S1
 	}
 
+	if self.QuicOn == true{
+		self.QuicConn.SetWriteDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}else{
+		self.netconn.SetWriteDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}
 	// > C2
 	if _, err = self.bufw.Write(C2); err != nil {
 		return
 	}
-
+	if err = self.bufw.Flush(); err != nil {
+		return
+	}
 	self.stage++
 	return
 }
@@ -164,6 +186,13 @@ func (self *Session) handshakeServer() (err error) {
 	  Latest version is version 3
 	*/
 	// < C0C1
+
+	if self.QuicOn == true{
+		self.QuicConn.SetReadDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}else{
+		self.netconn.SetReadDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}
+
 	if _, err = io.ReadFull(self.bufr, C0C1); err != nil {
 		return
 	}
@@ -212,8 +241,20 @@ func (self *Session) handshakeServer() (err error) {
 	if _, err = self.bufw.Write(S0S1S2); err != nil {
 		return
 	}
+	if self.QuicOn == true{
+		self.QuicConn.SetWriteDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}else{
+		self.netconn.SetWriteDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}
+
 	if err = self.bufw.Flush(); err != nil {
 		return
+	}
+
+	if self.QuicOn == true{
+		self.QuicConn.SetReadDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}else{
+		self.netconn.SetReadDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
 	}
 
 	// < C2

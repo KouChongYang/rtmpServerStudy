@@ -3,12 +3,14 @@ LogInfo:
   OutPaths: ./logs/
 
 RtmpServer:
-  ClusterCnf: ["127.0.0.1:1935","10.137.16.47:1935"]
+  ClusterCnf: ["127.0.0.1:1935"]
   SelfIp: "127.0.0.1:1935"
-  RtmpListen: [":1935","/tmp/rtmp.socket8"]
-  HttpListen: [":8087","/tmp/http.socket6"]
-  QuicListen: ":443"
+  RtmpListen: [":1935"]
+  HttpListen: [":8087"]
+  QuicListen: ":8443"
   KcpListen: ":9997"
+  SendTimeOut: 30
+  ReadTimeOut: 30
 
 UserConf:
   PublishDomain:

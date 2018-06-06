@@ -29,6 +29,8 @@ type RtmpCmdHandle map[string]cmdHandler
 
 func (self *Session)RtmpcheckHost(host string,cmd string)(err error){
 
+	log.Log.Info(fmt.Sprintf("%s rtmp check host the host:%s cmd:%s",self.LogFormat(),host,cmd))
+
 	code,level,desc:="","",""
 	switch cmd {
 	case "connect":
@@ -66,6 +68,7 @@ func (self *Session)RtmpcheckHost(host string,cmd string)(err error){
 
 func (self *Session)RtmpChckeApp(host ,app string)(err error){
 
+	log.Log.Info(fmt.Sprintf("%s rtmp check app the app:%s cmd:%s",self.LogFormat(),host,app))
 	code,level,desc:="","",""
 	pubOk:=false
 	PlayOk:=false
@@ -79,6 +82,7 @@ func (self *Session)RtmpChckeApp(host ,app string)(err error){
 		}
 		err = errbak
 		self.flushWrite()
+		return
 	}else{
 		if PlayOk{
 			if Gconfig.UserConf.PlayDomain[host].App[app] != nil {
@@ -97,6 +101,7 @@ func (self *Session)RtmpChckeApp(host ,app string)(err error){
 
 func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 	//startTime:= time.Now()
+	log.Log.Info(fmt.Sprintf("%s rtmp cmd connect match",session.LogFormat()))
 
 	var transid, obj interface{}
 	var size int
@@ -185,6 +190,7 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 		if  len(h)>0{
 			host = h[0]
 		}
+
 		if err = session.RtmpcheckHost(host,"connect");err != nil {
 			return
 		}
@@ -213,10 +219,13 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 			"objectEncoding": 3,
 		},
 	); err != nil {
+		log.Log.Info(fmt.Sprintf("%s write cmd msg _result err:%s",session.LogFormat(),err.Error()))
 		return
 	}
 
+
 	if err = session.flushWrite(); err != nil {
+		log.Log.Info(fmt.Sprintf("%s write cmd msg _result err:%s",session.LogFormat(),err.Error()))
 		return
 	}
 
@@ -243,6 +252,7 @@ func RtmpCreateStreamCmdHandler(session *Session, b []byte) (n int, err error) {
 		return
 	}
 	if err = session.flushWrite(); err != nil {
+		log.Log.Info(fmt.Sprintf("%s write cmd create stream err:%s",session.LogFormat(),err.Error()))
 		return
 	}
 

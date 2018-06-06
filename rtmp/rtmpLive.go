@@ -48,6 +48,7 @@ func (self *Session)rtmpClosePublishingSession(){
 	//hls
 	//flv
 	//other things
+	log.Log.Info(fmt.Sprintf("%s close publish client session",self.LogFormat()))
 	self.CursorList = nil
 	if self.QuicOn == true{
 		self.QuicConn.Close()
@@ -59,6 +60,7 @@ func (self *Session)rtmpClosePublishingSession(){
 
 func (self *Session) rtmpCloseSessionHanler() {
 	self.stage++
+
 	if self.publishing == true {
 		self.rtmpClosePublishingSession()
 	}else{
@@ -110,7 +112,9 @@ func (self *Session) rtmpSendHead() (err error) {
 			}
 		}
 	}
-	//panic(55)
+
+	log.Log.Info(fmt.Sprintf("%s send av header ok ",self.LogFormat()))
+
 	return
 }
 
@@ -130,6 +134,7 @@ func (self *Session) rtmpSendGop() (err error) {
 		}
 		pkt = self.GopCache.RingBufferGet();
 	}
+	log.Log.Info(fmt.Sprintf("%s send gop ok",self.LogFormat()))
 	self.GopCache = nil
 	return
 }
@@ -183,33 +188,38 @@ func (self *Session) ServerSession(stage int) (err error) {
 		switch self.stage {
 		//first handshake
 		case stageHandshakeStart:
-			log.Log.Info(self.LogFormat()+"handshake start")
+			log.Log.Info(fmt.Sprintf("%s handshake start",self.LogFormat()))
 			if err = self.handshakeServer(); err != nil {
-				self.netconn.Close()
+				log.Log.Info(fmt.Sprintf("%s handshake err:%s",self.LogFormat(),err.Error()))
 				return
 			}
-			log.Log.Info(self.LogFormat() + "rtmp handshake done")
+			log.Log.Info(fmt.Sprintf("%s handshake done",self.LogFormat()))
 		case stageHandshakeDone:
-			log.Log.Info(self.LogFormat() + "rtmp cmd Msg Cycle")
+			log.Log.Info(fmt.Sprintf("%s rtmp cmd Msg Cycle start",self.LogFormat()))
 			if err = self.rtmpReadCmdMsgCycle(); err != nil {
-				self.netconn.Close()
+				log.Log.Info(fmt.Sprintf("%s rtmp cmd msg cycle err:%s",self.LogFormat(),err.Error()))
 				return
 			}
-			log.Log.Info(self.LogFormat() + "rtmp cmd msg cycle done")
+			log.Log.Info(fmt.Sprintf("%s rtmp cmd Msg Cycle done",self.LogFormat()))
+
 		case stageCommandDone:
 			if self.publishing {
 				//just 推流
-				log.Log.Info(self.LogFormat() + "rtmp client is publishing client addr:" + self.RemoteAddr)
+				log.Log.Info(fmt.Sprintf("%s rtmp client is publishing client addr:%s",
+									self.LogFormat(),self.RemoteAddr))
 				//only publish and relay need cache gop
 				err = self.rtmpReadMsgCycle()
-				log.Log.Info(self.LogFormat() + "rtmp publish client read msg cycle err:" + err.Error())
+
+				log.Log.Info(fmt.Sprintf("%s rtmp publish client read msg cycle over the err:%v",
+					self.LogFormat(),err))
 				self.stage = stageSessionDone
 				continue
 			} else if self.playing {
 				pubSession:= RtmpSessionGet(self.StreamAnchor)
 				if pubSession != nil {
 					//register play to the publish
-
+					log.Log.Info(fmt.Sprintf("%s rtmp play get the pubsession",
+						self.StreamAnchor))
 					t := timer.GlobalTimerPool.Get(time.Second * MAXREADTIMEOUT)
 					select {
 					case pubSession.RegisterChannel <- self:
@@ -234,6 +244,7 @@ func (self *Session) ServerSession(stage int) (err error) {
 					self.context, self.cancel = pubSession.context, pubSession.cancel
 					//send audio,video head and meta
 					if err = self.rtmpSendHead(); err != nil {
+
 						self.isClosed = true
 						return err
 					}
@@ -246,7 +257,10 @@ func (self *Session) ServerSession(stage int) (err error) {
 					self.isClosed = true
 					self.stage = stageSessionDone
 				} else {
+					log.Log.Info(fmt.Sprintf("%s rtmp play not find the local pubsession",
+						self.StreamAnchor))
 					if noSelf := self.RtmpCheckStreamIsSelf();noSelf != true {
+
 						url1:= "rtmp://" + self.pushIp + "/" + self.App +"?" + "vhost=" + self.Vhost + "/" + self.StreamId +"?relay=1"
 						fmt.Println(url1)
 						RtmpRelay("tcp", self.pushIp,self.Vhost,self.App,self.StreamId,url1,stageSessionDone)
@@ -262,8 +276,11 @@ func (self *Session) ServerSession(stage int) (err error) {
 				}
 			}
 		case stageSessionDone:
+			self.stage++
 			//some thing close handler
-			self.rtmpCloseSessionHanler()
+			log.Log.Info(fmt.Sprintf("%s rtmp server: rtmp stage over RemoteAddr:%s",
+				self.LogFormat(),self.netconn.RemoteAddr()))
+			//self.rtmpCloseSessionHanler()
 		}
 	}
 	return

@@ -60,6 +60,7 @@ func (self *Session) writeRtmpMsgAck(seqnum uint32) (err error) {
 	pio.PutU32BE(b[n:], seqnum)
 	n += 4
 	_, err = self.bufw.Write(b[:n])
+	err = self.flushWrite()
 	return
 }
 

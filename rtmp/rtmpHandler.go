@@ -3,6 +3,7 @@ package rtmp
 import (
 	"rtmpServerStudy/amf"
 	"rtmpServerStudy/utils/bits/pio"
+	"time"
 )
 
 func (self *Session) writeDataMsg(csid, msgsid uint32, args ...interface{}) (err error) {
@@ -19,6 +20,12 @@ func (self *Session) DoSend(b []byte, csid uint32, timestamp uint32, msgtypeid u
 	sn := 0
 	last := self.writeMaxChunkSize
 	end := msgdatalen
+
+	if self.QuicOn == true{
+		self.QuicConn.SetWriteDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}else{
+		self.netconn.SetWriteDeadline(time.Now().Add(time.Duration(Gconfig.RtmpServer.SendTimeOut) * time.Second))
+	}
 
 	for msgdatalen > 0 {
 		if pos == 0 {

@@ -8,6 +8,7 @@ import (
 	"os"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
+	"rtmpServerStudy/log"
 )
 
 var GConfFile string
@@ -50,6 +51,7 @@ func main() {
 	go prometheus()
 	confFile := fmt.Sprintf("%s%s", GDefaultPath, GConfFile)
 	if err,srv:=rtmp.NewServer(confFile);err != nil {
+		log.Log.Error(fmt.Sprintf("rtmp server init start err:%v",err))
 		return
 	}else{
 		srv.ListenAndServersStart()

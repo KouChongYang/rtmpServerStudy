@@ -8,6 +8,7 @@ import (
 )
 
 type App struct {
+
 	GopCacheNum int `yaml:"GopCacheNum"`
 	ExtTimeSend int `yaml:"ExtTimeSend"`
 	RecodeFlv int `yaml:"RecodeFlv"`
@@ -39,6 +40,8 @@ type Rtmpserver struct{
 	HttpListen []string `yaml:"HttpListen"`
 	QuicListen string `yaml:"QuicListen"`
 	KcpListen string `yaml:"KcpListen"`
+	SendTimeOut int `yaml:"SendTimeOut"`
+	ReadTimeOut int `yaml:"ReadTimeOut"`
 }
 type UserConf struct {
 	PublishDomain map[string]publishdomain `yaml:"PublishDomain"`
