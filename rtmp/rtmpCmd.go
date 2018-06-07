@@ -31,6 +31,7 @@ func (self *Session)RtmpcheckHost(host string,cmd string)(err error){
 
 	log.Log.Info(fmt.Sprintf("%s rtmp check host the host:%s cmd:%s",self.LogFormat(),host,cmd))
 
+	host = "momo.uplive.com"
 	code,level,desc:="","",""
 	switch cmd {
 	case "connect":
@@ -72,6 +73,8 @@ func (self *Session)RtmpChckeApp(host ,app string)(err error){
 	code,level,desc:="","",""
 	pubOk:=false
 	PlayOk:=false
+	host="momo.uplive.com"
+	app = "live"
 	_,PlayOk=Gconfig.UserConf.PlayDomain[host].App[app]
 	_,pubOk=Gconfig.UserConf.PublishDomain[host].App[app]
 	if (!PlayOk) && (!pubOk){
@@ -196,12 +199,17 @@ func RtmpConnectCmdHandler(session *Session, b []byte) (n int, err error) {
 		}
 	}
 
+	if (len(host) <=0)  || (len(session.App) <=0) {
+		err = fmt.Errorf("%s","Rtmp.NetStream.Connect.IllegalDomainOrApp")
+		return
+	}
 
 	if err = session.RtmpChckeApp(host,session.App);err != nil{
 		return
 	}
 
 	session.Vhost = host
+
 	if err = session.writeBasicConf(); err != nil {
 		return
 	}
@@ -326,6 +334,8 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 	}
 	publishpath, _ := commandparams[0].(string)
 
+	session.pushPath = publishpath
+
 	var u *url.URL
 	if u, err = url.Parse(publishpath);err != nil {
 		log.Log.Info(fmt.Sprintf("%s rtmp client publish parse publish path err:%s",
@@ -333,7 +343,7 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 		return
 	}else{
 		session.StreamId = u.Path
-		session.StreamAnchor = u.Path + ":" + Gconfig.UserConf.PublishDomain[session.Vhost].UniqueName + ":" + session.App
+		session.StreamAnchor = u.Path + ":" + session.uniqueName + ":" + session.App
 	}
 
 	// here must do something
@@ -345,8 +355,12 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 	session.context, session.cancel = context.WithCancel(context.Background())
 	session.GopCache = AvQue.RingBufferCreate(8)
 	ok := RtmpSessionPush(session)
+
 	if !ok {
 		code ,level,desc = "NetStream.Publish.BadName","status","Already publishing"
+
+		log.Log.Info(fmt.Sprintf("%s rtmp client publish Already publishing",
+			session.LogFormat()))
 	}else {
 		code ,level,desc = "NetStream.Publish.Start","status","Start publishing"
 		//play register channel
@@ -362,6 +376,12 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 	if err = session.flushWrite(); err != nil {
 		return
 	}
+
+	if !ok {
+		err = fmt.Errorf("%s","NetStream.Publish.BadName")
+		return
+	}
+
 	session.publishing = true
 
 	session.recordTime = time.Now()
@@ -382,6 +402,13 @@ func RtmpPublishCmdHandler(session *Session, b []byte) (n int, err error) {
 			session.LogFormat(),url1))
 		go rtmpClientPullProxy(session,"tcp", session.pushIp,url1,stageSessionDone)
 	}
+
+	if Gconfig.RtmpServer.AutoTurnOut == 1{
+		url1 := "rtmp://" + session.Vhost + "/" + session.App + "/" + session.pushPath
+		fmt.Println(url1)
+		go rtmpClientPullProxy(session,"tcp",session.Vhost+":1935",url1,stageSessionDone)
+	}
+
 
 	//just hash self record
 	if session.IsSelf == true {

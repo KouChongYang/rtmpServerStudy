@@ -42,6 +42,8 @@ type Rtmpserver struct{
 	KcpListen string `yaml:"KcpListen"`
 	SendTimeOut int `yaml:"SendTimeOut"`
 	ReadTimeOut int `yaml:"ReadTimeOut"`
+	AutoTurnOut  int `yaml:"AutoTurnOut"`
+
 }
 type UserConf struct {
 	PublishDomain map[string]publishdomain `yaml:"PublishDomain"`

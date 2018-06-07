@@ -115,6 +115,7 @@ type Session struct {
 	StreamId          string
 	StreamAnchor      string
 	uniqueName 	  string
+	pushPath          string
 
 	cancel            context.CancelFunc
 	URL               *url.URL
@@ -228,7 +229,7 @@ func RtmpSessionGet(path string)(session *Session){
 //
 func RtmpSessionPush(session *Session) bool{
 	path:= session.StreamAnchor
-	log.Log.Info(fmt.Sprintf("%s add session to publishingMap",session.LogFormat()))
+	//log.Log.Info(fmt.Sprintf("%s add session to publishingMap",session.LogFormat()))
 	i:=hash(path)%HashMapFactors
 	PublishingSessionMap[i].Lock()
 	defer 	PublishingSessionMap[i].Unlock()
@@ -237,6 +238,7 @@ func RtmpSessionPush(session *Session) bool{
 	}else{
 		PublishingSessionMap[i].sessionIndex[path] = session
 	}
+	log.Log.Info(fmt.Sprintf("%s add session to publishingMap",session.LogFormat()))
 	return true
 }
 
