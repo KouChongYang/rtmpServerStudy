@@ -11,9 +11,6 @@ just for study golang and AV knowledge
 #### 支持的传输协议
 - [x] RTMP
 - [x] AMF
-- [x] HLS (h264 aac)
-- [x] HTTP-FLV (h264,h265,aac)
-
 #### 支持的容器格式
 - [x] FLV
 - [x] TS
