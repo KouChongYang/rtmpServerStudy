@@ -15,14 +15,9 @@ just for study golang and AV knowledge
 - [x] FLV
 - [x] TS
 
-### 支持推流传输协议
-- [x] tcp
-- [x] quic
-- [x] kcp
 
 #### 支持的编码格式
 - [x] H264
-- [x] H265 ()
 - [x] AAC
 
 #### 从源码编译
